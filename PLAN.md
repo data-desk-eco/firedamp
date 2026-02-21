@@ -1,11 +1,11 @@
-# Methane Plume Visualisation
+# Firedamp Plume Visualisation
 
 Full-screen map showing methane plume detections from three satellite datasets alongside infrastructure data, styled after [burnoff](~/Tools/burnoff) with attribution logic inspired by [nom-de-plume](~/nom-de-plume). Static HTML/JS/CSS with JSON data, deployable to GitHub Pages.
 
 ## Architecture
 
 ```
-methane/
+firedamp/
 ├── Makefile                    # Build targets: data, vendor, serve, clean
 ├── pyproject.toml              # Python deps (httpx only)
 ├── scripts/
@@ -151,7 +151,7 @@ Following burnoff exactly:
 - Color: white text, `rgba(255,120,50,0.9)` accent
 
 #### Left Panel (220px, top-left)
-- **Title**: "methane" (h1, 13px, weight 500)
+- **Title**: "firedamp" (h1, 13px, weight 500)
 - **Subtitle**: "Satellite plume detections" (11px, muted)
 - **Source toggles**: 3 buttons (CM / IMEO / SRON) — burnoff mode-toggle style
   - Each shows count badge
@@ -228,7 +228,7 @@ make data
 
 ## Agent Team Structure
 
-### Team: `methane-build`
+### Team: `firedamp-build`
 
 #### Agent 1: `data-pipeline` (general-purpose)
 Writes all Python scripts and the Makefile:
