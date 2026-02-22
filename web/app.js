@@ -643,7 +643,7 @@ function showDetail(feature) {
     const srcLabel = SRC_LABELS[p.src] || p.src;
 
     // Find nearby infrastructure
-    const nearby = findNearbyInfra(lon, lat);
+    const nearby = ogimVisible ? findNearbyInfra(lon, lat) : [];
     let nearbyHtml = '';
     if (nearby.length > 0) {
         nearbyHtml = `
