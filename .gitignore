@@ -1,11 +1,10 @@
 .DS_Store
 .env
-/data/
-web/data/ogim.pmtiles
-web/data/sources.json
-web/data/plumes.json
 .venv/
 __pycache__/
 *.pyc
+/data/
 plumes.zip
 plumes_data/
+web/data/ogim.pmtiles
+web/data/sources.json

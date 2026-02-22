@@ -23,7 +23,7 @@ ogrinfo -so "$GPKG" | grep "^[0-9]"
 # Wells: exclude abandoned, plugged, dry holes, and junk types (~4.5M → ~1.5M)
 echo "Extracting wells (filtered — excluding abandoned, plugged, dry holes)..."
 ogr2ogr -f GeoJSONSeq data/ogim_wells.geojsonl "$GPKG" \
-    -sql "SELECT geom, OGIM_ID, CATEGORY, COUNTRY, FAC_TYPE, OGIM_STATUS, OPERATOR
+    -sql "SELECT geom, OGIM_ID, CATEGORY, COUNTRY, FAC_TYPE, OGIM_STATUS, OPERATOR, SUBSTR(SPUD_DATE, 1, 4) AS SPUD_YEAR
           FROM Oil_and_Natural_Gas_Wells
           WHERE geom IS NOT NULL
             AND OGIM_STATUS NOT IN ('ABANDONED', 'N/A')
@@ -89,7 +89,7 @@ fi
 echo "Merging PMTiles..."
 INPUTS="data/ogim_wells.pmtiles data/ogim_pipelines.pmtiles"
 [ -f data/ogim_facilities.pmtiles ] && INPUTS="$INPUTS data/ogim_facilities.pmtiles"
-tile-join -o "$OUT" --force $INPUTS
+tile-join -o "$OUT" --force --no-tile-size-limit $INPUTS
 
 echo "Done! Output: $OUT"
 ls -lh "$OUT"

@@ -1,13 +1,9 @@
-.PHONY: data ogim ogim-upload rebuild serve vendor clean help
+.PHONY: data ogim ogim-upload rebuild serve vendor clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
-data: data/imeo.ok data/sron.ok data/carbon_mapper.ok
+data: data/sron.ok data/carbon_mapper.ok
 	uv run scripts/build.py
 	@echo "Built web/data/plumes.bin"
-
-data/imeo.ok:
-	uv run scripts/fetch_imeo.py
-	@touch data/imeo.ok
 
 data/sron.ok:
 	uv run scripts/fetch_sron.py
@@ -20,41 +16,41 @@ data/carbon_mapper.ok:
 # ── OGIM infrastructure tiles ────────────────────────────────────
 ogim: web/data/ogim.pmtiles
 
-web/data/ogim.pmtiles:
-	@bash scripts/build_ogim.sh
+web/data/ogim.pmtiles: data/OGIM_v2.7.gpkg
+	bash scripts/build_ogim.sh
 
-# ── OGIM GCS upload ─────────────────────────────────────────────
+# ── GCS upload ───────────────────────────────────────────────────
 ogim-upload: web/data/ogim.pmtiles
 	gcloud storage cp web/data/ogim.pmtiles gs://firedamp-data/ogim.pmtiles
 	@echo "Uploaded to gs://firedamp-data/ogim.pmtiles"
 
-# ── Full rebuild (data + OGIM + upload) ─────────────────────────
+# ── Full rebuild ─────────────────────────────────────────────────
 rebuild: data ogim ogim-upload
-	@echo "Full rebuild complete — commit and push to deploy"
+	@echo "Full rebuild complete"
 
 # ── Frontend ─────────────────────────────────────────────────────
 vendor: web/vendor/.ok
 
 web/vendor/.ok:
-	@bash scripts/vendor.sh
+	bash scripts/vendor.sh
 	@touch web/vendor/.ok
 
 serve: vendor
-	@python3 scripts/serve.py
+	uv run scripts/serve.py
 
 # ── Cleanup ──────────────────────────────────────────────────────
 clean:
-	rm -rf data/*.ok data/*.csv data/*.json data/*.geojson web/data/*.json web/data/*.bin web/data/*.pmtiles
+	rm -f data/*.ok data/*.csv web/data/plumes.bin
 
 clean-all: clean
-	rm -rf web/vendor
+	rm -rf web/vendor data/sron data/OGIM_v2.7.gpkg web/data/ogim.pmtiles
 
 help:
-	@echo "make data        - Fetch all plume datasets and build binary"
-	@echo "make ogim        - Build OGIM infrastructure PMTiles"
-	@echo "make ogim-upload - Upload OGIM PMTiles to GCS"
-	@echo "make rebuild     - Full rebuild (data + OGIM + upload)"
-	@echo "make vendor      - Download vendored dependencies (MapLibre, Inter)"
-	@echo "make serve       - Dev server on :8000"
-	@echo "make clean       - Remove generated data"
-	@echo "make clean-all   - Remove everything including vendor"
+	@echo "make data          Fetch plume sources, build web/data/plumes.bin"
+	@echo "make ogim          Build OGIM PMTiles from GeoPackage"
+	@echo "make ogim-upload   Upload OGIM PMTiles to GCS"
+	@echo "make rebuild       Full pipeline: data + ogim + upload"
+	@echo "make vendor        Download vendored JS/CSS/fonts"
+	@echo "make serve         Dev server on :8000"
+	@echo "make clean         Remove generated data files"
+	@echo "make clean-all     Remove all generated files including vendor"
