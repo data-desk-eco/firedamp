@@ -26,8 +26,8 @@ ogr2ogr -f GeoJSONSeq data/ogim_wells.geojsonl "$GPKG" \
     -sql "SELECT geom, OGIM_ID, CATEGORY, COUNTRY, FAC_TYPE, OGIM_STATUS, OPERATOR, SUBSTR(SPUD_DATE, 1, 4) AS SPUD_YEAR
           FROM Oil_and_Natural_Gas_Wells
           WHERE geom IS NOT NULL
-            AND OGIM_STATUS NOT IN ('ABANDONED', 'N/A')
-            AND FAC_TYPE NOT IN ('N/A', 'DRY HOLE', 'UNKNOWN', '')
+            AND OGIM_STATUS NOT IN ('ABANDONED')
+            AND FAC_TYPE NOT IN ('DRY HOLE', 'UNKNOWN', '')
             AND FAC_TYPE NOT LIKE 'PLUGGED%'"
 
 echo "Extracting pipelines..."

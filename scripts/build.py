@@ -89,6 +89,9 @@ def build_cm(path):
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            if row.get("gas", "").upper() != "CH4":
+                continue
+
             dt_raw = row.get("datetime", "")
             try:
                 dt = dt_raw[:10]
