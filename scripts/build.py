@@ -71,6 +71,11 @@ def safe_float(v):
         return None
 
 
+def compact(plume):
+    """Strip null values from a plume dict to reduce JSON size."""
+    return {k: v for k, v in plume.items() if v is not None}
+
+
 def build_cm(path):
     plumes = []
     with open(path, newline="") as f:
@@ -86,18 +91,18 @@ def build_cm(path):
             if rate is None:
                 continue
 
-            plumes.append({
+            unc = safe_float(row.get("emission_uncertainty_auto"))
+            plumes.append(compact({
                 "id": row.get("plume_id", ""),
                 "src": "cm",
-                "lat": safe_float(row.get("plume_latitude")),
-                "lon": safe_float(row.get("plume_longitude")),
+                "lat": round(safe_float(row.get("plume_latitude")), 4),
+                "lon": round(safe_float(row.get("plume_longitude")), 4),
                 "dt": dt,
-                "rate": rate,
-                "unc": safe_float(row.get("emission_uncertainty_auto")),
+                "rate": round(rate),
+                "unc": round(unc) if unc is not None else None,
                 "sat": row.get("platform", "Tanager-1"),
                 "sec": map_sector(row.get("ipcc_sector")),
-                "cty": row.get("country_code") or None,
-            })
+            }))
     print(f"  CM: {len(plumes)} plumes")
     return plumes
 
@@ -120,22 +125,18 @@ def build_imeo_plumes(path):
         sat_raw = p.get("satellite", "")
         sat = SAT_SHORT.get(sat_raw, sat_raw)
 
-        # country is full name in IMEO plumes, not alpha-2 — leave as-is
-        # (would need a full name→alpha2 mapping; skip for now)
-        cty = None
-
-        plumes.append({
+        unc = safe_float(p.get("ch4_fluxrate_std"))
+        plumes.append(compact({
             "id": p.get("id_plume", ""),
             "src": "imeo",
-            "lat": safe_float(p.get("lat")),
-            "lon": safe_float(p.get("lon")),
+            "lat": round(safe_float(p.get("lat")), 4),
+            "lon": round(safe_float(p.get("lon")), 4),
             "dt": dt,
-            "rate": rate,
-            "unc": safe_float(p.get("ch4_fluxrate_std")),
+            "rate": round(rate),
+            "unc": round(unc) if unc is not None else None,
             "sat": sat,
             "sec": map_sector(p.get("sector")),
-            "cty": cty,
-        })
+        }))
     print(f"  IMEO: {len(plumes)} plumes")
     return plumes
 
@@ -201,18 +202,16 @@ def build_sron(path):
             key = f"{dt_raw}:{lat}:{lon}"
             hid = hashlib.md5(key.encode()).hexdigest()[:12]
 
-            plumes.append({
+            plumes.append(compact({
                 "id": f"sron_{hid}",
                 "src": "sron",
-                "lat": lat,
-                "lon": lon,
+                "lat": round(lat, 4),
+                "lon": round(lon, 4),
                 "dt": dt,
-                "rate": round(rate, 1),
-                "unc": round(unc, 1) if unc is not None else None,
+                "rate": round(rate),
+                "unc": round(unc) if unc is not None else None,
                 "sat": "TROPOMI",
-                "sec": None,
-                "cty": None,
-            })
+            }))
     print(f"  SRON: {len(plumes)} plumes")
     return plumes
 
