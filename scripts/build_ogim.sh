@@ -20,11 +20,17 @@ ogrinfo -so "$GPKG" | grep "^[0-9]"
 # --- Extract layers to GeoJSONSeq ---
 # Note: must include geom explicitly in SQL for GPKG → GeoJSONSeq
 
-echo "Extracting wells (4.5M features, this takes a while)..."
+# Wells: exclude abandoned, plugged, dry holes, and junk types (~4.5M → ~1.5M)
+echo "Extracting wells (filtered — excluding abandoned, plugged, dry holes)..."
 ogr2ogr -f GeoJSONSeq data/ogim_wells.geojsonl "$GPKG" \
-    -sql "SELECT geom, OGIM_ID, CATEGORY, COUNTRY, FAC_TYPE, OGIM_STATUS, OPERATOR FROM Oil_and_Natural_Gas_Wells WHERE geom IS NOT NULL"
+    -sql "SELECT geom, OGIM_ID, CATEGORY, COUNTRY, FAC_TYPE, OGIM_STATUS, OPERATOR
+          FROM Oil_and_Natural_Gas_Wells
+          WHERE geom IS NOT NULL
+            AND OGIM_STATUS NOT IN ('ABANDONED', 'N/A')
+            AND FAC_TYPE NOT IN ('N/A', 'DRY HOLE', 'UNKNOWN', '')
+            AND FAC_TYPE NOT LIKE 'PLUGGED%'"
 
-echo "Extracting pipelines (1.8M features)..."
+echo "Extracting pipelines..."
 ogr2ogr -f GeoJSONSeq data/ogim_pipelines.geojsonl "$GPKG" \
     -sql "SELECT geom, OGIM_ID, CATEGORY, COUNTRY, FAC_TYPE, OGIM_STATUS, OPERATOR FROM Oil_Natural_Gas_Pipelines WHERE geom IS NOT NULL"
 

@@ -3,9 +3,9 @@
 // ---------------------------------------------------------------------------
 
 const SRC_COLORS = {
-    cm:   '#22d3ee',
-    imeo: '#f97316',
-    sron: '#a855f7'
+    cm:   '#00ffff',
+    imeo: '#ff00ff',
+    sron: '#ffff00'
 };
 
 const SRC_LABELS = {
@@ -22,7 +22,9 @@ let plumesData = null;       // raw plumes array from plumes.json
 let activeSources = new Set(['cm', 'imeo', 'sron']);
 let activeSector = 'all';
 let activeYear = 'all';
+let activeRate = 'all';
 let ogimVisible = false;
+let selectedFeature = null;
 
 // ---------------------------------------------------------------------------
 // PMTiles protocol — must be registered before map creation
@@ -196,6 +198,9 @@ function buildFilter(src) {
     } else if (activeYear !== 'all') {
         filters.push(['==', ['slice', ['get', 'dt'], 0, 4], activeYear]);
     }
+    if (activeRate !== 'all') {
+        filters.push(['>=', ['get', 'rate'], Number(activeRate) * 1000]);
+    }
     return filters;
 }
 
@@ -209,24 +214,8 @@ function applyFilters() {
         if (!map.getLayer(layerId)) continue;
         map.setFilter(layerId, buildFilter(src));
     }
-    updateVisibleCount();
 }
 
-// ---------------------------------------------------------------------------
-// Count visible plumes
-// ---------------------------------------------------------------------------
-
-function updateVisibleCount() {
-    let total = 0;
-    for (const src of ['cm', 'imeo', 'sron']) {
-        if (!activeSources.has(src)) continue;
-        const layerId = `plumes-${src}`;
-        if (!map.getLayer(layerId)) continue;
-        const features = map.queryRenderedFeatures({ layers: [layerId] });
-        total += features.length;
-    }
-    document.getElementById('visible-count').textContent = total.toLocaleString();
-}
 
 // ---------------------------------------------------------------------------
 // Binary parser
@@ -331,14 +320,6 @@ map.on('load', async () => {
     // Interactions
     setupInteractions();
 
-    updateVisibleCount();
-    let moveRaf = null;
-    map.on('move', () => {
-        if (!moveRaf) moveRaf = requestAnimationFrame(() => {
-            updateVisibleCount();
-            moveRaf = null;
-        });
-    });
 });
 
 // ---------------------------------------------------------------------------
@@ -438,8 +419,7 @@ async function addOGIMLayers() {
                 'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 12, 0.6, 16, 0.8]
             },
             paint: {
-                'icon-opacity': ['case',
-                    ['==', ['get', 'OGIM_STATUS'], 'ABANDONED'], 0.3, 0.6]
+                'icon-opacity': 0.6
             }
         });
         // Invisible preload layers — keep tiles loaded for proximity queries
@@ -516,6 +496,16 @@ function formatDist(km) {
     return `${Math.round(km)} km`;
 }
 
+function syncLegendHeight() {
+    const legend = document.getElementById('legend');
+    if (window.innerWidth <= 768 && !legend.classList.contains('collapsed')) {
+        const lp = document.getElementById('left-panel');
+        legend.style.height = lp.offsetHeight + 'px';
+    } else {
+        legend.style.height = '';
+    }
+}
+
 function toggleOGIM(visible) {
     ogimVisible = visible;
     const vis = visible ? 'visible' : 'none';
@@ -523,6 +513,8 @@ function toggleOGIM(visible) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
     }
     document.getElementById('legend-infra').style.display = visible ? 'block' : 'none';
+    syncLegendHeight();
+    if (selectedFeature) showDetail(selectedFeature);
 }
 
 // ---------------------------------------------------------------------------
@@ -635,6 +627,7 @@ function setupInteractions() {
 // ---------------------------------------------------------------------------
 
 function showDetail(feature) {
+    selectedFeature = feature;
     const p = feature.properties;
     const [lon, lat] = feature.geometry.coordinates;
 
@@ -655,7 +648,7 @@ function showDetail(feature) {
     if (nearby.length > 0) {
         nearbyHtml = `
         <div class="detail-row">
-            <div class="detail-field-label" style="margin-bottom:8px;font-size:var(--font-xs)">Nearby infrastructure</div>
+            <div class="detail-field-label" style="margin:4px 0 8px;font-size:var(--font-xs)">Nearby infrastructure</div>
             ${nearby.map(f => `<div class="nearby-item" onclick="flyToInfra(${f.lon},${f.lat})">
                 <div class="nearby-name">${f.name}</div>
                 <div class="nearby-meta">${[f.operator, formatDist(f.dist)].filter(Boolean).join(' \u00b7 ')}</div>
@@ -690,6 +683,7 @@ function showDetail(feature) {
 }
 
 function closeDetail() {
+    selectedFeature = null;
     document.getElementById('right-panel').classList.add('hidden');
 }
 
@@ -724,7 +718,6 @@ document.querySelectorAll('.source-btn').forEach(btn => {
             map.setLayoutProperty(layerId, 'visibility',
                 activeSources.has(src) ? 'visible' : 'none');
         }
-        updateVisibleCount();
     });
 });
 
@@ -755,6 +748,19 @@ document.querySelectorAll('[data-year]').forEach(btn => {
 });
 
 // ---------------------------------------------------------------------------
+// Rate filter
+// ---------------------------------------------------------------------------
+
+document.querySelectorAll('[data-rate]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-rate]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeRate = btn.dataset.rate;
+        applyFilters();
+    });
+});
+
+// ---------------------------------------------------------------------------
 // OGIM toggle
 // ---------------------------------------------------------------------------
 
@@ -768,11 +774,15 @@ document.getElementById('ogim-toggle').addEventListener('change', e => {
 
 document.getElementById('collapse-toggle').addEventListener('click', () => {
     document.getElementById('left-panel').classList.toggle('collapsed');
+    syncLegendHeight();
 });
 
 document.getElementById('legend-collapse').addEventListener('click', () => {
     document.getElementById('legend').classList.toggle('collapsed');
+    syncLegendHeight();
 });
+
+window.addEventListener('resize', syncLegendHeight);
 
 // ---------------------------------------------------------------------------
 // Keyboard

@@ -21,16 +21,9 @@
         <p class="subtitle">Methane plume aggregator</p>
         <div class="panel-body" id="panel-body">
             <div class="source-toggles">
-                <button class="source-btn active" data-src="cm" style="--src-color: #22d3ee">CM</button>
-                <button class="source-btn active" data-src="imeo" style="--src-color: #f97316">IMEO</button>
-                <button class="source-btn active" data-src="sron" style="--src-color: #a855f7">SRON</button>
-            </div>
-            <div class="separator"></div>
-            <div class="stats">
-                <div class="stat-row">
-                    <span class="stat-label">Visible plumes</span>
-                    <span class="stat-value" id="visible-count">&mdash;</span>
-                </div>
+                <button class="source-btn active" data-src="cm" style="--src-color: #00ffff">CM</button>
+                <button class="source-btn active" data-src="imeo" style="--src-color: #ff00ff">IMEO</button>
+                <button class="source-btn active" data-src="sron" style="--src-color: #ffff00">SRON</button>
             </div>
             <div class="separator"></div>
             <div class="filter-group">
@@ -42,18 +35,23 @@
                     <button class="filter-btn" data-sec="waste">Waste</button>
                 </div>
             </div>
-            <div class="separator"></div>
             <div class="filter-group">
                 <div class="filter-label">Year</div>
                 <div class="filter-buttons year-buttons">
                     <button class="filter-btn active" data-year="all">All</button>
-                    <button class="filter-btn" data-year="2023">23</button>
                     <button class="filter-btn" data-year="2024">24</button>
                     <button class="filter-btn" data-year="2025">25</button>
-                </div>
-                <div class="filter-buttons year-buttons" style="margin-top:2px">
-                    <button class="filter-btn" data-year="pre2023">&lt;23</button>
                     <button class="filter-btn" data-year="2026">26</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-label">Rate (t/hr)</div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-rate="all">All</button>
+                    <button class="filter-btn" data-rate="1">&gt;1</button>
+                    <button class="filter-btn" data-rate="5">&gt;5</button>
+                    <button class="filter-btn" data-rate="10">&gt;10</button>
+                    <button class="filter-btn" data-rate="20">&gt;20</button>
                 </div>
             </div>
             <div class="separator"></div>
@@ -76,9 +74,9 @@
             <span class="legend-collapse" id="legend-collapse"><svg width="10" height="6" viewBox="0 0 10 6"><polyline points="1,5 5,1 9,5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         </h4>
         <div class="legend-body" id="legend-body">
-            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #22d3ee"></div></div>Carbon Mapper</div>
-            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #f97316"></div></div>IMEO / MARS</div>
-            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #a855f7"></div></div>SRON</div>
+            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #00ffff"></div></div>Carbon Mapper</div>
+            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #ff00ff"></div></div>IMEO / MARS</div>
+            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #ffff00"></div></div>SRON</div>
             <h4 class="label-sm legend-section">Rate (t/hr)</h4>
             <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:24px;height:24px"></div></div>10+</div>
             <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:16px;height:16px"></div></div>5</div>
