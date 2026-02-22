@@ -51,7 +51,7 @@ echo "Building wells PMTiles..."
 tippecanoe -zg -o data/ogim_wells.pmtiles \
     --drop-densest-as-needed \
     --extend-zooms-if-still-dropping \
-    --minimum-zoom=2 \
+    --minimum-zoom=6 \
     --layer=wells \
     --force \
     data/ogim_wells.geojsonl
@@ -60,7 +60,7 @@ echo "Building pipelines PMTiles..."
 tippecanoe -zg -o data/ogim_pipelines.pmtiles \
     --drop-densest-as-needed \
     --extend-zooms-if-still-dropping \
-    --minimum-zoom=2 \
+    --minimum-zoom=6 \
     --layer=pipelines \
     --force \
     data/ogim_pipelines.geojsonl
@@ -70,7 +70,7 @@ if [ -s data/ogim_facilities.geojsonl ]; then
     tippecanoe -zg -o data/ogim_facilities.pmtiles \
         --drop-densest-as-needed \
         --extend-zooms-if-still-dropping \
-        --minimum-zoom=2 \
+        --minimum-zoom=6 \
         --layer=facilities \
         --force \
         data/ogim_facilities.geojsonl

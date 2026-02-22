@@ -19,12 +19,10 @@ const SRC_LABELS = {
 // ---------------------------------------------------------------------------
 
 let plumesData = null;       // raw plumes array from plumes.json
-let sourcesData = null;      // raw sources array from sources.json
 let activeSources = new Set(['cm', 'imeo', 'sron']);
 let activeSector = 'all';
 let activeYear = 'all';
 let ogimVisible = false;
-let sourcesVisible = true;
 
 // ---------------------------------------------------------------------------
 // PMTiles protocol — must be registered before map creation
@@ -32,6 +30,9 @@ let sourcesVisible = true;
 
 const protocol = new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles', protocol.tile);
+
+const ogimBucket = document.querySelector('meta[name="ogim-bucket"]')?.content;
+const ogimUrl = ogimBucket ? `${ogimBucket}/ogim.pmtiles` : 'data/ogim.pmtiles';
 
 // ---------------------------------------------------------------------------
 // Map
@@ -41,6 +42,7 @@ const map = new maplibregl.Map({
     container: 'map',
     style: {
         version: 8,
+        glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
         sources: {
             satellite: {
                 type: 'raster',
@@ -48,10 +50,9 @@ const map = new maplibregl.Map({
                 tileSize: 256
             },
             labels: {
-                type: 'raster',
-                tiles: ['https://a.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png'],
-                tileSize: 512,
-                attribution: '&copy; <a href="https://carto.com">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>'
+                type: 'vector',
+                url: 'https://tiles.openfreemap.org/planet',
+                attribution: '&copy; <a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://openstreetmap.org">OSM</a>'
             }
         },
         layers: [
@@ -59,14 +60,90 @@ const map = new maplibregl.Map({
             id: 'basemap',
             type: 'raster',
             source: 'satellite',
-            paint: { 'raster-saturation': -1, 'raster-brightness-max': 0.85 }
+            paint: { 'raster-saturation': -1, 'raster-brightness-max': 0.65 }
         },
         {
-            id: 'place-labels',
-            type: 'raster',
+            id: 'country-labels',
+            type: 'symbol',
             source: 'labels',
-            paint: { 'raster-opacity': 0.85 },
-            minzoom: 2
+            'source-layer': 'place',
+            filter: ['==', ['get', 'class'], 'country'],
+            minzoom: 2,
+            layout: {
+                'symbol-sort-key': ['get', 'rank'],
+                'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 2, 10, 6, 14],
+                'text-transform': 'uppercase',
+                'text-letter-spacing': 0.15,
+                'text-max-width': 8
+            },
+            paint: {
+                'text-color': 'rgba(255, 255, 255, 0.85)',
+                'text-halo-color': 'rgba(0, 0, 0, 0.6)',
+                'text-halo-width': 1.5
+            }
+        },
+        {
+            id: 'state-labels',
+            type: 'symbol',
+            source: 'labels',
+            'source-layer': 'place',
+            filter: ['==', ['get', 'class'], 'state'],
+            minzoom: 4,
+            layout: {
+                'symbol-sort-key': ['get', 'rank'],
+                'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 4, 9, 8, 12],
+                'text-letter-spacing': 0.1,
+                'text-max-width': 8
+            },
+            paint: {
+                'text-color': 'rgba(255, 255, 255, 0.6)',
+                'text-halo-color': 'rgba(0, 0, 0, 0.5)',
+                'text-halo-width': 1
+            }
+        },
+        {
+            id: 'city-labels',
+            type: 'symbol',
+            source: 'labels',
+            'source-layer': 'place',
+            filter: ['in', ['get', 'class'], ['literal', ['city', 'town']]],
+            minzoom: 4,
+            layout: {
+                'symbol-sort-key': ['get', 'rank'],
+                'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 4, 10, 10, 14, 14, 18],
+                'text-max-width': 8
+            },
+            paint: {
+                'text-color': 'rgba(255, 255, 255, 0.9)',
+                'text-halo-color': 'rgba(0, 0, 0, 0.6)',
+                'text-halo-width': 1.5
+            }
+        },
+        {
+            id: 'village-labels',
+            type: 'symbol',
+            source: 'labels',
+            'source-layer': 'place',
+            filter: ['in', ['get', 'class'], ['literal', ['village', 'suburb', 'neighbourhood']]],
+            minzoom: 10,
+            layout: {
+                'symbol-sort-key': ['get', 'rank'],
+                'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': ['interpolate', ['linear'], ['zoom'], 10, 10, 14, 14],
+                'text-max-width': 8
+            },
+            paint: {
+                'text-color': 'rgba(255, 255, 255, 0.7)',
+                'text-halo-color': 'rgba(0, 0, 0, 0.5)',
+                'text-halo-width': 1
+            }
         }]
     },
     center: [0, 20],
@@ -101,17 +178,6 @@ function plumesToGeoJSON(plumes) {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
             properties: p
-        }))
-    };
-}
-
-function sourcesToGeoJSON(sources) {
-    return {
-        type: 'FeatureCollection',
-        features: sources.map(s => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
-            properties: s
         }))
     };
 }
@@ -168,20 +234,11 @@ function updateVisibleCount() {
 
 map.on('load', async () => {
     // Load data
-    const [plumesResp, sourcesResp] = await Promise.all([
-        fetch('data/plumes.json').then(r => r.json()),
-        fetch('data/sources.json').then(r => r.json()).catch(() => [])
-    ]);
-
+    const plumesResp = await fetch('data/plumes.json').then(r => r.json());
     plumesData = plumesResp.plumes || [];
-    sourcesData = sourcesResp;
 
-    // Update source counts
-    const counts = { cm: 0, imeo: 0, sron: 0 };
-    for (const p of plumesData) counts[p.src] = (counts[p.src] || 0) + 1;
-    document.getElementById('cm-count').textContent = counts.cm.toLocaleString();
-    document.getElementById('imeo-count').textContent = counts.imeo.toLocaleString();
-    document.getElementById('sron-count').textContent = counts.sron.toLocaleString();
+    // OGIM layers (hidden by default, rendered below plumes)
+    await addOGIMLayers();
 
     // Add plumes source (single GeoJSON, split into per-source layers)
     const geojson = plumesToGeoJSON(plumesData);
@@ -197,43 +254,25 @@ map.on('load', async () => {
             paint: {
                 'circle-radius': radiusExpr,
                 'circle-color': SRC_COLORS[src],
-                'circle-opacity': 0.7,
+                'circle-opacity': 0,
                 'circle-stroke-color': SRC_COLORS[src],
-                'circle-stroke-width': 1,
-                'circle-stroke-opacity': 0.9
+                'circle-stroke-width': 1.5,
+                'circle-stroke-opacity': 0.75
             }
         });
     }
-
-    // IMEO sources layer
-    if (sourcesData && sourcesData.length > 0) {
-        map.addSource('imeo-sources', {
-            type: 'geojson',
-            data: sourcesToGeoJSON(sourcesData)
-        });
-        map.addLayer({
-            id: 'imeo-sources',
-            type: 'circle',
-            source: 'imeo-sources',
-            paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 2, 8, 4, 14, 6],
-                'circle-color': 'rgba(249, 115, 22, 0.6)',
-                'circle-stroke-color': '#f97316',
-                'circle-stroke-width': 1,
-                'circle-opacity': 0.6
-            }
-        });
-        document.getElementById('legend-sources').classList.remove('hidden');
-    }
-
-    // OGIM layers (hidden by default)
-    await addOGIMLayers();
 
     // Interactions
     setupInteractions();
 
     updateVisibleCount();
-    map.on('moveend', updateVisibleCount);
+    let moveRaf = null;
+    map.on('move', () => {
+        if (!moveRaf) moveRaf = requestAnimationFrame(() => {
+            updateVisibleCount();
+            moveRaf = null;
+        });
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -242,11 +281,10 @@ map.on('load', async () => {
 
 async function addOGIMLayers() {
     try {
-        const check = await fetch('data/ogim.pmtiles', { method: 'HEAD' });
-        if (!check.ok) { console.log('OGIM PMTiles not found'); return; }
         map.addSource('ogim', {
             type: 'vector',
-            url: 'pmtiles://data/ogim.pmtiles'
+            url: `pmtiles://${ogimUrl}`,
+            maxzoom: 11
         });
 
         map.addLayer({
@@ -285,14 +323,80 @@ async function addOGIMLayers() {
             minzoom: 8,
             layout: { visibility: 'none' },
             paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 1, 14, 3],
-                'circle-color': 'rgba(255, 255, 255, 0.4)',
-                'circle-stroke-width': 0
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 2, 12, 4, 16, 6],
+                'circle-color': 'rgba(255, 255, 255, 0.2)',
+                'circle-stroke-color': 'rgba(255, 255, 255, 0.4)',
+                'circle-stroke-width': 1,
+                'circle-opacity': ['case',
+                    ['==', ['get', 'OGIM_STATUS'], 'ABANDONED'], 0.3, 1],
+                'circle-stroke-opacity': ['case',
+                    ['==', ['get', 'OGIM_STATUS'], 'ABANDONED'], 0.3, 1]
             }
+        });
+        // Invisible preload layer — keeps tiles loaded for proximity queries
+        map.addLayer({
+            id: 'ogim-preload',
+            type: 'circle',
+            source: 'ogim',
+            'source-layer': 'facilities',
+            paint: { 'circle-radius': 0, 'circle-opacity': 0 }
         });
     } catch (e) {
         console.warn('OGIM layers not available:', e.message);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Proximity helpers
+// ---------------------------------------------------------------------------
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+const SKIP_TYPES = new Set(['N/A', 'DRY HOLE', 'UNKNOWN', '']);
+const SKIP_STATUSES = new Set(['ABANDONED', 'INACTIVE']);
+
+function findNearbyInfra(lon, lat, maxResults = 10) {
+    if (!map.getSource('ogim')) return [];
+    const results = [];
+    const seen = new Set();
+    for (const sourceLayer of ['facilities', 'wells']) {
+        const features = map.querySourceFeatures('ogim', { sourceLayer });
+        for (const f of features) {
+            const id = f.properties.OGIM_ID;
+            if (seen.has(id)) continue;
+            seen.add(id);
+            const type = (f.properties.FAC_TYPE || '').trim();
+            const status = (f.properties.OGIM_STATUS || '').trim();
+            if (SKIP_TYPES.has(type) || SKIP_STATUSES.has(status)) continue;
+            const [flon, flat] = f.geometry.coordinates;
+            const dist = haversineKm(lat, lon, flat, flon);
+            if (dist > 2) continue;
+            results.push({
+                name: f.properties.FAC_NAME || type || (sourceLayer === 'facilities' ? 'Facility' : 'Well'),
+                operator: f.properties.OPERATOR || '',
+                ogimId: id,
+                lon: flon,
+                lat: flat,
+                dist
+            });
+        }
+    }
+    results.sort((a, b) => a.dist - b.dist);
+    return results.slice(0, maxResults);
+}
+
+function formatDist(km) {
+    if (km < 1) return `${Math.round(km * 1000)} m`;
+    if (km < 10) return `${km.toFixed(1)} km`;
+    return `${Math.round(km)} km`;
 }
 
 function toggleOGIM(visible) {
@@ -301,15 +405,6 @@ function toggleOGIM(visible) {
     for (const id of ['ogim-wells', 'ogim-pipelines', 'ogim-facilities']) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
     }
-    document.getElementById('legend-ogim').classList.toggle('hidden', !visible);
-}
-
-function toggleSources(visible) {
-    sourcesVisible = visible;
-    if (map.getLayer('imeo-sources')) {
-        map.setLayoutProperty('imeo-sources', 'visibility', visible ? 'visible' : 'none');
-    }
-    document.getElementById('legend-sources').classList.toggle('hidden', !visible);
 }
 
 // ---------------------------------------------------------------------------
@@ -332,9 +427,10 @@ function setupInteractions() {
             map.getCanvas().style.cursor = 'pointer';
             const f = e.features[0];
             const p = f.properties;
-            const rate = Number(p.rate).toLocaleString();
+            const rateThr = (Number(p.rate) / 1000).toFixed(1);
+            const date = p.dt || '';
             popup.setLngLat(e.lngLat)
-                .setHTML(`<strong>${rate} kg/hr</strong><br>${SRC_LABELS[p.src] || p.src}`)
+                .setHTML(`<strong>${rateThr} t/hr</strong><br>${SRC_LABELS[p.src] || p.src}${date ? ' · ' + date : ''}`)
                 .addTo(map);
         });
 
@@ -378,32 +474,30 @@ function setupInteractions() {
         });
     });
 
-    // IMEO sources hover
-    if (map.getLayer('imeo-sources')) {
-        map.on('mouseenter', 'imeo-sources', e => {
-            map.getCanvas().style.cursor = 'pointer';
-            const p = e.features[0].properties;
-            popup.setLngLat(e.lngLat)
-                .setHTML(`<strong>IMEO source</strong><br>${p.n} plumes · ${p.persist}`)
-                .addTo(map);
-        });
-        map.on('mouseleave', 'imeo-sources', () => {
-            map.getCanvas().style.cursor = '';
-            popup.remove();
-        });
-    }
-
-    // OGIM facility hover
-    for (const layer of ['ogim-facilities', 'ogim-wells']) {
+    // OGIM hover (facilities, wells, pipelines)
+    for (const layer of ['ogim-facilities', 'ogim-wells', 'ogim-pipelines']) {
         if (!map.getLayer(layer)) continue;
         map.on('mouseenter', layer, e => {
             map.getCanvas().style.cursor = 'pointer';
             const p = e.features[0].properties;
-            const name = p.FAC_NAME || p.OPERATOR || p.CATEGORY || 'Infrastructure';
-            const detail = [p.FAC_TYPE, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
-            popup.setLngLat(e.lngLat)
-                .setHTML(`<strong>${name}</strong>${detail ? '<br>' + detail : ''}`)
-                .addTo(map);
+            let html;
+            if (layer === 'ogim-wells') {
+                const type = p.FAC_TYPE || 'Well';
+                const detail = [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
+                html = `<strong>${type}</strong>${detail ? '<br>' + detail : ''}`;
+            } else if (layer === 'ogim-pipelines') {
+                const type = p.FAC_TYPE || 'Pipeline';
+                const detail = [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
+                html = `<strong>${type}</strong>${detail ? '<br>' + detail : ''}`;
+            } else {
+                const name = p.FAC_NAME || p.OPERATOR || p.CATEGORY || 'Facility';
+                const detail = [p.FAC_TYPE, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
+                html = `<strong>${name}</strong>${detail ? '<br>' + detail : ''}`;
+            }
+            popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
+        });
+        map.on('mousemove', layer, e => {
+            popup.setLngLat(e.lngLat);
         });
         map.on('mouseleave', layer, () => {
             map.getCanvas().style.cursor = '';
@@ -424,25 +518,40 @@ function showDetail(feature) {
     const lonDir = lon >= 0 ? 'E' : 'W';
     const coordStr = `${Math.abs(lat).toFixed(2)}\u00b0${latDir}, ${Math.abs(lon).toFixed(2)}\u00b0${lonDir}`;
 
-    const rate = Number(p.rate);
-    const unc = p.unc != null && p.unc !== 'null' ? Number(p.unc) : null;
-    const idShort = typeof p.id === 'string' && p.id.length > 12 ? p.id.slice(0, 12) + '\u2026' : (p.id || '\u2014');
+    const rateThr = (Number(p.rate) / 1000).toFixed(1);
+    const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(1) : null;
+    const plumeId = p.id || '\u2014';
 
     const srcClass = p.src || 'cm';
     const srcLabel = SRC_LABELS[p.src] || p.src;
+
+    // Find nearby infrastructure
+    const nearby = findNearbyInfra(lon, lat);
+    let nearbyHtml = '';
+    if (nearby.length > 0) {
+        nearbyHtml = `
+        <div class="detail-row">
+            <div class="detail-field-label" style="margin-bottom:8px">Nearby infrastructure</div>
+            ${nearby.map(f => `<div class="nearby-item" onclick="flyToInfra(${f.lon},${f.lat})">
+                <div class="nearby-name">${f.name}</div>
+                <div class="nearby-meta">${[f.operator, formatDist(f.dist)].filter(Boolean).join(' \u00b7 ')}</div>
+                <div class="nearby-id">OGIM ${f.ogimId}</div>
+            </div>`).join('')}
+        </div>`;
+    }
 
     const panel = document.getElementById('right-panel');
     panel.innerHTML = `
         <div class="detail-header">
             <div class="detail-header-text">
-                <span class="detail-id">${idShort}</span>
+                <span class="detail-id">${plumeId}</span>
                 <span class="detail-coords">${coordStr}</span>
             </div>
             <button class="close-btn" onclick="closeDetail()">&times;</button>
         </div>
         <div class="stats-grid">
-            <div class="stat"><div class="stat-big">${rate.toLocaleString()}</div><div class="stat-unit">kg/hr</div></div>
-            <div class="stat"><div class="stat-big">${unc != null ? '\u00b1' + unc.toLocaleString() : '\u2014'}</div><div class="stat-unit">uncertainty</div></div>
+            <div class="stat"><div class="stat-big">${rateThr}</div><div class="stat-unit">t/hr</div></div>
+            <div class="stat"><div class="stat-big">${uncThr != null ? '\u00b1' + uncThr : '\u2014'}</div><div class="stat-unit">uncertainty</div></div>
             <div class="stat"><div class="stat-big">${p.sat || '\u2014'}</div><div class="stat-unit">satellite</div></div>
             <div class="stat"><div class="stat-big">${p.dt || '\u2014'}</div><div class="stat-unit">date</div></div>
         </div>
@@ -451,6 +560,7 @@ function showDetail(feature) {
         </div>
         ${p.sec ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Sector</span><span class="detail-field-value">${sectorLabel(p.sec)}</span></div></div>` : ''}
         ${p.cty ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Country</span><span class="detail-field-value">${p.cty}</span></div></div>` : ''}
+        ${nearbyHtml}
     `;
     panel.classList.remove('hidden');
 }
@@ -464,8 +574,13 @@ function sectorLabel(sec) {
     return labels[sec] || sec || '\u2014';
 }
 
-// Make closeDetail globally accessible for onclick
+function flyToInfra(lon, lat) {
+    map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 14) });
+}
+
+// Make functions globally accessible for onclick
 window.closeDetail = closeDetail;
+window.flyToInfra = flyToInfra;
 
 // ---------------------------------------------------------------------------
 // Source toggle buttons
@@ -521,14 +636,6 @@ document.querySelectorAll('[data-year]').forEach(btn => {
 
 document.getElementById('ogim-toggle').addEventListener('change', e => {
     toggleOGIM(e.target.checked);
-});
-
-// ---------------------------------------------------------------------------
-// IMEO sources toggle
-// ---------------------------------------------------------------------------
-
-document.getElementById('sources-toggle').addEventListener('change', e => {
-    toggleSources(e.target.checked);
 });
 
 // ---------------------------------------------------------------------------

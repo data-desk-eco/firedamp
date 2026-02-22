@@ -65,6 +65,13 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     font-weight: 500;
     margin: 0;
 }
+.left-panel h1 a {
+    color: inherit;
+    text-decoration: none;
+}
+.left-panel h1 a:hover {
+    color: var(--text-secondary);
+}
 .collapse-toggle {
     cursor: pointer;
     color: var(--text-hint);
@@ -119,15 +126,7 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
 .source-btn.active {
     background: color-mix(in srgb, var(--src-color) 20%, transparent);
     color: var(--text-secondary);
-    border-color: var(--src-color);
 }
-.badge {
-    font-size: var(--font-xs);
-    color: var(--text-hint);
-    font-variant-numeric: tabular-nums;
-}
-.source-btn.active .badge { color: var(--text-muted); }
-
 /* --- Separator --- */
 
 .separator {
@@ -250,9 +249,10 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     min-width: 0;
 }
 .detail-id {
-    font-size: var(--font-base);
+    font-size: var(--font-sm);
     font-weight: 500;
     color: var(--text-primary);
+    word-break: break-all;
 }
 .detail-coords {
     font-size: var(--font-sm);
@@ -323,6 +323,33 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
 .source-badge.cm { color: #22d3ee; border-color: #22d3ee; background: rgba(34, 211, 238, 0.15); }
 .source-badge.imeo { color: #f97316; border-color: #f97316; background: rgba(249, 115, 22, 0.15); }
 .source-badge.sron { color: #a855f7; border-color: #a855f7; background: rgba(168, 85, 247, 0.15); }
+
+/* --- Nearby infrastructure --- */
+
+.nearby-item {
+    padding: 6px 0;
+    border-top: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.1s;
+    margin: 0 -16px;
+    padding: 6px 16px;
+}
+.nearby-item:first-of-type { border-top: none; }
+.nearby-item:hover { background: rgba(255, 255, 255, 0.05); }
+.nearby-name {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+}
+.nearby-meta {
+    font-size: var(--font-xs);
+    color: var(--text-faint);
+    margin-top: 2px;
+}
+.nearby-id {
+    font-size: var(--font-xs);
+    color: var(--text-hint);
+    margin-top: 2px;
+}
 
 /* --- Legend --- */
 

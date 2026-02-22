@@ -1,6 +1,8 @@
-data/
-web/data/
-web/vendor/
+.DS_Store
+.env
+/data/
+web/data/ogim.pmtiles
+web/data/sources.json
 .venv/
 __pycache__/
 *.pyc
