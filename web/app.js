@@ -371,7 +371,7 @@ async function addOGIMLayers() {
         map.addSource('ogim', {
             type: 'vector',
             url: `pmtiles://${ogimUrl}`,
-            maxzoom: 8   // force overzoom — tiles built with -zg may stop early
+            maxzoom: 14
         });
 
         map.addLayer({
