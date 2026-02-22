@@ -3,6 +3,7 @@
 /data/
 web/data/ogim.pmtiles
 web/data/sources.json
+web/data/plumes.json
 .venv/
 __pycache__/
 *.pyc

@@ -49,8 +49,8 @@ done
 
 echo "Building wells PMTiles..."
 tippecanoe -zg -o data/ogim_wells.pmtiles \
-    --drop-densest-as-needed \
-    --extend-zooms-if-still-dropping \
+    --no-feature-limit \
+    --no-tile-size-limit \
     --minimum-zoom=6 \
     --layer=wells \
     --force \
@@ -58,8 +58,8 @@ tippecanoe -zg -o data/ogim_wells.pmtiles \
 
 echo "Building pipelines PMTiles..."
 tippecanoe -zg -o data/ogim_pipelines.pmtiles \
-    --drop-densest-as-needed \
-    --extend-zooms-if-still-dropping \
+    --no-feature-limit \
+    --no-tile-size-limit \
     --minimum-zoom=6 \
     --layer=pipelines \
     --force \

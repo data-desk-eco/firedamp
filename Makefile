@@ -3,7 +3,7 @@
 # ── Data pipeline ────────────────────────────────────────────────
 data: data/imeo.ok data/sron.ok data/carbon_mapper.ok
 	uv run scripts/build.py
-	@echo "Built web/data/plumes.json"
+	@echo "Built web/data/plumes.bin"
 
 data/imeo.ok:
 	uv run scripts/fetch_imeo.py
@@ -44,13 +44,13 @@ serve: vendor
 
 # ── Cleanup ──────────────────────────────────────────────────────
 clean:
-	rm -rf data/*.ok data/*.csv data/*.json data/*.geojson web/data/*.json web/data/*.pmtiles
+	rm -rf data/*.ok data/*.csv data/*.json data/*.geojson web/data/*.json web/data/*.bin web/data/*.pmtiles
 
 clean-all: clean
 	rm -rf web/vendor
 
 help:
-	@echo "make data        - Fetch all plume datasets and build JSON"
+	@echo "make data        - Fetch all plume datasets and build binary"
 	@echo "make ogim        - Build OGIM infrastructure PMTiles"
 	@echo "make ogim-upload - Upload OGIM PMTiles to GCS"
 	@echo "make rebuild     - Full rebuild (data + OGIM + upload)"

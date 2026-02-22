@@ -229,13 +229,79 @@ function updateVisibleCount() {
 }
 
 // ---------------------------------------------------------------------------
+// Binary parser
+// ---------------------------------------------------------------------------
+
+function parsePlumes(buffer) {
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    // Magic
+    const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+    if (magic !== 'FDP1') throw new Error('Invalid plumes binary');
+    offset = 4;
+
+    // Plume count
+    const count = view.getUint32(offset, true);
+    offset += 4;
+
+    // Satellite table
+    const satCount = view.getUint8(offset);
+    offset += 1;
+    const satTable = [];
+    for (let i = 0; i < satCount; i++) {
+        const len = view.getUint8(offset);
+        offset += 1;
+        satTable.push(new TextDecoder().decode(new Uint8Array(buffer, offset, len)));
+        offset += len;
+    }
+
+    // Records
+    const SRC_NAMES = ['cm', 'imeo', 'sron'];
+    const SEC_NAMES = [null, 'og', 'coal', 'waste', 'other'];
+    const EPOCH = Date.UTC(2020, 0, 1);
+    const DAY_MS = 86400000;
+
+    const plumes = new Array(count);
+    for (let i = 0; i < count; i++) {
+        const base = offset + i * 20;
+        const lat = view.getFloat32(base, true);
+        const lon = view.getFloat32(base + 4, true);
+        const days = view.getUint16(base + 8, true);
+        const rate = view.getUint32(base + 10, true);
+        const unc = view.getUint32(base + 14, true);
+        const srcSec = view.getUint8(base + 18);
+        const satIdx = view.getUint8(base + 19);
+
+        const src = SRC_NAMES[srcSec & 0x03];
+        const sec = SEC_NAMES[(srcSec >> 2) & 0x07];
+        const dt = new Date(EPOCH + days * DAY_MS).toISOString().slice(0, 10);
+        const sat = satTable[satIdx];
+
+        const p = { lat, lon, dt, rate, src, sat };
+        if (unc) p.unc = unc;
+        if (sec) p.sec = sec;
+        plumes[i] = p;
+    }
+
+    // IDs block
+    const idsOffset = offset + count * 20;
+    const ids = new TextDecoder().decode(new Uint8Array(buffer, idsOffset)).split('\n');
+    for (let i = 0; i < count; i++) {
+        plumes[i].id = ids[i];
+    }
+
+    return plumes;
+}
+
+// ---------------------------------------------------------------------------
 // Data loading & layer setup
 // ---------------------------------------------------------------------------
 
 map.on('load', async () => {
-    // Load data
-    const plumesResp = await fetch('data/plumes.json').then(r => r.json());
-    plumesData = plumesResp.plumes || [];
+    // Load binary data
+    const buf = await fetch('data/plumes.bin').then(r => r.arrayBuffer());
+    plumesData = parsePlumes(buf);
 
     // OGIM layers (hidden by default, rendered below plumes)
     await addOGIMLayers();
@@ -546,8 +612,11 @@ function showDetail(feature) {
                 <span class="detail-id">${plumeId}</span>
                 <span class="detail-coords">${coordStr}</span>
             </div>
-            <span class="source-badge ${srcClass}">${srcLabel}</span>
             <button class="close-btn" onclick="closeDetail()">&times;</button>
+        </div>
+        <div class="detail-badges">
+            <span class="source-badge ${srcClass}">${srcLabel}</span>
+            ${p.sec ? `<span class="sector-badge">${sectorLabel(p.sec)}</span>` : ''}
         </div>
         <div class="stats-grid">
             <div class="stat"><div class="stat-big">${rateThr}</div><div class="stat-unit">t/hr</div></div>
@@ -555,7 +624,6 @@ function showDetail(feature) {
             <div class="stat"><div class="stat-big">${p.sat || '\u2014'}</div><div class="stat-unit">satellite</div></div>
             <div class="stat"><div class="stat-big">${p.dt || '\u2014'}</div><div class="stat-unit">date</div></div>
         </div>
-        ${p.sec ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Sector</span><span class="detail-field-value">${sectorLabel(p.sec)}</span></div></div>` : ''}
         ${p.cty ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Country</span><span class="detail-field-value">${p.cty}</span></div></div>` : ''}
         ${nearbyHtml}
     `;

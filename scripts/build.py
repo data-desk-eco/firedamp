@@ -1,7 +1,7 @@
 import csv
 import hashlib
-import json
-from datetime import datetime, timezone
+import struct
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ISO3_TO_2 = {
@@ -46,6 +46,10 @@ SAT_SHORT = {
     "GOES - NOAA": "GOES",
 }
 
+EPOCH = date(2020, 1, 1)
+SRC_MAP = {"cm": 0, "imeo": 1, "sron": 2}
+SEC_MAP = {None: 0, "og": 1, "coal": 2, "waste": 3, "other": 4}
+
 
 def map_sector(raw):
     if not raw:
@@ -71,9 +75,13 @@ def safe_float(v):
         return None
 
 
-def compact(plume):
-    """Strip null values from a plume dict to reduce JSON size."""
-    return {k: v for k, v in plume.items() if v is not None}
+def date_to_days(dt_str):
+    if not dt_str:
+        return 0
+    try:
+        return max(0, (date.fromisoformat(dt_str) - EPOCH).days)
+    except ValueError:
+        return 0
 
 
 def build_cm(path):
@@ -83,7 +91,7 @@ def build_cm(path):
         for row in reader:
             dt_raw = row.get("datetime", "")
             try:
-                dt = dt_raw[:10]  # "YYYY-MM-DD..."
+                dt = dt_raw[:10]
             except Exception:
                 dt = None
 
@@ -92,7 +100,7 @@ def build_cm(path):
                 continue
 
             unc = safe_float(row.get("emission_uncertainty_auto"))
-            plumes.append(compact({
+            plumes.append({
                 "id": row.get("plume_id", ""),
                 "src": "cm",
                 "lat": round(safe_float(row.get("plume_latitude")), 4),
@@ -102,12 +110,13 @@ def build_cm(path):
                 "unc": round(unc) if unc is not None else None,
                 "sat": row.get("platform", "Tanager-1"),
                 "sec": map_sector(row.get("ipcc_sector")),
-            }))
+            })
     print(f"  CM: {len(plumes)} plumes")
     return plumes
 
 
 def build_imeo_plumes(path):
+    import json
     with open(path) as f:
         data = json.load(f)
 
@@ -126,7 +135,7 @@ def build_imeo_plumes(path):
         sat = SAT_SHORT.get(sat_raw, sat_raw)
 
         unc = safe_float(p.get("ch4_fluxrate_std"))
-        plumes.append(compact({
+        plumes.append({
             "id": p.get("id_plume", ""),
             "src": "imeo",
             "lat": round(safe_float(p.get("lat")), 4),
@@ -136,43 +145,9 @@ def build_imeo_plumes(path):
             "unc": round(unc) if unc is not None else None,
             "sat": sat,
             "sec": map_sector(p.get("sector")),
-        }))
+        })
     print(f"  IMEO: {len(plumes)} plumes")
     return plumes
-
-
-def build_imeo_sources(path):
-    with open(path) as f:
-        data = json.load(f)
-
-    sources = []
-    for feat in data["features"]:
-        p = feat["properties"]
-        name = p.get("source_name", "")
-
-        # Extract country alpha-2 from source_name prefix (e.g. "ARG_S_002" → "AR")
-        prefix = name.split("_")[0] if "_" in name else ""
-        cty = ISO3_TO_2.get(prefix)
-
-        last_raw = p.get("last_plume_date", "")
-        last_dt = last_raw[:10] if last_raw else None
-
-        coords = feat["geometry"]["coordinates"]
-        lat = safe_float(p.get("lat")) or safe_float(coords[1])
-        lon = safe_float(p.get("lon")) or safe_float(coords[0])
-
-        sources.append({
-            "id": name,
-            "lat": lat,
-            "lon": lon,
-            "cty": cty,
-            "sec": map_sector(p.get("sector")),
-            "n": p.get("n_plumes_detected", 0),
-            "persist": p.get("persistency_category", ""),
-            "last": last_dt,
-        })
-    print(f"  IMEO sources: {len(sources)}")
-    return sources
 
 
 def build_sron(path):
@@ -181,7 +156,6 @@ def build_sron(path):
         reader = csv.DictReader(f)
         for row in reader:
             dt_raw = row.get("date", "")
-            # YYYYMMDD → YYYY-MM-DD
             if len(dt_raw) == 8 and dt_raw.isdigit():
                 dt = f"{dt_raw[:4]}-{dt_raw[4:6]}-{dt_raw[6:8]}"
             else:
@@ -190,7 +164,7 @@ def build_sron(path):
             rate_t = safe_float(row.get("source_rate_t/h"))
             if rate_t is None:
                 continue
-            rate = rate_t * 1000  # tonnes/hr → kg/hr
+            rate = rate_t * 1000
 
             unc_t = safe_float(row.get("uncertainty_t/h"))
             unc = unc_t * 1000 if unc_t is not None else None
@@ -198,11 +172,10 @@ def build_sron(path):
             lat = safe_float(row.get("lat"))
             lon = safe_float(row.get("lon"))
 
-            # Generate stable ID from date+lat+lon
             key = f"{dt_raw}:{lat}:{lon}"
             hid = hashlib.md5(key.encode()).hexdigest()[:12]
 
-            plumes.append(compact({
+            plumes.append({
                 "id": f"sron_{hid}",
                 "src": "sron",
                 "lat": round(lat, 4),
@@ -211,41 +184,58 @@ def build_sron(path):
                 "rate": round(rate),
                 "unc": round(unc) if unc is not None else None,
                 "sat": "TROPOMI",
-            }))
+            })
     print(f"  SRON: {len(plumes)} plumes")
     return plumes
+
+
+def write_binary(plumes, path):
+    sats = sorted({p.get("sat") or "" for p in plumes})
+    sat_idx = {s: i for i, s in enumerate(sats)}
+
+    with open(path, "wb") as f:
+        # Header
+        f.write(b"FDP1")
+        f.write(struct.pack("<I", len(plumes)))
+        f.write(struct.pack("B", len(sats)))
+        for s in sats:
+            b = s.encode("utf-8")
+            f.write(struct.pack("B", len(b)))
+            f.write(b)
+
+        # Records (20 bytes each)
+        for p in plumes:
+            lat = p.get("lat") or 0.0
+            lon = p.get("lon") or 0.0
+            days = date_to_days(p.get("dt"))
+            rate = int(p.get("rate") or 0)
+            unc = int(p.get("unc") or 0)
+            src_val = SRC_MAP.get(p.get("src"), 0)
+            sec_val = SEC_MAP.get(p.get("sec"), 0)
+            src_sec = src_val | (sec_val << 2)
+            si = sat_idx.get(p.get("sat") or "", 0)
+            f.write(struct.pack("<ffHIIBB", lat, lon, days, rate, unc, src_sec, si))
+
+        # IDs block
+        ids = "\n".join(p.get("id", "") for p in plumes)
+        f.write(ids.encode("utf-8"))
 
 
 def main():
     out_dir = Path("web/data")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Building plumes.json...")
+    print("Building plumes.bin...")
     cm = build_cm(Path("data/carbon_mapper.csv"))
     imeo = build_imeo_plumes(Path("plumes_data/unep_methanedata_detected_plumes.geojson"))
     sron = build_sron(Path("data/sron_all.csv"))
 
     all_plumes = cm + imeo + sron
 
-    plumes_out = {
-        "meta": {
-            "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "counts": {"cm": len(cm), "imeo": len(imeo), "sron": len(sron)},
-        },
-        "plumes": all_plumes,
-    }
-
-    plumes_path = out_dir / "plumes.json"
-    with open(plumes_path, "w") as f:
-        json.dump(plumes_out, f, separators=(",", ":"))
-    print(f"  → {plumes_path} ({len(all_plumes)} total plumes)")
-
-    print("Building sources.json...")
-    sources = build_imeo_sources(Path("plumes_data/unep_methanedata_detected_sources.geojson"))
-    sources_path = out_dir / "sources.json"
-    with open(sources_path, "w") as f:
-        json.dump(sources, f, separators=(",", ":"))
-    print(f"  → {sources_path} ({len(sources)} sources)")
+    plumes_path = out_dir / "plumes.bin"
+    write_binary(all_plumes, plumes_path)
+    size_mb = plumes_path.stat().st_size / (1024 * 1024)
+    print(f"  → {plumes_path} ({len(all_plumes)} plumes, {size_mb:.1f} MB)")
 
 
 if __name__ == "__main__":
