@@ -11,7 +11,7 @@ const SRC_COLORS = {
 const SRC_LABELS = {
     cm:   'Carbon Mapper',
     imeo: 'IMEO / MARS',
-    sron: 'SRON TROPOMI'
+    sron: 'SRON'
 };
 
 // ---------------------------------------------------------------------------
@@ -146,8 +146,8 @@ const map = new maplibregl.Map({
             }
         }]
     },
-    center: [0, 20],
-    zoom: 2.5,
+    center: [-98, 39],
+    zoom: 4,
     minZoom: 1.5,
     maxZoom: 18
 });
@@ -345,11 +345,52 @@ map.on('load', async () => {
 // OGIM infrastructure layers
 // ---------------------------------------------------------------------------
 
+function createOGIMIcons() {
+    const canvas = document.createElement('canvas');
+    const ctxOpts = { willReadFrequently: true };
+
+    // × icon for wells
+    const ws = 16;
+    canvas.width = ws; canvas.height = ws;
+    const wctx = canvas.getContext('2d', ctxOpts);
+    wctx.clearRect(0, 0, ws, ws);
+    wctx.strokeStyle = 'white';
+    wctx.lineWidth = 2;
+    wctx.lineCap = 'round';
+    const wp = 4;
+    wctx.beginPath();
+    wctx.moveTo(wp, wp); wctx.lineTo(ws - wp, ws - wp);
+    wctx.moveTo(ws - wp, wp); wctx.lineTo(wp, ws - wp);
+    wctx.stroke();
+    const wd = wctx.getImageData(0, 0, ws, ws);
+    map.addImage('well-x', { width: ws, height: ws, data: wd.data });
+
+    // ◆ icon for facilities
+    const fs = 16;
+    canvas.width = fs; canvas.height = fs;
+    const fctx = canvas.getContext('2d');
+    fctx.clearRect(0, 0, fs, fs);
+    fctx.fillStyle = 'rgba(255, 200, 100, 0.8)';
+    const mid = fs / 2, r = 5;
+    fctx.beginPath();
+    fctx.moveTo(mid, mid - r);
+    fctx.lineTo(mid + r, mid);
+    fctx.lineTo(mid, mid + r);
+    fctx.lineTo(mid - r, mid);
+    fctx.closePath();
+    fctx.fill();
+    const fd = fctx.getImageData(0, 0, fs, fs);
+    map.addImage('facility-diamond', { width: fs, height: fs, data: fd.data });
+}
+
 async function addOGIMLayers() {
     try {
+        createOGIMIcons();
+
         map.addSource('ogim', {
             type: 'vector',
-            url: `pmtiles://${ogimUrl}`
+            url: `pmtiles://${ogimUrl}`,
+            maxzoom: 8   // force overzoom — tiles built with -zg may stop early
         });
 
         map.addLayer({
@@ -367,43 +408,54 @@ async function addOGIMLayers() {
 
         map.addLayer({
             id: 'ogim-facilities',
-            type: 'circle',
+            type: 'symbol',
             source: 'ogim',
             'source-layer': 'facilities',
             minzoom: 6,
-            layout: { visibility: 'none' },
+            layout: {
+                visibility: 'none',
+                'icon-image': 'facility-diamond',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.4, 12, 0.7, 16, 1]
+            },
             paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 2, 14, 5],
-                'circle-color': 'rgba(255, 200, 100, 0.5)',
-                'circle-stroke-color': 'rgba(255, 200, 100, 0.8)',
-                'circle-stroke-width': 1
+                'icon-opacity': 0.8
             }
         });
 
         map.addLayer({
             id: 'ogim-wells',
-            type: 'circle',
+            type: 'symbol',
             source: 'ogim',
             'source-layer': 'wells',
             minzoom: 8,
-            layout: { visibility: 'none' },
+            layout: {
+                visibility: 'none',
+                'icon-image': 'well-x',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.4, 12, 0.6, 16, 0.8]
+            },
             paint: {
-                'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 2, 12, 4, 16, 6],
-                'circle-color': 'rgba(255, 255, 255, 0.2)',
-                'circle-stroke-color': 'rgba(255, 255, 255, 0.4)',
-                'circle-stroke-width': 1,
-                'circle-opacity': ['case',
-                    ['==', ['get', 'OGIM_STATUS'], 'ABANDONED'], 0.3, 1],
-                'circle-stroke-opacity': ['case',
-                    ['==', ['get', 'OGIM_STATUS'], 'ABANDONED'], 0.3, 1]
+                'icon-opacity': ['case',
+                    ['==', ['get', 'OGIM_STATUS'], 'ABANDONED'], 0.3, 0.6]
             }
         });
-        // Invisible preload layer — keeps tiles loaded for proximity queries
+        // Invisible preload layers — keep tiles loaded for proximity queries
         map.addLayer({
             id: 'ogim-preload',
             type: 'circle',
             source: 'ogim',
             'source-layer': 'facilities',
+            paint: { 'circle-radius': 0, 'circle-opacity': 0 }
+        });
+        map.addLayer({
+            id: 'ogim-wells-preload',
+            type: 'circle',
+            source: 'ogim',
+            'source-layer': 'wells',
+            minzoom: 8,
             paint: { 'circle-radius': 0, 'circle-opacity': 0 }
         });
     } catch (e) {
@@ -470,6 +522,7 @@ function toggleOGIM(visible) {
     for (const id of ['ogim-wells', 'ogim-pipelines', 'ogim-facilities']) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
     }
+    document.getElementById('legend-infra').style.display = visible ? 'block' : 'none';
 }
 
 // ---------------------------------------------------------------------------
@@ -539,36 +592,42 @@ function setupInteractions() {
         });
     });
 
-    // OGIM hover (facilities, wells, pipelines)
-    for (const layer of ['ogim-facilities', 'ogim-wells', 'ogim-pipelines']) {
-        if (!map.getLayer(layer)) continue;
-        map.on('mouseenter', layer, e => {
+    // OGIM hover — use queryRenderedFeatures for reliable hit detection with overzoomed tiles
+    const ogimLayers = ['ogim-facilities', 'ogim-wells', 'ogim-pipelines'];
+    let ogimHover = false;
+    map.on('mousemove', e => {
+        if (!ogimVisible) return;
+        const layers = ogimLayers.filter(l => map.getLayer(l));
+        if (!layers.length) return;
+        const bbox = [[e.point.x - 4, e.point.y - 4], [e.point.x + 4, e.point.y + 4]];
+        const features = map.queryRenderedFeatures(bbox, { layers });
+        if (features.length > 0) {
             map.getCanvas().style.cursor = 'pointer';
-            const p = e.features[0].properties;
+            const f = features[0];
+            const p = f.properties;
+            const layer = f.layer.id;
             let html;
             if (layer === 'ogim-wells') {
                 const type = p.FAC_TYPE || 'Well';
-                const detail = [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
+                const detail = [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' \u00b7 ');
                 html = `<strong>${type}</strong>${detail ? '<br>' + detail : ''}`;
             } else if (layer === 'ogim-pipelines') {
                 const type = p.FAC_TYPE || 'Pipeline';
-                const detail = [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
+                const detail = [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' \u00b7 ');
                 html = `<strong>${type}</strong>${detail ? '<br>' + detail : ''}`;
             } else {
                 const name = p.FAC_NAME || p.OPERATOR || p.CATEGORY || 'Facility';
-                const detail = [p.FAC_TYPE, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' · ');
+                const detail = [p.FAC_TYPE, p.COUNTRY, p.OGIM_STATUS].filter(Boolean).join(' \u00b7 ');
                 html = `<strong>${name}</strong>${detail ? '<br>' + detail : ''}`;
             }
             popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
-        });
-        map.on('mousemove', layer, e => {
-            popup.setLngLat(e.lngLat);
-        });
-        map.on('mouseleave', layer, () => {
+            ogimHover = true;
+        } else if (ogimHover) {
             map.getCanvas().style.cursor = '';
             popup.remove();
-        });
-    }
+            ogimHover = false;
+        }
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -704,11 +763,15 @@ document.getElementById('ogim-toggle').addEventListener('change', e => {
 });
 
 // ---------------------------------------------------------------------------
-// Collapse toggle
+// Collapse toggles
 // ---------------------------------------------------------------------------
 
 document.getElementById('collapse-toggle').addEventListener('click', () => {
     document.getElementById('left-panel').classList.toggle('collapsed');
+});
+
+document.getElementById('legend-collapse').addEventListener('click', () => {
+    document.getElementById('legend').classList.toggle('collapsed');
 });
 
 // ---------------------------------------------------------------------------

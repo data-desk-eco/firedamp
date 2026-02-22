@@ -48,29 +48,32 @@ done
 # --- Convert to PMTiles ---
 
 echo "Building wells PMTiles..."
-tippecanoe -zg -o data/ogim_wells.pmtiles \
+tippecanoe -o data/ogim_wells.pmtiles \
     --no-feature-limit \
     --no-tile-size-limit \
     --minimum-zoom=6 \
+    --maximum-zoom=14 \
     --layer=wells \
     --force \
     data/ogim_wells.geojsonl
 
 echo "Building pipelines PMTiles..."
-tippecanoe -zg -o data/ogim_pipelines.pmtiles \
+tippecanoe -o data/ogim_pipelines.pmtiles \
     --no-feature-limit \
     --no-tile-size-limit \
     --minimum-zoom=6 \
+    --maximum-zoom=14 \
     --layer=pipelines \
     --force \
     data/ogim_pipelines.geojsonl
 
 if [ -s data/ogim_facilities.geojsonl ]; then
     echo "Building facilities PMTiles..."
-    tippecanoe -zg -o data/ogim_facilities.pmtiles \
+    tippecanoe -o data/ogim_facilities.pmtiles \
         --no-feature-limit \
         --no-tile-size-limit \
         --minimum-zoom=6 \
+        --maximum-zoom=14 \
         --layer=facilities \
         --force \
         data/ogim_facilities.geojsonl

@@ -70,15 +70,27 @@
     </div>
 
     <div class="panel glass legend" id="legend">
-        <h4 class="label-sm">Source</h4>
-        <div class="legend-item"><div class="legend-circle-fill" style="background: #22d3ee"></div>Carbon Mapper</div>
-        <div class="legend-item"><div class="legend-circle-fill" style="background: #f97316"></div>IMEO / MARS</div>
-        <div class="legend-item"><div class="legend-circle-fill" style="background: #a855f7"></div>SRON TROPOMI</div>
-        <h4 class="label-sm legend-section">Rate (t/hr)</h4>
-        <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:24px;height:24px"></div></div>10+</div>
-        <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:16px;height:16px"></div></div>5</div>
-        <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:10px;height:10px"></div></div>1</div>
-        <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:6px;height:6px"></div></div>&lt; 0.5</div>
+        <h4 class="label-sm legend-header">
+            <span class="legend-title-expanded">Source</span>
+            <span class="legend-title-collapsed">Legend</span>
+            <span class="legend-collapse" id="legend-collapse"><svg width="10" height="6" viewBox="0 0 10 6"><polyline points="1,5 5,1 9,5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </h4>
+        <div class="legend-body" id="legend-body">
+            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #22d3ee"></div></div>Carbon Mapper</div>
+            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #f97316"></div></div>IMEO / MARS</div>
+            <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #a855f7"></div></div>SRON</div>
+            <h4 class="label-sm legend-section">Rate (t/hr)</h4>
+            <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:24px;height:24px"></div></div>10+</div>
+            <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:16px;height:16px"></div></div>5</div>
+            <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:10px;height:10px"></div></div>1</div>
+            <div class="legend-item"><div class="legend-size-wrap"><div class="legend-size-circle" style="width:6px;height:6px"></div></div>&lt; 0.5</div>
+            <div class="legend-infra-section" id="legend-infra">
+                <h4 class="label-sm legend-section">Infrastructure</h4>
+                <div class="legend-item"><div class="legend-symbol"><span class="legend-symbol-x">&times;</span></div>Wells</div>
+                <div class="legend-item"><div class="legend-symbol"><div class="legend-symbol-line"></div></div>Pipelines</div>
+                <div class="legend-item"><div class="legend-symbol"><div class="legend-symbol-diamond"></div></div>Facilities</div>
+            </div>
+        </div>
     </div>
 
     <a class="logo" href="https://research.datadesk.eco" target="_blank" rel="noopener"><svg viewBox="0 0 734.66 733.34">
