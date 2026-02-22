@@ -596,7 +596,7 @@ function showDetail(feature) {
     if (nearby.length > 0) {
         nearbyHtml = `
         <div class="detail-row">
-            <div class="detail-field-label" style="margin-bottom:8px">Nearby infrastructure</div>
+            <div class="detail-field-label" style="margin-bottom:8px;font-size:var(--font-xs)">Nearby infrastructure</div>
             ${nearby.map(f => `<div class="nearby-item" onclick="flyToInfra(${f.lon},${f.lat})">
                 <div class="nearby-name">${f.name}</div>
                 <div class="nearby-meta">${[f.operator, formatDist(f.dist)].filter(Boolean).join(' \u00b7 ')}</div>
