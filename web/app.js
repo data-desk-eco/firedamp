@@ -283,8 +283,7 @@ async function addOGIMLayers() {
     try {
         map.addSource('ogim', {
             type: 'vector',
-            url: `pmtiles://${ogimUrl}`,
-            maxzoom: 11
+            url: `pmtiles://${ogimUrl}`
         });
 
         map.addLayer({
@@ -516,7 +515,7 @@ function showDetail(feature) {
 
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'E' : 'W';
-    const coordStr = `${Math.abs(lat).toFixed(2)}\u00b0${latDir}, ${Math.abs(lon).toFixed(2)}\u00b0${lonDir}`;
+    const coordStr = `${Math.abs(lat).toFixed(4)}\u00b0${latDir}, ${Math.abs(lon).toFixed(4)}\u00b0${lonDir}`;
 
     const rateThr = (Number(p.rate) / 1000).toFixed(1);
     const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(1) : null;
@@ -547,6 +546,7 @@ function showDetail(feature) {
                 <span class="detail-id">${plumeId}</span>
                 <span class="detail-coords">${coordStr}</span>
             </div>
+            <span class="source-badge ${srcClass}">${srcLabel}</span>
             <button class="close-btn" onclick="closeDetail()">&times;</button>
         </div>
         <div class="stats-grid">
@@ -554,9 +554,6 @@ function showDetail(feature) {
             <div class="stat"><div class="stat-big">${uncThr != null ? '\u00b1' + uncThr : '\u2014'}</div><div class="stat-unit">uncertainty</div></div>
             <div class="stat"><div class="stat-big">${p.sat || '\u2014'}</div><div class="stat-unit">satellite</div></div>
             <div class="stat"><div class="stat-big">${p.dt || '\u2014'}</div><div class="stat-unit">date</div></div>
-        </div>
-        <div class="detail-row">
-            <span class="source-badge ${srcClass}">${srcLabel}</span>
         </div>
         ${p.sec ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Sector</span><span class="detail-field-value">${sectorLabel(p.sec)}</span></div></div>` : ''}
         ${p.cty ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Country</span><span class="detail-field-value">${p.cty}</span></div></div>` : ''}

@@ -241,8 +241,11 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     border-bottom: 1px solid var(--border-subtle);
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+}
+.detail-header .source-badge {
+    flex-shrink: 0;
+    margin-top: 1px;
 }
 .detail-header-text {
     flex: 1;

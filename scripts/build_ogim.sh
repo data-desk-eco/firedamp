@@ -68,8 +68,8 @@ tippecanoe -zg -o data/ogim_pipelines.pmtiles \
 if [ -s data/ogim_facilities.geojsonl ]; then
     echo "Building facilities PMTiles..."
     tippecanoe -zg -o data/ogim_facilities.pmtiles \
-        --drop-densest-as-needed \
-        --extend-zooms-if-still-dropping \
+        --no-feature-limit \
+        --no-tile-size-limit \
         --minimum-zoom=6 \
         --layer=facilities \
         --force \
