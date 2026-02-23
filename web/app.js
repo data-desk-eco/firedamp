@@ -29,16 +29,21 @@ let overlappingFeatures = [];
 let overlapIndex = 0;
 
 // ---------------------------------------------------------------------------
-// Hash plume permalink helpers (#map=z/lat/lon&plume=id)
+// Plume permalink helpers — #plume=<id> (standalone, no map coords needed)
 // ---------------------------------------------------------------------------
 
 function setPlumeHash(id) {
-    const h = location.hash.replace(/&plume=[^&]*/g, '');
-    history.replaceState(null, '', h + (id ? '&plume=' + encodeURIComponent(id) : ''));
+    const target = id ? '#plume=' + encodeURIComponent(id) : '';
+    if (location.hash === target) return;
+    if (id) {
+        history.replaceState(null, '', target);
+    } else {
+        history.replaceState(null, '', location.pathname + location.search);
+    }
 }
 
 function getPlumeHash() {
-    const m = location.hash.match(/[&?]plume=([^&]*)/);
+    const m = location.hash.match(/plume=([^&]*)/);
     return m ? decodeURIComponent(m[1]) : null;
 }
 
