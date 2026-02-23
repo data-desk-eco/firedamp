@@ -328,78 +328,50 @@ map.on('load', async () => {
     // Interactions
     setupInteractions();
 
-    // ----- Temporary: Permian Basin fieldwork sites (?fw=1) -----
-    if (new URLSearchParams(location.search).has('fw')) {
-    const fieldworkSites = [
-        { name: 'BPX Bingo CDP', lat: 31.8464, lon: -103.8811 },
-        { name: 'BPX Checkmate CDP', lat: 31.7773, lon: -103.9326 },
-        { name: 'BPX Bishop SWD', lat: 31.7783, lon: -103.9292 },
-        { name: 'BPX State Ella Mae', lat: 31.8541, lon: -103.9399 },
-        { name: 'BPX Scooter', lat: 31.8045, lon: -103.8744 },
-        { name: 'BPX Momentum/Chevy Lowe Rider', lat: 31.8495, lon: -103.8751 },
-        { name: 'BPX Gretchen Northrup', lat: 31.7814, lon: -103.9113 },
-        { name: 'BPX State Barlow', lat: 31.7758, lon: -103.9383 },
-        { name: 'Cimarex Logan', lat: 31.6429, lon: -103.8487 },
-        { name: 'ET Keystone', lat: 31.9472, lon: -103.0429 },
-        { name: 'ET Station 10', lat: 31.3112, lon: -103.1460 },
-        { name: 'ET Waha Gas Plant', lat: 31.2699, lon: -103.0876 },
-        { name: 'Enterprise Leonidis', lat: 31.8544, lon: -101.8015 },
-        { name: 'Enterprise Delaware Basin', lat: 31.2840, lon: -103.1071 },
-        { name: 'ETC Red Lake', lat: 32.3256, lon: -101.8233 },
-        { name: 'ETC Bear', lat: 31.7734, lon: -103.9018 },
-        { name: 'ETC Arrowhead', lat: 31.2921, lon: -103.1505 },
-        { name: 'XTO Jim Mims', lat: 32.3122, lon: -101.8214 },
-        { name: 'XTO Tank Battery 342 (Poker Lake)', lat: 32.2065, lon: -103.8550 },
-        { name: 'XTO Poker Lake past Tiger', lat: 32.1131, lon: -103.9149 },
-        { name: 'XTO Cowboy CDP', lat: 32.1597, lon: -103.8421 },
-        { name: 'XTO Tiger', lat: 32.1182, lon: -103.9073 },
-        { name: 'XTO Highlander', lat: 32.2047, lon: -103.8709 },
-        { name: 'XTO Coyote', lat: 31.2532, lon: -103.0831 },
-        { name: 'XTO Kriti Site', lat: 31.2558, lon: -103.0693 },
-        { name: 'Targa Greenwood', lat: 31.9783, lon: -101.8771 },
-        { name: 'Targa Hopson Plant', lat: 31.8515, lon: -101.8017 },
-        { name: 'Unknown SWD', lat: 32.3220, lon: -101.8256 },
-        { name: 'Unknown production well', lat: 31.8576, lon: -103.8317 },
-    ];
-    const fieldworkGeoJSON = {
-        type: 'FeatureCollection',
-        features: fieldworkSites.map(s => ({
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
-            properties: { name: s.name }
-        }))
-    };
-    map.addSource('fieldwork', { type: 'geojson', data: fieldworkGeoJSON });
-    map.addLayer({
-        id: 'fieldwork-circles',
-        type: 'circle',
-        source: 'fieldwork',
-        paint: {
-            'circle-radius': 14,
-            'circle-color': 'transparent',
-            'circle-stroke-color': '#00ff00',
-            'circle-stroke-width': 3,
-            'circle-stroke-opacity': 0.9
-        }
-    });
-    map.addLayer({
-        id: 'fieldwork-labels',
-        type: 'symbol',
-        source: 'fieldwork',
-        layout: {
-            'text-field': ['get', 'name'],
-            'text-font': ['Noto Sans Regular'],
-            'text-size': 11,
-            'text-offset': [0, -1.8],
-            'text-anchor': 'bottom'
-        },
-        paint: {
-            'text-color': '#00ff00',
-            'text-halo-color': 'rgba(0,0,0,0.8)',
-            'text-halo-width': 1.5
-        }
-    });
-    } // ----- End fieldwork sites -----
+    // ----- Custom overlay layers via ?layer=<slug> -----
+    const layerSlug = new URLSearchParams(location.search).get('layer');
+    if (layerSlug && typeof CUSTOM_LAYERS !== 'undefined' && CUSTOM_LAYERS[layerSlug]) {
+        const layer = CUSTOM_LAYERS[layerSlug];
+        const color = layer.color || '#00ff00';
+        const geojson = {
+            type: 'FeatureCollection',
+            features: layer.sites.map(s => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+                properties: { name: s.name }
+            }))
+        };
+        map.addSource('custom-layer', { type: 'geojson', data: geojson });
+        map.addLayer({
+            id: 'custom-layer-circles',
+            type: 'circle',
+            source: 'custom-layer',
+            paint: {
+                'circle-radius': 14,
+                'circle-color': 'transparent',
+                'circle-stroke-color': color,
+                'circle-stroke-width': 3,
+                'circle-stroke-opacity': 0.9
+            }
+        });
+        map.addLayer({
+            id: 'custom-layer-labels',
+            type: 'symbol',
+            source: 'custom-layer',
+            layout: {
+                'text-field': ['get', 'name'],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 11,
+                'text-offset': [0, -1.8],
+                'text-anchor': 'bottom'
+            },
+            paint: {
+                'text-color': color,
+                'text-halo-color': 'rgba(0,0,0,0.8)',
+                'text-halo-width': 1.5
+            }
+        });
+    }
 
 });
 
