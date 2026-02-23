@@ -27,6 +27,20 @@ let ogimVisible = false;
 let selectedFeature = null;
 
 // ---------------------------------------------------------------------------
+// Hash plume permalink helpers (#map=z/lat/lon&plume=id)
+// ---------------------------------------------------------------------------
+
+function setPlumeHash(id) {
+    const h = location.hash.replace(/&plume=[^&]*/g, '');
+    history.replaceState(null, '', h + (id ? '&plume=' + encodeURIComponent(id) : ''));
+}
+
+function getPlumeHash() {
+    const m = location.hash.match(/[&?]plume=([^&]*)/);
+    return m ? decodeURIComponent(m[1]) : null;
+}
+
+// ---------------------------------------------------------------------------
 // PMTiles protocol — must be registered before map creation
 // ---------------------------------------------------------------------------
 
@@ -148,7 +162,7 @@ const map = new maplibregl.Map({
             }
         }]
     },
-    hash: true,
+    hash: 'map',
     center: [-98, 39],
     zoom: 4,
     minZoom: 1.5,
@@ -371,6 +385,21 @@ map.on('load', async () => {
                 'text-halo-width': 1.5
             }
         });
+    }
+
+    // Restore plume from permalink
+    const linkedId = getPlumeHash();
+    if (linkedId) {
+        const match = plumesData.find(p => p.id === linkedId);
+        if (match) {
+            const feat = {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [match.lon, match.lat] },
+                properties: match
+            };
+            showDetail(feat, true);
+            map.flyTo({ center: [match.lon, match.lat], zoom: Math.max(map.getZoom(), 8) });
+        }
     }
 
 });
@@ -677,9 +706,10 @@ function sourceUrl(src, id, link) {
     }
 }
 
-function showDetail(feature) {
+function showDetail(feature, fromPermalink) {
     selectedFeature = feature;
     const p = feature.properties;
+    if (!fromPermalink) setPlumeHash(p.id);
     const [lon, lat] = feature.geometry.coordinates;
 
     const latDir = lat >= 0 ? 'N' : 'S';
@@ -736,6 +766,7 @@ function showDetail(feature) {
 
 function closeDetail() {
     selectedFeature = null;
+    setPlumeHash(null);
     document.getElementById('right-panel').classList.add('hidden');
 }
 
