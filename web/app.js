@@ -630,7 +630,6 @@ function sourceUrl(src, id) {
     if (!id || id === '\u2014') return null;
     switch (src) {
         case 'cm': return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(id)}`;
-        case 'imeo': return `https://methanedata.unep.org/map?fs=mars&e=${encodeURIComponent(id)}`;
         case 'sron': return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(id)}`;
         default: return null;
     }
