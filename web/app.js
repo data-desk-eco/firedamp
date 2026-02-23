@@ -420,7 +420,7 @@ map.on('load', async () => {
                 properties: match
             };
             showDetail(feat, true);
-            map.flyTo({ center: [match.lon, match.lat], zoom: Math.max(map.getZoom(), 8) });
+            map.flyTo({ center: [match.lon, match.lat], zoom: Math.max(map.getZoom(), 15) });
         }
     }
 
@@ -675,7 +675,7 @@ function setupInteractions() {
         showDetail(features[0]);
         map.flyTo({
             center: features[0].geometry.coordinates,
-            zoom: Math.max(map.getZoom(), 8)
+            zoom: Math.max(map.getZoom(), 15)
         });
     });
 
