@@ -328,7 +328,8 @@ map.on('load', async () => {
     // Interactions
     setupInteractions();
 
-    // ----- Temporary: Permian Basin fieldwork sites -----
+    // ----- Temporary: Permian Basin fieldwork sites (?fw=1) -----
+    if (new URLSearchParams(location.search).has('fw')) {
     const fieldworkSites = [
         { name: 'BPX Bingo CDP', lat: 31.8464, lon: -103.8811 },
         { name: 'BPX Checkmate CDP', lat: 31.7773, lon: -103.9326 },
@@ -398,7 +399,7 @@ map.on('load', async () => {
             'text-halo-width': 1.5
         }
     });
-    // ----- End fieldwork sites -----
+    } // ----- End fieldwork sites -----
 
 });
 
