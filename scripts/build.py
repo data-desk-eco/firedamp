@@ -175,12 +175,16 @@ def build_sron(path):
             lat = safe_float(row.get("lat"))
             lon = safe_float(row.get("lon"))
 
-            # Composite ID: display hash | source CSV filename (for linking)
-            key = f"{dt_raw}:{lat}:{lon}"
-            hid = hashlib.md5(key.encode()).hexdigest()[:12]
+            # Composite ID: date+location | source CSV filename (for linking)
+            lat_r = round(lat, 2)
+            lon_r = round(lon, 2)
+            lat_s = f"{abs(lat_r):.2f}{'N' if lat_r >= 0 else 'S'}"
+            lon_s = f"{abs(lon_r):.2f}{'E' if lon_r >= 0 else 'W'}"
+            date_compact = dt_raw.replace("-", "") if dt_raw else "nodate"
+            display_id = f"sron_{date_compact}_{lat_s}_{lon_s}"
             source_file = row.get("source_file", "")
             plumes.append({
-                "id": f"sron_{hid}|{source_file}",
+                "id": f"{display_id}|{source_file}",
                 "src": "sron",
                 "lat": round(lat, 4),
                 "lon": round(lon, 4),
