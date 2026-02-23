@@ -21,7 +21,7 @@ jobs:
       - name: Prepare dist
         run: |
           mkdir dist
-          cp web/index.html web/app.js web/style.css dist/
+          cp web/index.html web/app.js web/style.css web/layers.js dist/
           cp -r web/vendor dist/vendor
           cp -r web/data dist/data
 
