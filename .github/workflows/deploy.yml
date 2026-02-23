@@ -24,6 +24,9 @@ jobs:
           cp web/index.html web/app.js web/style.css web/layers.js dist/
           cp -r web/vendor dist/vendor
           cp -r web/data dist/data
+          # Cache-bust app assets with git SHA
+          V="${GITHUB_SHA:0:8}"
+          sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
 
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3

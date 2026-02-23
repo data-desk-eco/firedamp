@@ -313,6 +313,37 @@ a.detail-id:hover {
 }
 .close-btn:hover { color: var(--text-primary); }
 
+.overlap-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.overlap-btn {
+    background: none;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, border-color 0.15s;
+    padding: 0;
+}
+.overlap-btn:hover { color: var(--text-primary); border-color: var(--text-faint); }
+.overlap-count {
+    font-size: var(--font-xs);
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    text-align: center;
+}
+
 .stats-grid {
     padding: 16px;
     display: grid;

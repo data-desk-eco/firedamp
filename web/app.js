@@ -25,6 +25,8 @@ let activeYear = 'all';
 let activeRate = 'all';
 let ogimVisible = false;
 let selectedFeature = null;
+let overlappingFeatures = [];
+let overlapIndex = 0;
 
 // ---------------------------------------------------------------------------
 // Hash plume permalink helpers (#map=z/lat/lon&plume=id)
@@ -640,17 +642,19 @@ function setupInteractions() {
             return;
         }
 
-        // Closest feature
-        let closest = features[0], minDist = Infinity;
-        for (const f of features) {
-            const [lng, lat] = f.geometry.coordinates;
-            const d = Math.hypot(lng - e.lngLat.lng, lat - e.lngLat.lat);
-            if (d < minDist) { minDist = d; closest = f; }
-        }
+        // Sort by distance to click, stash all for overlap navigation
+        features.sort((a, b) => {
+            const [aLng, aLat] = a.geometry.coordinates;
+            const [bLng, bLat] = b.geometry.coordinates;
+            return Math.hypot(aLng - e.lngLat.lng, aLat - e.lngLat.lat)
+                 - Math.hypot(bLng - e.lngLat.lng, bLat - e.lngLat.lat);
+        });
+        overlappingFeatures = features;
+        overlapIndex = 0;
 
-        showDetail(closest);
+        showDetail(features[0]);
         map.flyTo({
-            center: closest.geometry.coordinates,
+            center: features[0].geometry.coordinates,
             zoom: Math.max(map.getZoom(), 8)
         });
     });
@@ -739,6 +743,11 @@ function showDetail(feature, fromPermalink) {
         </div>`;
     }
 
+    const n = overlappingFeatures.length;
+    const navHtml = n > 1
+        ? `<div class="overlap-nav"><button class="overlap-btn" onclick="overlapPrev()">&lsaquo;</button><span class="overlap-count">${overlapIndex + 1} / ${n}</span><button class="overlap-btn" onclick="overlapNext()">&rsaquo;</button></div>`
+        : '';
+
     const panel = document.getElementById('right-panel');
     panel.innerHTML = `
         <div class="detail-header">
@@ -746,6 +755,7 @@ function showDetail(feature, fromPermalink) {
                 ${href ? `<a class="detail-id" href="${href}" target="_blank" rel="noopener">${plumeId}</a>` : `<span class="detail-id">${plumeId}</span>`}
                 <span class="detail-coords">${coordStr}</span>
             </div>
+            ${navHtml}
             <button class="close-btn" onclick="closeDetail()">&times;</button>
         </div>
         <div class="detail-badges">
@@ -766,6 +776,8 @@ function showDetail(feature, fromPermalink) {
 
 function closeDetail() {
     selectedFeature = null;
+    overlappingFeatures = [];
+    overlapIndex = 0;
     setPlumeHash(null);
     document.getElementById('right-panel').classList.add('hidden');
 }
@@ -779,9 +791,23 @@ function flyToInfra(lon, lat) {
     map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 14) });
 }
 
+function overlapNext() {
+    if (overlappingFeatures.length < 2) return;
+    overlapIndex = (overlapIndex + 1) % overlappingFeatures.length;
+    showDetail(overlappingFeatures[overlapIndex]);
+}
+
+function overlapPrev() {
+    if (overlappingFeatures.length < 2) return;
+    overlapIndex = (overlapIndex - 1 + overlappingFeatures.length) % overlappingFeatures.length;
+    showDetail(overlappingFeatures[overlapIndex]);
+}
+
 // Make functions globally accessible for onclick
 window.closeDetail = closeDetail;
 window.flyToInfra = flyToInfra;
+window.overlapNext = overlapNext;
+window.overlapPrev = overlapPrev;
 
 // ---------------------------------------------------------------------------
 // Source toggle buttons
