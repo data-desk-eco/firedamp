@@ -31,7 +31,24 @@ IMEO data must be manually placed in `plumes_data/` (download from methanedata.u
 Compact binary: 20 bytes per plume + satellite name table + ID block.
 - Header: `FDP1` magic, plume count (u32), satellite table
 - Record: lat(f32), lon(f32), days-since-2020(u16), rate_kg/hr(u32), unc(u32), src|sec(u8), sat_idx(u8)
-- Footer: newline-separated plume IDs
+- Footer: newline-separated plume IDs (SRON uses `display_id|source_file` composite format)
+
+## Frontend
+
+Key files:
+- `web/app.js` — map setup, binary parser, interactions, detail panel
+- `web/style.css` — glass-morphism dark UI, CMY source colors
+- `web/layers.js` — custom overlay layers, loaded via `?layer=<slug>` query param
+
+### URL scheme
+
+- Map position: `#map=<zoom>/<lat>/<lon>` (managed by MapLibre)
+- Plume permalink: `#plume=<id>` (standalone — position derived from plume data)
+- Custom layers: `?layer=<slug>` (e.g. `?layer=permian-fieldwork`)
+
+### Overlap navigation
+
+When multiple plumes share the same location, the detail panel shows prev/next arrows to cycle through them.
 
 ## Development
 
@@ -43,4 +60,7 @@ make serve         # dev server on :8000 (HTTP Range support for PMTiles)
 ## Deployment
 
 Push to `main` triggers GitHub Pages deploy (`.github/workflows/deploy.yml`).
+Deploy cache-busts `app.js`, `style.css`, `layers.js` with the git SHA.
 OGIM PMTiles uploaded separately via `make ogim-upload`.
+
+**Important**: when adding new web assets, also add them to the `cp` line in `deploy.yml`.

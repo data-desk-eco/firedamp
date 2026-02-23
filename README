@@ -1,0 +1,45 @@
+firedamp
+========
+
+Methane plume aggregator. Maps satellite-detected methane plumes
+alongside O&G infrastructure from the OGIM database.
+
+Live: https://research.datadesk.eco/firedamp/
+
+Sources
+-------
+- Carbon Mapper  plume detections (API)
+- IMEO / MARS    UNEP methane plume database (manual download)
+- SRON           TROPOMI weekly plume CSVs (FTP)
+- OGIM v2.7     global O&G infrastructure (Zenodo GeoPackage)
+
+Setup
+-----
+Requires Python (managed with uv) and optionally ogr2ogr + tippecanoe
+for rebuilding OGIM tiles.
+
+    make vendor        download vendored JS/CSS/fonts
+    make serve         dev server on :8000
+
+    make data          fetch plume sources, build plumes.bin
+    make ogim          OGIM GeoPackage -> PMTiles
+    make ogim-upload   upload PMTiles to GCS
+    make rebuild       full pipeline: data + ogim + upload
+
+Architecture
+------------
+Static HTML/JS/CSS frontend using MapLibre GL. No build step, no npm.
+Python scripts handle data fetching and binary encoding.
+
+Deployed via GitHub Pages. Push to main triggers deploy.
+OGIM PMTiles (~500 MB) served from Google Cloud Storage.
+
+URL scheme
+----------
+Map position:     #map=<zoom>/<lat>/<lon>
+Plume permalink:  #plume=<id>
+Custom layers:    ?layer=<slug>
+
+License
+-------
+Private repository. (c) The Data Desk.
