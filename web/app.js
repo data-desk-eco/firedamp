@@ -346,6 +346,21 @@ map.on('load', async () => {
         });
     }
 
+    // Highlight ring for selected plume
+    map.addSource('plume-highlight', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addLayer({
+        id: 'plume-highlight',
+        type: 'circle',
+        source: 'plume-highlight',
+        paint: {
+            'circle-radius': 18,
+            'circle-color': 'transparent',
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2.5,
+            'circle-stroke-opacity': 0.9
+        }
+    });
+
     // Interactions
     setupInteractions();
 
@@ -715,11 +730,24 @@ function sourceUrl(src, id, link) {
     }
 }
 
+function highlightPlume(lon, lat) {
+    const src = map.getSource('plume-highlight');
+    if (src) src.setData({ type: 'FeatureCollection', features: [
+        { type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: {} }
+    ]});
+}
+
+function clearHighlight() {
+    const src = map.getSource('plume-highlight');
+    if (src) src.setData({ type: 'FeatureCollection', features: [] });
+}
+
 function showDetail(feature, fromPermalink) {
     selectedFeature = feature;
     const p = feature.properties;
     if (!fromPermalink) setPlumeHash(p.id);
     const [lon, lat] = feature.geometry.coordinates;
+    highlightPlume(lon, lat);
 
     const latDir = lat >= 0 ? 'N' : 'S';
     const lonDir = lon >= 0 ? 'E' : 'W';
@@ -784,6 +812,7 @@ function closeDetail() {
     overlappingFeatures = [];
     overlapIndex = 0;
     setPlumeHash(null);
+    clearHighlight();
     document.getElementById('right-panel').classList.add('hidden');
 }
 
