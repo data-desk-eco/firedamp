@@ -504,16 +504,6 @@ function formatDist(km) {
     return `${Math.round(km)} km`;
 }
 
-function syncLegendHeight() {
-    const legend = document.getElementById('legend');
-    if (window.innerWidth <= 768 && !legend.classList.contains('collapsed')) {
-        const lp = document.getElementById('left-panel');
-        legend.style.height = lp.offsetHeight + 'px';
-    } else {
-        legend.style.height = '';
-    }
-}
-
 function toggleOGIM(visible) {
     ogimVisible = visible;
     const vis = visible ? 'visible' : 'none';
@@ -521,7 +511,6 @@ function toggleOGIM(visible) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
     }
     document.getElementById('legend-infra').style.display = visible ? 'block' : 'none';
-    syncLegendHeight();
     if (selectedFeature) showDetail(selectedFeature);
 }
 
@@ -792,15 +781,23 @@ document.getElementById('ogim-toggle').addEventListener('change', e => {
 
 document.getElementById('collapse-toggle').addEventListener('click', () => {
     document.getElementById('left-panel').classList.toggle('collapsed');
-    syncLegendHeight();
 });
 
 document.getElementById('legend-collapse').addEventListener('click', () => {
     document.getElementById('legend').classList.toggle('collapsed');
-    syncLegendHeight();
 });
 
-window.addEventListener('resize', syncLegendHeight);
+// ---------------------------------------------------------------------------
+// Map centre display
+// ---------------------------------------------------------------------------
+
+function updateMapCentre() {
+    const c = map.getCenter();
+    document.getElementById('map-centre').textContent =
+        `${c.lat.toFixed(3)}, ${c.lng.toFixed(3)}`;
+}
+map.on('move', updateMapCentre);
+map.on('load', updateMapCentre);
 
 // ---------------------------------------------------------------------------
 // Keyboard
