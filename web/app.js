@@ -273,11 +273,18 @@ function parsePlumes(buffer) {
         plumes[i] = p;
     }
 
-    // IDs block
+    // IDs block — SRON IDs use "display|link" composite format
     const idsOffset = offset + count * 20;
     const ids = new TextDecoder().decode(new Uint8Array(buffer, idsOffset)).split('\n');
     for (let i = 0; i < count; i++) {
-        plumes[i].id = ids[i];
+        const raw = ids[i];
+        const pipe = raw.indexOf('|');
+        if (pipe !== -1) {
+            plumes[i].id = raw.substring(0, pipe);
+            plumes[i].link = raw.substring(pipe + 1);
+        } else {
+            plumes[i].id = raw;
+        }
     }
 
     return plumes;
@@ -626,11 +633,11 @@ function setupInteractions() {
 // Detail panel
 // ---------------------------------------------------------------------------
 
-function sourceUrl(src, id) {
+function sourceUrl(src, id, link) {
     if (!id || id === '\u2014') return null;
     switch (src) {
         case 'cm': return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(id)}`;
-        case 'sron': return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(id)}`;
+        case 'sron': return link ? `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(link)}` : null;
         default: return null;
     }
 }
@@ -647,7 +654,7 @@ function showDetail(feature) {
     const rateThr = (Number(p.rate) / 1000).toFixed(1);
     const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(1) : null;
     const plumeId = p.id || '\u2014';
-    const href = sourceUrl(p.src, plumeId);
+    const href = sourceUrl(p.src, plumeId, p.link);
 
     const srcClass = p.src || 'cm';
     const srcLabel = SRC_LABELS[p.src] || p.src;
