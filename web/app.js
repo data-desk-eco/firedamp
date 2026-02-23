@@ -148,6 +148,7 @@ const map = new maplibregl.Map({
             }
         }]
     },
+    hash: true,
     center: [-98, 39],
     zoom: 4,
     minZoom: 1.5,
