@@ -1,5 +1,4 @@
 import csv
-import hashlib
 import struct
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -175,11 +174,8 @@ def build_sron(path):
             lat = safe_float(row.get("lat"))
             lon = safe_float(row.get("lon"))
 
-            key = f"{dt_raw}:{lat}:{lon}"
-            hid = hashlib.md5(key.encode()).hexdigest()[:12]
-
             plumes.append({
-                "id": f"sron_{hid}",
+                "id": row.get("source_file", ""),
                 "src": "sron",
                 "lat": round(lat, 4),
                 "lon": round(lon, 4),

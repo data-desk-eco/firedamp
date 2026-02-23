@@ -31,7 +31,7 @@ def main():
 
     # Concatenate into single CSV (normalize headers — some files lack index col)
     all_out = Path("data/sron_all.csv")
-    canonical = "date,time_UTC,lat,lon,source_rate_t/h,uncertainty_t/h"
+    canonical = "date,time_UTC,lat,lon,source_rate_t/h,uncertainty_t/h,source_file"
     total = 0
     with open(all_out, "w") as out:
         out.write(canonical + "\n")
@@ -49,7 +49,7 @@ def main():
                 if has_index:
                     # Strip the leading index value (e.g. "0," or "123,")
                     line = line.split(",", 1)[1]
-                out.write(line + "\n")
+                out.write(f"{line},{csv_path.name}\n")
                 total += 1
 
     print(f"SRON total: {total} plumes → {all_out}")

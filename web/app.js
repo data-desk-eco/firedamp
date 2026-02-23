@@ -626,6 +626,16 @@ function setupInteractions() {
 // Detail panel
 // ---------------------------------------------------------------------------
 
+function sourceUrl(src, id) {
+    if (!id || id === '\u2014') return null;
+    switch (src) {
+        case 'cm': return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(id)}`;
+        case 'imeo': return `https://methanedata.unep.org/map?fs=mars&e=${encodeURIComponent(id)}`;
+        case 'sron': return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(id)}`;
+        default: return null;
+    }
+}
+
 function showDetail(feature) {
     selectedFeature = feature;
     const p = feature.properties;
@@ -638,6 +648,7 @@ function showDetail(feature) {
     const rateThr = (Number(p.rate) / 1000).toFixed(1);
     const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(1) : null;
     const plumeId = p.id || '\u2014';
+    const href = sourceUrl(p.src, plumeId);
 
     const srcClass = p.src || 'cm';
     const srcLabel = SRC_LABELS[p.src] || p.src;
@@ -661,7 +672,7 @@ function showDetail(feature) {
     panel.innerHTML = `
         <div class="detail-header">
             <div class="detail-header-text">
-                <span class="detail-id">${plumeId}</span>
+                ${href ? `<a class="detail-id" href="${href}" target="_blank" rel="noopener">${plumeId}</a>` : `<span class="detail-id">${plumeId}</span>`}
                 <span class="detail-coords">${coordStr}</span>
             </div>
             <button class="close-btn" onclick="closeDetail()">&times;</button>

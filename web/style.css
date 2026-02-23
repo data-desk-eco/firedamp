@@ -277,6 +277,13 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     color: var(--text-primary);
     word-break: break-all;
 }
+a.detail-id {
+    text-decoration: none;
+}
+a.detail-id:hover {
+    text-decoration: underline;
+    color: var(--accent);
+}
 .detail-coords {
     font-size: var(--font-sm);
     color: var(--text-muted);
