@@ -86,6 +86,17 @@ const map = new maplibregl.Map({
             paint: { 'raster-saturation': -1, 'raster-brightness-max': 0.65 }
         },
         {
+            id: 'country-borders',
+            type: 'line',
+            source: 'labels',
+            'source-layer': 'boundary',
+            filter: ['==', ['get', 'admin_level'], 2],
+            paint: {
+                'line-color': 'rgba(255, 255, 255, 0.25)',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.5, 6, 1.5]
+            }
+        },
+        {
             id: 'country-labels',
             type: 'symbol',
             source: 'labels',
