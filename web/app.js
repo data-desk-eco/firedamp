@@ -684,8 +684,9 @@ function setupInteractions() {
         overlapIndex = 0;
 
         showDetail(features[0]);
+        const fp = features[0].properties;
         map.flyTo({
-            center: features[0].geometry.coordinates,
+            center: [Number(fp.lon), Number(fp.lat)],
             zoom: Math.max(map.getZoom(), 15)
         });
     });
@@ -757,7 +758,9 @@ function showDetail(feature, fromPermalink) {
     selectedFeature = feature;
     const p = feature.properties;
     if (!fromPermalink) setPlumeHash(p.id);
-    const [lon, lat] = feature.geometry.coordinates;
+    // Use properties (exact) rather than geometry.coordinates (quantized by tile grid at low zoom)
+    const lon = Number(p.lon);
+    const lat = Number(p.lat);
     highlightPlume(lon, lat);
 
     const latDir = lat >= 0 ? 'N' : 'S';
