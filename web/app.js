@@ -335,6 +335,112 @@ map.on('load', async () => {
     // OGIM layers (hidden by default, rendered below plumes)
     await addOGIMLayers();
 
+    // ----- Custom overlay layers via ?layer=<slug> -----
+    const layerSlug = new URLSearchParams(location.search).get('layer');
+    let customLayer = null;
+
+    if (layerSlug && typeof CUSTOM_LAYERS !== 'undefined' && CUSTOM_LAYERS[layerSlug]) {
+        customLayer = CUSTOM_LAYERS[layerSlug];
+        const color = customLayer.color || '#00ff00';
+
+        // Resolve site coordinates for proximity filtering: [[lon, lat], ...]
+        let siteCoords = null;
+        if (customLayer.sitesUrl) {
+            siteCoords = await fetch(customLayer.sitesUrl).then(r => r.json());
+        } else if (customLayer.sites) {
+            siteCoords = customLayer.sites.map(s => [s.lon, s.lat]);
+        }
+
+        // Filter plumes to radius around layer sites
+        if (siteCoords && customLayer.filterRadius) {
+            const before = plumesData.length;
+            const grid = buildSpatialGrid(siteCoords, 0.1);
+            plumesData = plumesData.filter(p =>
+                isWithinRadius(p.lon, p.lat, grid, 0.1, customLayer.filterRadius)
+            );
+            console.log(`Layer "${layerSlug}": filtered ${before} plumes → ${plumesData.length} within ${customLayer.filterRadius} km of ${siteCoords.length} sites`);
+        }
+
+        // OGIM operator highlight layers (rendered above base OGIM, below plumes)
+        if (customLayer.ogimOperators && map.getSource('ogim')) {
+            const opFilter = ['in', ['get', 'OPERATOR'], ['literal', customLayer.ogimOperators]];
+            map.addLayer({
+                id: 'custom-ogim-wells',
+                type: 'circle',
+                source: 'ogim',
+                'source-layer': 'wells',
+                minzoom: 3,
+                filter: opFilter,
+                paint: {
+                    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 1, 6, 2, 10, 4, 14, 6],
+                    'circle-color': color,
+                    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 3, 0.4, 8, 0.3, 14, 0],
+                    'circle-stroke-color': color,
+                    'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 6, 1, 10, 1.5, 14, 2],
+                    'circle-stroke-opacity': 0.8
+                }
+            });
+            map.addLayer({
+                id: 'custom-ogim-facilities',
+                type: 'circle',
+                source: 'ogim',
+                'source-layer': 'facilities',
+                minzoom: 3,
+                filter: opFilter,
+                paint: {
+                    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2, 6, 4, 10, 6, 14, 8],
+                    'circle-color': color,
+                    'circle-opacity': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 8, 0.3, 14, 0],
+                    'circle-stroke-color': color,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-opacity': 0.9
+                }
+            });
+        }
+
+        // Static site markers with labels (for layers with explicit sites)
+        if (customLayer.sites) {
+            const sitesGeoJSON = {
+                type: 'FeatureCollection',
+                features: customLayer.sites.map(s => ({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
+                    properties: { name: s.name }
+                }))
+            };
+            map.addSource('custom-layer', { type: 'geojson', data: sitesGeoJSON });
+            map.addLayer({
+                id: 'custom-layer-circles',
+                type: 'circle',
+                source: 'custom-layer',
+                paint: {
+                    'circle-radius': 14,
+                    'circle-color': 'transparent',
+                    'circle-stroke-color': color,
+                    'circle-stroke-width': 3,
+                    'circle-stroke-opacity': 0.9
+                }
+            });
+            map.addLayer({
+                id: 'custom-layer-labels',
+                type: 'symbol',
+                source: 'custom-layer',
+                layout: {
+                    'text-field': ['get', 'name'],
+                    'text-font': ['Noto Sans Regular'],
+                    'text-size': 11,
+                    'text-offset': [0, -1.8],
+                    'text-anchor': 'bottom'
+                },
+                paint: {
+                    'text-color': color,
+                    'text-halo-color': 'rgba(0,0,0,0.8)',
+                    'text-halo-width': 1.5
+                }
+            });
+        }
+    }
+
     // Add plumes source (single GeoJSON, split into per-source layers)
     const geojson = plumesToGeoJSON(plumesData);
     map.addSource('plumes', { type: 'geojson', data: geojson });
@@ -374,51 +480,6 @@ map.on('load', async () => {
 
     // Interactions
     setupInteractions();
-
-    // ----- Custom overlay layers via ?layer=<slug> -----
-    const layerSlug = new URLSearchParams(location.search).get('layer');
-    if (layerSlug && typeof CUSTOM_LAYERS !== 'undefined' && CUSTOM_LAYERS[layerSlug]) {
-        const layer = CUSTOM_LAYERS[layerSlug];
-        const color = layer.color || '#00ff00';
-        const geojson = {
-            type: 'FeatureCollection',
-            features: layer.sites.map(s => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
-                properties: { name: s.name }
-            }))
-        };
-        map.addSource('custom-layer', { type: 'geojson', data: geojson });
-        map.addLayer({
-            id: 'custom-layer-circles',
-            type: 'circle',
-            source: 'custom-layer',
-            paint: {
-                'circle-radius': 14,
-                'circle-color': 'transparent',
-                'circle-stroke-color': color,
-                'circle-stroke-width': 3,
-                'circle-stroke-opacity': 0.9
-            }
-        });
-        map.addLayer({
-            id: 'custom-layer-labels',
-            type: 'symbol',
-            source: 'custom-layer',
-            layout: {
-                'text-field': ['get', 'name'],
-                'text-font': ['Noto Sans Regular'],
-                'text-size': 11,
-                'text-offset': [0, -1.8],
-                'text-anchor': 'bottom'
-            },
-            paint: {
-                'text-color': color,
-                'text-halo-color': 'rgba(0,0,0,0.8)',
-                'text-halo-width': 1.5
-            }
-        });
-    }
 
     // Restore plume from permalink
     const linkedId = getPlumeHash();
@@ -609,6 +670,35 @@ function formatDist(km) {
     if (km < 1) return `${Math.round(km * 1000)} m`;
     if (km < 10) return `${km.toFixed(1)} km`;
     return `${Math.round(km)} km`;
+}
+
+// ---------------------------------------------------------------------------
+// Spatial grid for fast proximity filtering (custom layers)
+// ---------------------------------------------------------------------------
+
+function buildSpatialGrid(sites, cellDeg) {
+    const grid = new Map();
+    for (const [lon, lat] of sites) {
+        const key = Math.floor(lon / cellDeg) + ',' + Math.floor(lat / cellDeg);
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push([lon, lat]);
+    }
+    return grid;
+}
+
+function isWithinRadius(lon, lat, grid, cellDeg, radiusKm) {
+    const cx = Math.floor(lon / cellDeg);
+    const cy = Math.floor(lat / cellDeg);
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            const cell = grid.get((cx + dx) + ',' + (cy + dy));
+            if (!cell) continue;
+            for (const [slon, slat] of cell) {
+                if (haversineKm(lat, lon, slat, slon) <= radiusKm) return true;
+            }
+        }
+    }
+    return false;
 }
 
 function toggleOGIM(visible) {

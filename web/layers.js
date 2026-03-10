@@ -1,14 +1,20 @@
 // ---------------------------------------------------------------------------
 // Custom overlay layers — loaded via ?layer=<slug>
 //
-// Each key is a URL slug. Value: { color, sites: [{ name, lat, lon }, ...] }
-// Usage: https://research.datadesk.eco/firedamp/?layer=permian-fieldwork#13/31.84/-103.88
+// Each key is a URL slug. Value: { color, sites, filterRadius, ... }
+// - sites: [{ name, lat, lon }, ...] — static site markers with labels
+// - sitesUrl: 'path.json' — load [[lon, lat], ...] for proximity filtering
+// - ogimOperators: [...] — highlight matching OGIM wells/facilities
+// - filterRadius: km — only show plumes within this radius of any site
+//
+// Usage: https://research.datadesk.eco/firedamp/?layer=permian-fieldwork
 // ---------------------------------------------------------------------------
 
 const CUSTOM_LAYERS = {
 
     'permian-fieldwork': {
         color: '#00ff00',
+        filterRadius: 10,
         sites: [
             { name: 'BPX Bingo CDP', lat: 31.8464, lon: -103.8811 },
             { name: 'BPX Checkmate CDP', lat: 31.7773, lon: -103.9326 },
@@ -39,6 +45,23 @@ const CUSTOM_LAYERS = {
             { name: 'Targa Hopson Plant', lat: 31.8515, lon: -101.8017 },
             { name: 'Unknown SWD', lat: 32.3220, lon: -101.8256 },
             { name: 'Unknown production well', lat: 31.8576, lon: -103.8317 },
+        ]
+    },
+
+    'diamondback': {
+        color: '#00ff66',
+        filterRadius: 0.5,
+        sitesUrl: 'data/diamondback-sites.json',
+        ogimOperators: [
+            'DIAMONDBACK E&P LLC',
+            'DIAMONDBACK EYP LLC',
+            'DIAMONDBACK OPERATING, LP',
+            'ENDEAVOR ENERGY RESOURCES L.P.',
+            'ENDEAVOR ENERGY RESOURCES LP',
+            'ENDEAVOR ENERGY RESOURCES, LP',
+            'ENDEAVOR NATURAL GAS, LP',
+            'ENDEAVOR NATURAL GAS LLC',
+            'ENDEAVOR NATURAL GAS, LLC',
         ]
     },
 

@@ -1,0 +1,78 @@
+name: Update plume data
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Download existing data from release
+        run: |
+          gh release download latest-data --pattern 'plumes-data.zip' --dir . || true
+          if [ -f plumes-data.zip ]; then
+            unzip -o plumes-data.zip -d .
+            rm plumes-data.zip
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fetch Carbon Mapper + SRON
+        run: |
+          uv run scripts/fetch_carbon_mapper.py
+          uv run scripts/fetch_sron.py
+
+      - name: Fetch IMEO (may fail behind Cloudflare)
+        run: uv run scripts/fetch_imeo.py
+        continue-on-error: true
+
+      - name: Build plumes.bin
+        run: uv run scripts/build.py
+
+      - name: Upload data to release
+        run: |
+          zip -r plumes-data.zip \
+            web/data/plumes.bin \
+            data/imeo_plumes.csv \
+            data/carbon_mapper.csv \
+            data/sron_all.csv
+          gh release upload latest-data plumes-data.zip --clobber
+          rm plumes-data.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Prepare dist
+        run: |
+          mkdir dist
+          cp web/index.html web/app.js web/style.css web/layers.js dist/
+          cp -r web/vendor dist/vendor
+          mkdir -p dist/data
+          cp web/data/plumes.bin dist/data/
+          V="${GITHUB_SHA:0:8}"
+          sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
+
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

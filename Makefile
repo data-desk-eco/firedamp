@@ -1,7 +1,7 @@
 .PHONY: data ogim ogim-upload rebuild serve vendor clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
-data: data/sron.ok data/carbon_mapper.ok
+data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
 	uv run scripts/build.py
 	@echo "Built web/data/plumes.bin"
 
@@ -12,6 +12,10 @@ data/sron.ok:
 data/carbon_mapper.ok:
 	uv run scripts/fetch_carbon_mapper.py
 	@touch data/carbon_mapper.ok
+
+data/imeo.ok:
+	uv run scripts/fetch_imeo.py
+	@touch data/imeo.ok
 
 # ── OGIM infrastructure tiles ────────────────────────────────────
 ogim: web/data/ogim.pmtiles
@@ -40,7 +44,7 @@ serve: vendor
 
 # ── Cleanup ──────────────────────────────────────────────────────
 clean:
-	rm -f data/*.ok data/*.csv web/data/plumes.bin
+	rm -f data/*.ok data/*.csv data/imeo_plumes.csv web/data/plumes.bin
 
 clean-all: clean
 	rm -rf web/vendor data/sron data/OGIM_v2.7.gpkg web/data/ogim.pmtiles

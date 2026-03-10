@@ -7,4 +7,5 @@ __pycache__/
 plumes.zip
 plumes_data/
 web/data/ogim.pmtiles
+web/data/plumes.bin
 web/data/sources.json

@@ -119,36 +119,32 @@ def build_cm(path):
 
 
 def build_imeo_plumes(path):
-    import json
-    with open(path) as f:
-        data = json.load(f)
-
     plumes = []
-    for feat in data["features"]:
-        p = feat["properties"]
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rate = safe_float(row.get("ch4_fluxrate"))
+            if rate is None:
+                continue
 
-        rate = safe_float(p.get("ch4_fluxrate"))
-        if rate is None:
-            continue
+            dt_raw = row.get("tile_date", "")
+            dt = dt_raw[:10] if dt_raw else None
 
-        dt_raw = p.get("tile_date", "")
-        dt = dt_raw[:10] if dt_raw else None
+            sat_raw = row.get("satellite", "")
+            sat = SAT_SHORT.get(sat_raw, sat_raw)
 
-        sat_raw = p.get("satellite", "")
-        sat = SAT_SHORT.get(sat_raw, sat_raw)
-
-        unc = safe_float(p.get("ch4_fluxrate_std"))
-        plumes.append({
-            "id": p.get("id_plume", ""),
-            "src": "imeo",
-            "lat": round(safe_float(p.get("lat")), 4),
-            "lon": round(safe_float(p.get("lon")), 4),
-            "dt": dt,
-            "rate": round(rate),
-            "unc": round(unc) if unc is not None else None,
-            "sat": sat,
-            "sec": map_sector(p.get("sector")),
-        })
+            unc = safe_float(row.get("ch4_fluxrate_std"))
+            plumes.append({
+                "id": row.get("id_plume", ""),
+                "src": "imeo",
+                "lat": round(safe_float(row.get("lat")), 4),
+                "lon": round(safe_float(row.get("lon")), 4),
+                "dt": dt,
+                "rate": round(rate),
+                "unc": round(unc) if unc is not None else None,
+                "sat": sat,
+                "sec": map_sector(row.get("sector")),
+            })
     print(f"  IMEO: {len(plumes)} plumes")
     return plumes
 
@@ -235,7 +231,7 @@ def main():
 
     print("Building plumes.bin...")
     cm = build_cm(Path("data/carbon_mapper.csv"))
-    imeo = build_imeo_plumes(Path("plumes_data/unep_methanedata_detected_plumes.geojson"))
+    imeo = build_imeo_plumes(Path("data/imeo_plumes.csv"))
     sron = build_sron(Path("data/sron_all.csv"))
 
     all_plumes = cm + imeo + sron

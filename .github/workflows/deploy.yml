@@ -18,12 +18,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download plumes.bin from release
+        run: |
+          gh release download latest-data --pattern 'plumes-data.zip' --dir .
+          unzip -j plumes-data.zip web/data/plumes.bin -d web/data
+          rm plumes-data.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Prepare dist
         run: |
           mkdir dist
           cp web/index.html web/app.js web/style.css web/layers.js dist/
           cp -r web/vendor dist/vendor
-          cp -r web/data dist/data
+          mkdir -p dist/data
+          cp web/data/plumes.bin dist/data/
           # Cache-bust app assets with git SHA
           V="${GITHUB_SHA:0:8}"
           sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
