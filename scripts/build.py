@@ -170,6 +170,8 @@ def build_sron(path):
 
             lat = safe_float(row.get("lat"))
             lon = safe_float(row.get("lon"))
+            if lat is None or lon is None:
+                continue
 
             # Composite ID: date+location | source CSV filename (for linking)
             lat_r = round(lat, 2)
