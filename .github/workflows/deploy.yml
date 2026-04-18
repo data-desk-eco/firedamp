@@ -16,7 +16,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download plumes.bin from release
         run: |
@@ -37,9 +37,9 @@ jobs:
           V="${GITHUB_SHA:0:8}"
           sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
 
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
