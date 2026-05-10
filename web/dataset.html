@@ -229,42 +229,19 @@
         const fmtCoord = (c) => c == null ? '' : Number(c).toFixed(3);
         const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-        // Daily snapshot of the dataset, uploaded by .github/workflows/export-analyses.yml.
-        // Used as a fallback if the live Worker is down or origin-blocked.
-        const RELEASE_FALLBACK = 'https://github.com/data-desk-eco/firedamp/releases/download/latest-data/analyses.json';
-
         async function load() {
-            const tryWorker = async () => {
+            try {
                 const resp = await fetch(`${API}/api/analyses?limit=10000`);
                 if (!resp.ok) throw new Error(`API ${resp.status}`);
-                return { source: 'live', rows: await resp.json() };
-            };
-            const tryFallback = async () => {
-                const resp = await fetch(RELEASE_FALLBACK);
-                if (!resp.ok) throw new Error(`fallback ${resp.status}`);
-                return { source: 'release snapshot', rows: await resp.json() };
-            };
-
-            let result;
-            try {
-                result = await tryWorker();
-            } catch (workerErr) {
-                console.warn('worker fetch failed, trying release fallback:', workerErr);
-                try {
-                    result = await tryFallback();
-                } catch (fallbackErr) {
-                    document.getElementById('status').textContent =
-                        `Failed to load (worker: ${workerErr.message}; fallback: ${fallbackErr.message})`;
-                    return;
-                }
+                state.rows = await resp.json();
+                document.getElementById('meta').textContent =
+                    `${state.rows.length} analyses · live`;
+                document.getElementById('status').hidden = true;
+                document.getElementById('table').hidden = false;
+                applyFilters();
+            } catch (err) {
+                document.getElementById('status').textContent = `Failed to load: ${err.message}`;
             }
-
-            state.rows = result.rows;
-            document.getElementById('meta').textContent =
-                `${state.rows.length} analyses · ${result.source}`;
-            document.getElementById('status').hidden = true;
-            document.getElementById('table').hidden = false;
-            applyFilters();
         }
 
         function applyFilters() {

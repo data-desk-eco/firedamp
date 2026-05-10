@@ -398,6 +398,12 @@ a.detail-id:hover {
 .source-badge.imeo { color: #ff00ff; border-color: #ff00ff; background: rgba(255, 0, 255, 0.15); }
 .source-badge.sron { color: #ffff00; border-color: #ffff00; background: rgba(255, 255, 0, 0.15); }
 
+.toggle-row.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.toggle-row.disabled input { cursor: not-allowed; }
+
 /* --- Nearby infrastructure --- */
 
 .nearby-accordion {

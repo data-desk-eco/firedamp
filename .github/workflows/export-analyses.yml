@@ -1,7 +1,9 @@
 name: Export AI analyses
 
-# Daily snapshot of the firedamp-api D1 database to the latest-data release,
-# so the dataset survives even if the Worker is rotated or the account closed.
+# Daily snapshot of the firedamp-api D1 database to the latest-data release.
+# The repo is private so this is an internal-mirror / durability backup, not
+# a public fallback for /dataset.html. (If the Worker or D1 are rotated, the
+# maintainer can restore from this JSON.)
 
 on:
   schedule:
@@ -25,7 +27,7 @@ jobs:
           curl -sf -H "Origin: $ALLOWED_ORIGIN" \
             "$API_URL/api/analyses?limit=10000" \
             -o analyses.json
-          jq 'length' analyses.json
+          echo "Rows: $(jq 'length' analyses.json)"
           gzip -k analyses.json
 
       - name: Upload to release

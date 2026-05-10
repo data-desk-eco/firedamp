@@ -798,6 +798,8 @@ function isWithinRadius(lon, lat, grid, cellDeg, radiusKm) {
     return false;
 }
 
+const OGIM_MIN_ZOOM = 6;
+
 function toggleOGIM(visible) {
     ogimVisible = visible;
     const vis = visible ? 'visible' : 'none';
@@ -805,17 +807,35 @@ function toggleOGIM(visible) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
     }
     document.getElementById('legend-infra').style.display = visible ? 'block' : 'none';
-    // OGIM PMTiles minzoom is 6 — at lower zoom toggling produces no visible
-    // change, which reads as broken. Nudge the user up so they see the data.
-    if (visible && map.getZoom() < 6) {
-        map.flyTo({ zoom: 6.5, speed: 0.8 });
-    }
     // Refresh nearby infra section only (avoid re-running AI analysis)
     if (selectedFeature) {
         const p = selectedFeature.properties;
         const nearby = findNearbyInfra(Number(p.lon), Number(p.lat));
         const el = document.getElementById('detail-nearby');
         if (el) el.innerHTML = nearbyMarkup(nearby);
+    }
+}
+
+// OGIM PMTiles minzoom is 6. Below that the toggle has no effect, so disable
+// it with a tooltip explaining why; auto-uncheck if the user zooms out while
+// it's on, so the legend stays honest.
+function updateOgimToggleEnabled() {
+    const toggle = document.getElementById('ogim-toggle');
+    if (!toggle) return;
+    const zoomedIn = map.getZoom() >= OGIM_MIN_ZOOM;
+    const row = toggle.closest('.toggle-row');
+    if (zoomedIn) {
+        toggle.disabled = false;
+        if (row) row.classList.remove('disabled');
+        toggle.title = '';
+    } else {
+        toggle.disabled = true;
+        if (row) row.classList.add('disabled');
+        toggle.title = `Zoom in past level ${OGIM_MIN_ZOOM} to enable`;
+        if (toggle.checked) {
+            toggle.checked = false;
+            toggleOGIM(false);
+        }
     }
 }
 
@@ -1611,8 +1631,8 @@ function updateMapCentre() {
     document.getElementById('map-centre').textContent =
         `${c.lat.toFixed(3)}, ${c.lng.toFixed(3)}`;
 }
-map.on('move', updateMapCentre);
-map.on('load', updateMapCentre);
+map.on('move', () => { updateMapCentre(); updateOgimToggleEnabled(); });
+map.on('load', () => { updateMapCentre(); updateOgimToggleEnabled(); });
 
 // ---------------------------------------------------------------------------
 // Keyboard
