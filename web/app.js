@@ -986,7 +986,6 @@ function showDetail(feature, fromPermalink) {
     const coordStr = `${Math.abs(lat).toFixed(4)}\u00b0${latDir}, ${Math.abs(lon).toFixed(4)}\u00b0${lonDir}`;
 
     const rateThr = (Number(p.rate) / 1000).toFixed(1);
-    const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(1) : null;
     const plumeId = p.id || '\u2014';
     const href = sourceUrl(p.src, plumeId, p.link);
 
@@ -1019,7 +1018,7 @@ function showDetail(feature, fromPermalink) {
         </div>
         <div class="stats-grid">
             <div class="stat"><div class="stat-big">${rateThr}</div><div class="stat-unit">t/hr</div></div>
-            <div class="stat"><div class="stat-big">${uncThr != null ? '\u00b1' + uncThr : '\u2014'}</div><div class="stat-unit">uncertainty</div></div>
+            <div class="stat" id="stat-wind"><div class="stat-big stat-wind-big">\u2026</div><div class="stat-unit">wind</div></div>
             <div class="stat"><div class="stat-big">${p.sat || '\u2014'}</div><div class="stat-unit">satellite</div></div>
             <div class="stat"><div class="stat-big">${p.dt || '\u2014'}</div><div class="stat-unit">date</div></div>
         </div>
@@ -1129,7 +1128,7 @@ function summariseOsmElements(elements) {
         const key = `${name}:${JSON.stringify(keep)}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        items.push({ name, lat, lon, tags: keep });
+        items.push({ osmId: `${el.type}/${el.id}`, name, lat, lon, tags: keep });
     }
     return items.slice(0, 60);
 }
@@ -1152,6 +1151,58 @@ async function reverseGeocode(lat, lon) {
         return { display: display || data.display_name || null, country, region, locality };
     } catch (err) {
         console.warn('Nominatim reverse geocode failed:', err);
+        return null;
+    }
+}
+
+// Compass label for a direction in degrees (0 = N, 90 = E, ...). Wind is by
+// meteorological convention "direction the wind is coming FROM".
+const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+function compass(deg) {
+    if (deg == null || isNaN(deg)) return '';
+    return COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+}
+
+// Daily-mean surface wind at the plume coordinate from Open-Meteo's historical
+// archive (no API key, CORS-friendly). Returns the daily vector mean so brief
+// gusts in random directions don't dominate. Useful for the "upwind" reasoning,
+// especially for SRON / TROPOMI where the source is often several km upwind of
+// the published centroid.
+async function fetchWind(lat, lon, dateISO) {
+    if (!dateISO) return null;
+    const url = `https://archive-api.open-meteo.com/v1/archive`
+        + `?latitude=${lat}&longitude=${lon}`
+        + `&start_date=${dateISO}&end_date=${dateISO}`
+        + `&hourly=wind_speed_10m,wind_direction_10m`
+        + `&wind_speed_unit=ms&timezone=auto`;
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const speeds = data.hourly?.wind_speed_10m;
+        const dirs = data.hourly?.wind_direction_10m;
+        if (!speeds || !dirs) return null;
+        // Vector-mean wind. wind_direction is "FROM", convert to "TO" for
+        // the vector sum so opposing winds cancel rather than averaging in
+        // direction space (which is unstable around 0°/360°).
+        let u = 0, v = 0, n = 0;
+        for (let i = 0; i < speeds.length; i++) {
+            const s = speeds[i], d = dirs[i];
+            if (s == null || d == null) continue;
+            const radTo = ((d + 180) % 360) * Math.PI / 180;
+            u += s * Math.sin(radTo);
+            v += s * Math.cos(radTo);
+            n++;
+        }
+        if (n === 0) return null;
+        u /= n; v /= n;
+        const speed = Math.sqrt(u * u + v * v);
+        const toDeg = (Math.atan2(u, v) * 180 / Math.PI + 360) % 360;
+        const fromDeg = (toDeg + 180) % 360;
+        return { speed, fromDeg, toDeg };
+    } catch (err) {
+        console.warn('Open-Meteo failed:', err);
         return null;
     }
 }
@@ -1180,7 +1231,7 @@ function formatOsmFeatures(features) {
     return features.map(f => {
         const tagPairs = Object.entries(f.tags).map(([k, v]) => `${k}=${v}`).join(', ');
         const name = f.name || '(unnamed)';
-        return `- ${name} [${tagPairs}]`;
+        return `- [OSM ${f.osmId}] ${name} [${tagPairs}]`;
     }).join('\n');
 }
 
@@ -1189,7 +1240,7 @@ function formatOgimInfra(items) {
     return items.map(it => {
         const parts = [it.name || it.type || it.kind, it.operator, it.status, formatDist(it.dist)]
             .filter(Boolean);
-        return `- ${parts.join(' · ')}`;
+        return `- [OGIM ${it.ogimId}] ${parts.join(' · ')}`;
     }).join('\n');
 }
 
@@ -1220,7 +1271,7 @@ function spatialUncertaintyNote(p) {
     return '';
 }
 
-function buildPlumePrompt(p, osmFeatures, ogimItems, place) {
+function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
     const rateThr = (Number(p.rate) / 1000).toFixed(2);
@@ -1238,6 +1289,7 @@ Plume:
 - Source catalogue: ${src}
 - Reported emission rate: ${rateThr} t/hr${uncThr ? ` (±${uncThr})` : ''}
 - Sector classification: ${sec}
+${wind ? `- Wind on detection day (daily vector mean, 10 m, Open-Meteo): ${wind.speed.toFixed(1)} m/s blowing from ${compass(wind.fromDeg)} (${Math.round(wind.fromDeg)}°). The upwind direction — where the source is more likely to sit if the plume has drifted — is toward the ${compass(wind.fromDeg)}.` : ''}
 
 ${spatialUncertaintyNote(p)}
 
@@ -1257,18 +1309,21 @@ Strict grounding rules — read carefully:
 5. You have no web access for this task. Do not claim to have searched, do not write phrases like "no reported incidents found" or "no operator announcements", and do not invent or imply news coverage. Reason only from the supplied OGIM list, OSM list, place name, and image.
 6. Do not describe the overlay's appearance ("magenta ring", "white ×", "amber diamond", etc.). The colours are internal to this preprocessing step and look different in the user's interface. Refer to the underlying things instead — "the plume", "a well", "a facility".
 
-Output format — two parts separated by a blank line:
+Respond with a single valid JSON object — no markdown, no surrounding prose — with exactly these keys:
 
-Line 1: \`SOURCE: <label>\` where \`<label>\` is at most 8 words naming the most likely source. Examples:
-  SOURCE: Apache gas well pad (OGIM 5912691)
-  SOURCE: Unlabelled tank battery
-  SOURCE: Coal mine vent shaft (OSM 12345678)
-  SOURCE: No obvious source within 2 km
-If you can attribute to a specific OGIM or OSM row in the lists above, append \`(OGIM <ogim_id>)\` or \`(OSM <osm_id>)\`. Do not invent IDs.
+{
+  "source_label": "<at most 8 words naming the most likely source — e.g. 'Apache gas well pad', 'Unlabelled tank battery', 'Coal mine vent shaft', 'No obvious source within 2 km'. Do NOT include an OGIM or OSM id in this label — put the id in attributed_id only.>",
+  "source_kind": "well" | "facility" | "pipeline" | "mine" | "landfill" | "other" | "none",
+  "attributed_id": "OGIM:<ogim_id>" | "OSM:<element_type>/<element_id>" | null,
+  "paragraph": "<under 100 words: the place, why this source, any caveats. Plain text, no markdown, no lists. Do not speculate about events, news, or incidents.>"
+}
 
-Then a blank line.
+Rules for "attributed_id":
+- Set it only when you can point to a specific row in the supplied OGIM or OSM lists.
+- Use the exact id strings from those lists. Do NOT invent IDs.
+- Use null when the structure is visible in the image but not in the data (most common for unlabelled well pads), or when no specific source is identifiable.
 
-Then a single short paragraph (under 100 words, plain text, no markdown, no lists): the place, why this source, and any caveats. Do not speculate about events, news, or incidents.`;
+Set "source_kind" to "none" when the answer is "no obvious source within 2 km".`;
 }
 
 // ── Esri imagery snapshot (2x2 tile grid) with plume + OGIM overlay ──
@@ -1410,36 +1465,75 @@ async function captureEsriSnapshot(lon, lat, zoom = 16, ogimItems = []) {
     return canvas.toDataURL('image/jpeg', 0.9);
 }
 
+function parseAnalysis(text) {
+    if (typeof text !== 'string') return null;
+    try { return JSON.parse(text); }
+    catch { /* try first {...} */ }
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try { return JSON.parse(m[0]); } catch { return null; }
+}
+
 function renderAnalysisHTML(text) {
-    const { source, body } = splitSource(text);
+    const p = parseAnalysis(text);
+    if (!p) return `<p class="enrich-para">${escapeHtml(text)}</p>`;
+    return renderAnalysisStructured(p);
+}
+
+function renderAnalysisStructured({ source_label, attributed_id, paragraph }) {
+    const labelHtml = sourceLabelHtml(source_label || '', attributed_id);
     return `<div class="enrich-report">
-        ${source ? `<div class="enrich-source">${escapeHtml(source)}</div>` : ''}
-        ${body ? `<p class="enrich-para">${escapeHtml(body)}</p>` : ''}
+        <div class="enrich-source">${labelHtml}</div>
+        ${paragraph ? `<p class="enrich-para">${escapeHtml(paragraph)}</p>` : ''}
     </div>`;
 }
 
-function splitSource(text) {
-    // Look for "SOURCE: <line>\n" at the very start. If absent, treat all as body.
-    const m = text.match(/^\s*SOURCE\s*:\s*([^\n]*)(?:\n([\s\S]*))?$/i);
-    if (!m) return { source: '', body: text.trim() };
-    return { source: (m[1] || '').trim(), body: (m[2] || '').trim() };
+// Make an OGIM-attributed source label fly the map to that feature on click.
+function sourceLabelHtml(label, attributedId) {
+    if (!label) return '';
+    const safe = escapeHtml(label);
+    if (!attributedId) return safe;
+    const idSafe = escapeHtml(attributedId);
+    if (attributedId.startsWith('OGIM:')) {
+        const ogimId = attributedId.slice(5);
+        return `<a class="enrich-attrib" href="#" onclick="flyToOgim('${escapeHtml(ogimId)}');return false" title="${idSafe}">${safe}</a>`;
+    }
+    if (attributedId.startsWith('OSM:')) {
+        const osmRef = attributedId.slice(4); // e.g. "way/12345"
+        return `<a class="enrich-attrib" href="https://www.openstreetmap.org/${escapeHtml(osmRef)}" target="_blank" rel="noopener" title="${idSafe}">${safe}</a>`;
+    }
+    return safe;
 }
 
-async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { force = false } = {}) {
+// Find the OGIM feature in the source and fly to it.
+function flyToOgim(ogimId) {
+    if (!map.getSource('ogim')) return;
+    for (const layer of ['facilities', 'wells', 'pipelines']) {
+        const features = map.querySourceFeatures('ogim', { sourceLayer: layer });
+        for (const f of features) {
+            if (String(f.properties.OGIM_ID) === String(ogimId)) {
+                const g = f.geometry;
+                let lng, lat;
+                if (g.type === 'Point') { [lng, lat] = g.coordinates; }
+                else if (g.type === 'LineString') { [lng, lat] = g.coordinates[0]; }
+                else if (g.type === 'MultiLineString') { [lng, lat] = g.coordinates[0][0]; }
+                else continue;
+                map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17) });
+                return;
+            }
+        }
+    }
+}
+window.flyToOgim = flyToOgim;
+
+async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { force = false, place = null, wind = null } = {}) {
     if (!FIREDAMP_API) {
         container.innerHTML = '<span class="enrich-empty">Analysis API not configured. Set <code>meta[name=&quot;firedamp-api&quot;]</code> in index.html.</span>';
         return;
     }
 
-    container.innerHTML = `<div class="enrich-status">Capturing imagery…</div>
-        <div class="enrich-report" style="display:none">
-            <div class="enrich-source"></div>
-            <p class="enrich-para"></p>
-        </div>`;
+    container.innerHTML = `<div class="enrich-status">Capturing imagery…</div>`;
     const statusEl = container.querySelector('.enrich-status');
-    const reportEl = container.querySelector('.enrich-report');
-    const sourceEl = container.querySelector('.enrich-source');
-    const paraEl = container.querySelector('.enrich-para');
 
     let imageDataUrl = null;
     try {
@@ -1460,6 +1554,9 @@ async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { f
                 image: imageDataUrl,
                 lat, lon,
                 dt: plume.dt, rate: plume.rate, src: plume.src,
+                place: place?.display || null,
+                windSpeed: wind?.speed ?? null,
+                windDirFrom: wind?.fromDeg ?? null,
                 force,
             }),
         });
@@ -1472,7 +1569,6 @@ async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { f
         const decoder = new TextDecoder();
         let buffer = '';
         let text = '';
-        const citations = [];
 
         while (true) {
             const { done, value } = await reader.read();
@@ -1492,35 +1588,18 @@ async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { f
                 const delta = choice.delta || choice.message || {};
                 if (delta.content) {
                     text += delta.content;
-                    const { source, body } = splitSource(text);
-                    sourceEl.textContent = source;
-                    paraEl.textContent = body;
-                    reportEl.style.display = '';
-                    statusEl.style.display = 'none';
-                }
-                for (const ann of (delta.annotations || [])) {
-                    const url = ann.url_citation?.url || ann.url;
-                    if (url && !citations.includes(url)) citations.push(url);
+                    // JSON streams aren't useful to render partially; show a
+                    // progress dot count so the user knows it's working.
+                    if (statusEl) statusEl.textContent = 'Analysing' + '.'.repeat(((text.length / 40) | 0) % 4);
                 }
             }
         }
 
-        statusEl.style.display = 'none';
         if (!text.trim()) {
             container.innerHTML = '<span class="enrich-empty">Analysis unavailable</span>';
             return;
         }
-
-        if (citations.length) {
-            const sourcesHtml = citations.slice(0, 8).map(u => {
-                const host = (() => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } })();
-                return `<a class="enrich-cite" href="${escapeHtml(u)}" target="_blank" rel="noopener">${escapeHtml(host)}</a>`;
-            }).join(' · ');
-            const citesEl = document.createElement('div');
-            citesEl.className = 'enrich-cites';
-            citesEl.innerHTML = sourcesHtml;
-            reportEl.appendChild(citesEl);
-        }
+        container.innerHTML = renderAnalysisHTML(text);
     } catch (err) {
         console.warn('Analysis stream failed:', err);
         statusEl.style.display = 'none';
@@ -1533,36 +1612,75 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
     const p = feature.properties;
     const lon = Number(p.lon);
     const lat = Number(p.lat);
+    const plumeId = p.id || `${lat.toFixed(4)},${lon.toFixed(4)}`;
 
     const targetEl = () => analysisRequestId === id ? document.getElementById('enrich-results') : null;
+
+    // OGIM nearby list is local-tile-derived (free) — populate independently
+    // of the AI path so it shows up immediately on every plume select.
+    (async () => {
+        const items = await loadNearbyInfra(lon, lat, { maxResults: 20, radiusKm: 2 });
+        if (analysisRequestId !== id) return;
+        const c = document.getElementById('detail-nearby');
+        if (c) c.innerHTML = nearbyMarkup(items);
+    })();
 
     (async () => {
         const el = targetEl();
         if (!el) return;
-        el.innerHTML = '<div class="enrich-loading">Loading nearby infrastructure…</div>';
 
-        // Bounding box ~2 km around plume
+        // Fast path: if the Worker already has a cached analysis for this
+        // plume, use it directly and skip Overpass / Nominatim / Open-Meteo
+        // / image capture / OpenRouter entirely. This is what makes
+        // re-opening a previously-analysed plume effectively free.
+        if (!force && FIREDAMP_API) {
+            try {
+                const peek = await fetch(`${FIREDAMP_API}/api/analysis/${encodeURIComponent(plumeId)}`);
+                if (analysisRequestId !== id) return;
+                if (peek.ok) {
+                    const row = await peek.json();
+                    el.innerHTML = renderAnalysisHTML(row.response);
+                    if (row.wind_speed != null && row.wind_dir_from != null) {
+                        renderWind({
+                            speed: row.wind_speed,
+                            fromDeg: row.wind_dir_from,
+                            toDeg: (row.wind_dir_from + 180) % 360,
+                        });
+                    } else {
+                        renderWind(null);
+                    }
+                    return;
+                }
+            } catch (err) {
+                // Fall through to full pipeline
+                console.warn('peek failed, running full pipeline:', err);
+            }
+        }
+
+        el.innerHTML = '<div class="enrich-loading">Loading nearby infrastructure, place, wind…</div>';
+
+        // Bounding box ~2 km around plume for Overpass
         const dLat = 2 / 111;
         const dLon = 2 / (111 * Math.cos(lat * Math.PI / 180));
         const south = lat - dLat, north = lat + dLat;
         const west = lon - dLon, east = lon + dLon;
 
-        const [overpassData, ogimItems, place] = await Promise.all([
+        const [overpassData, ogimItems, place, wind] = await Promise.all([
             queryOverpass(south, west, north, east),
             loadNearbyInfra(lon, lat, { maxResults: 20, radiusKm: 2 }),
             reverseGeocode(lat, lon),
+            fetchWind(lat, lon, p.dt),
         ]);
         if (analysisRequestId !== id) return;
 
-        const nearbyContainer = document.getElementById('detail-nearby');
-        if (nearbyContainer) nearbyContainer.innerHTML = nearbyMarkup(ogimItems);
+        renderWind(wind);
 
         const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements) : [];
-        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place);
+        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place, wind);
 
         const el2 = targetEl();
         if (!el2) return;
-        await streamPlumeLLM(el2, prompt, p, lon, lat, ogimItems, { force });
+        await streamPlumeLLM(el2, prompt, p, lon, lat, ogimItems, { force, place, wind });
     })();
 }
 
@@ -1570,6 +1688,25 @@ function regenerateAnalysis() {
     if (selectedFeature) runPlumeAnalysis(selectedFeature, { force: true });
 }
 window.regenerateAnalysis = regenerateAnalysis;
+
+// Render wind into the stats grid. SVG arrow rotates so the head points in the
+// direction the wind is blowing TO (i.e. the direction the plume drifts).
+function renderWind(wind) {
+    const el = document.getElementById('stat-wind');
+    if (!el) return;
+    if (!wind) {
+        el.querySelector('.stat-wind-big').textContent = '—';
+        return;
+    }
+    const speed = wind.speed.toFixed(1);
+    const fromLabel = compass(wind.fromDeg);
+    el.title = `${speed} m/s from ${fromLabel} (${Math.round(wind.fromDeg)}°)`;
+    el.querySelector('.stat-wind-big').innerHTML = `
+        <svg class="wind-arrow" viewBox="0 0 24 24" style="transform: rotate(${wind.toDeg}deg)">
+            <path d="M12 4 L12 20 M12 4 L7 9 M12 4 L17 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="wind-speed">${speed}</span>`;
+}
 
 // ---------------------------------------------------------------------------
 // Source toggle buttons

@@ -19,6 +19,9 @@ export default {
             if (url.pathname === '/api/analyses' && req.method === 'GET') {
                 return await listAnalyses(req, env, origin);
             }
+            if (url.pathname.startsWith('/api/analysis/') && req.method === 'GET') {
+                return await peekAnalysis(req, env, origin, decodeURIComponent(url.pathname.slice('/api/analysis/'.length)));
+            }
         } catch (err) {
             console.error('handler error', err);
             return new Response(`internal error: ${err?.message || 'unknown'}`, {
@@ -57,7 +60,7 @@ async function analyse(req, env, ctx, origin) {
     try { body = await req.json(); }
     catch { return new Response('bad json', { status: 400, headers: corsHeaders(origin, env) }); }
 
-    const { plumeId, prompt, image, lat, lon, dt, rate, src, force } = body || {};
+    const { plumeId, prompt, image, lat, lon, dt, rate, src, force, place, windSpeed, windDirFrom } = body || {};
     if (!plumeId || !prompt) {
         return new Response('plumeId and prompt required', { status: 400, headers: corsHeaders(origin, env) });
     }
@@ -102,8 +105,35 @@ async function analyse(req, env, ctx, origin) {
             model,
             stream: true,
             temperature: 0.3,
-            max_tokens: 600,
+            max_tokens: 700,
             messages: [{ role: 'user', content: userContent }],
+            // Strict JSON schema output. OpenRouter routes only to providers
+            // that honour structured outputs because of require_parameters.
+            response_format: {
+                type: 'json_schema',
+                json_schema: {
+                    name: 'plume_analysis',
+                    strict: true,
+                    schema: {
+                        type: 'object',
+                        additionalProperties: false,
+                        properties: {
+                            source_label: { type: 'string', description: 'At most 8 words naming the most likely source.' },
+                            source_kind: {
+                                type: 'string',
+                                enum: ['well', 'facility', 'pipeline', 'mine', 'landfill', 'other', 'none'],
+                            },
+                            attributed_id: {
+                                type: ['string', 'null'],
+                                description: 'OGIM:<id> | OSM:<type>/<id> | null. Must match an id from the supplied lists.',
+                            },
+                            paragraph: { type: 'string', description: 'Under 100 words. Plain text. No markdown.' },
+                        },
+                        required: ['source_label', 'source_kind', 'attributed_id', 'paragraph'],
+                    },
+                },
+            },
+            provider: { require_parameters: true },
         }),
     });
 
@@ -124,16 +154,23 @@ async function analyse(req, env, ctx, origin) {
         try {
             const text = await collectSSEText(toStore);
             if (!text.trim()) return;
-            const sourceLabel = parseSourceLine(text);
+            const parsed = safeJsonParse(text);
             await env.DB.prepare(
                 `INSERT INTO analyses
-                 (plume_id, model, response, source_label, lat, lon, plume_date, plume_rate, plume_src, prompt_sha, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                 (plume_id, model, response, source_label, source_kind, attributed_id, paragraph,
+                  lat, lon, plume_date, plume_rate, plume_src, prompt_sha, created_at,
+                  place_name, wind_speed, wind_dir_from)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
             ).bind(
-                plumeId, model, text, sourceLabel,
+                plumeId, model, text,
+                strOrNull(parsed?.source_label),
+                strOrNull(parsed?.source_kind),
+                strOrNull(parsed?.attributed_id),
+                strOrNull(parsed?.paragraph),
                 numOrNull(lat), numOrNull(lon),
                 strOrNull(dt), numOrNull(rate), strOrNull(src),
-                promptSha, Date.now()
+                promptSha, Date.now(),
+                strOrNull(place), numOrNull(windSpeed), numOrNull(windDirFrom)
             ).run();
         } catch (err) {
             console.error('store failed', err);
@@ -148,6 +185,31 @@ async function analyse(req, env, ctx, origin) {
             'X-Firedamp-Cache': 'miss',
         }
     });
+}
+
+// Lightweight peek used by the browser before deciding to run the full
+// pipeline. Returns the latest cached analysis for a plume_id (regardless of
+// prompt_sha) so a returning user gets an instant render and we skip Overpass,
+// Nominatim, Open-Meteo, and image capture entirely. 404 means "no row yet,
+// run the full pipeline".
+async function peekAnalysis(req, env, origin, plumeId) {
+    if (!originAllowed(origin, env)) {
+        return new Response('forbidden', { status: 403, headers: corsHeaders(origin, env) });
+    }
+    if (!plumeId) {
+        return new Response('plumeId required', { status: 400, headers: corsHeaders(origin, env) });
+    }
+    const r = await env.DB.prepare(
+        `SELECT response, source_label, source_kind, attributed_id, paragraph,
+                place_name, wind_speed, wind_dir_from, created_at
+         FROM analyses
+         WHERE plume_id = ? AND model = ?
+         ORDER BY created_at DESC LIMIT 1`
+    ).bind(plumeId, env.MODEL).first();
+    if (!r) {
+        return new Response('null', { status: 404, headers: corsHeaders(origin, env) });
+    }
+    return Response.json(r, { headers: corsHeaders(origin, env) });
 }
 
 async function listAnalyses(req, env, origin) {
@@ -214,9 +276,12 @@ async function collectSSEText(stream) {
     return text;
 }
 
-function parseSourceLine(text) {
-    const m = text.match(/^\s*SOURCE\s*:\s*([^\n]+)/i);
-    return m ? m[1].trim() : null;
+function safeJsonParse(text) {
+    try { return JSON.parse(text); }
+    catch { /* try to find first {...} block */ }
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    try { return JSON.parse(m[0]); } catch { return null; }
 }
 
 function numOrNull(v) { return (v === undefined || v === null || v === '') ? null : Number(v); }

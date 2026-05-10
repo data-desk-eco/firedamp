@@ -369,6 +369,19 @@ a.detail-id:hover {
     color: var(--text-faint);
     margin-top: 2px;
 }
+.stat-wind-big {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.wind-arrow {
+    width: 14px;
+    height: 14px;
+    color: var(--text-secondary);
+    transition: transform 0.3s ease-out;
+}
+.wind-speed { font-variant-numeric: tabular-nums; }
 
 .detail-row {
     padding: 10px 16px;
@@ -715,6 +728,15 @@ h4.legend-section {
     margin-bottom: 8px;
 }
 .enrich-source:empty { display: none; }
+.enrich-attrib {
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--text-faint);
+    cursor: pointer;
+}
+.enrich-attrib:hover {
+    border-bottom-color: var(--text-primary);
+}
 
 .enrich-para {
     font-size: var(--font-sm);
