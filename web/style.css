@@ -426,10 +426,11 @@ a.detail-id:hover {
 .nearby-summary:hover { color: var(--text-secondary); }
 .nearby-summary::before {
     content: '▸';
-    font-size: 9px;
+    font-size: 14px;
+    line-height: 1;
     transition: transform 0.15s;
     display: inline-block;
-    color: var(--text-hint);
+    color: var(--text-faint);
 }
 .nearby-accordion[open] > .nearby-summary::before {
     transform: rotate(90deg);

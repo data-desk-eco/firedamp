@@ -1193,6 +1193,33 @@ function formatOgimInfra(items) {
     }).join('\n');
 }
 
+function spatialUncertaintyNote(p) {
+    const src = p.src;
+    const sat = String(p.sat || '').toUpperCase();
+    if (src === 'cm') {
+        if (/AVIRIS|GAO|AV3|AV20/.test(sat)) {
+            return 'Spatial uncertainty: aircraft hyperspectral (AVIRIS-NG / GAO / AVIRIS-3). Plume origin is usually localized within a few tens of metres of the actual leak — the coordinate is highly precise. Trust it.';
+        }
+        if (/TANAGER/.test(sat)) {
+            return 'Spatial uncertainty: Tanager-1 satellite hyperspectral, ~30 m pixel. The coordinate is normally within ~50 m of the source.';
+        }
+        if (/EMIT/.test(sat)) {
+            return 'Spatial uncertainty: EMIT (NASA ISS instrument), ~60 m pixel. The coordinate is normally within ~100 m of the source.';
+        }
+        if (/ENMAP/.test(sat)) {
+            return 'Spatial uncertainty: EnMAP, ~30 m pixel. The coordinate is normally within ~50 m of the source.';
+        }
+        return 'Spatial uncertainty: Carbon Mapper hyperspectral detection (aircraft or 30–60 m satellite). Coordinate is typically within tens to ~100 m of the actual source.';
+    }
+    if (src === 'imeo') {
+        return 'Spatial uncertainty: UNEP IMEO/MARS, multi-sensor (Sentinel-2/3, Landsat, PRISMA, GHGSat, EMIT, sometimes TROPOMI). Coordinates are analyst-vetted but uncertainty inherits from the underlying instrument — usually <500 m for high-resolution satellites, can be several km when TROPOMI-derived.';
+    }
+    if (src === 'sron') {
+        return 'Spatial uncertainty: SRON via TROPOMI/Sentinel-5P. Pixel footprint is roughly 5.5 × 7 km at nadir, and even after SRON\'s wind-trajectory back-calculation the published centroid often still sits several kilometres from the true point source — the actual leak is frequently upwind. Do NOT require infrastructure to be directly under the plume marker on the image. If the area beneath the marker is empty, the leak is almost certainly a nearby (within ~5 km) facility, especially a gas plant, compressor station, coal mine vent, or large landfill that is visible elsewhere in the image. Mention the TROPOMI geolocation uncertainty in your answer and, if relevant, suggest checking upwind.';
+    }
+    return '';
+}
+
 function buildPlumePrompt(p, osmFeatures, ogimItems, place) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
@@ -1211,6 +1238,8 @@ Plume:
 - Source catalogue: ${src}
 - Reported emission rate: ${rateThr} t/hr${uncThr ? ` (±${uncThr})` : ''}
 - Sector classification: ${sec}
+
+${spatialUncertaintyNote(p)}
 
 The attached image is an Esri World Imagery snapshot (~1 km wide) centred on the plume coordinate. Esri tiles are typically 1–3 years old; use them to ground-truth what is physically present. Overlaid on the image: a ring with crosshair marks the plume location ("plume" label); cross-shaped marks are OGIM wells; diamond marks are OGIM facilities; thin lines are OGIM pipelines. Names are painted next to wells and facilities.
 
