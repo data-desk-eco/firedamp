@@ -1,0 +1,63 @@
+firedamp-api — Cloudflare Worker
+================================
+
+Proxies plume-analysis requests to OpenRouter, holding the API key as a Worker
+secret so it never ships to the browser. Caches every response in D1 for free
+re-serves and to build up a queryable dataset of plume → AI source attributions.
+
+Endpoints
+---------
+
+POST /api/analyse
+  Body: { plumeId, prompt, image (data URL), lat, lon, dt, rate, src }
+  Streams Server-Sent Events compatible with the OpenRouter chat-completion
+  shape. Response header X-Firedamp-Cache is "hit" when the row was served
+  from D1 and "miss" when freshly generated.
+
+GET /api/analyses?limit=200&since=<ms>
+  Returns recent analyses as JSON. Origin-checked.
+
+GET /healthz
+  Liveness check.
+
+First-time setup
+----------------
+
+  cd worker
+
+  # 1. Create the D1 database (run once). Copy the printed database_id into
+  #    wrangler.toml under [[d1_databases]].
+  npx wrangler d1 create firedamp-analyses
+
+  # 2. Apply the schema.
+  npx wrangler d1 execute firedamp-analyses --file schema.sql --remote
+
+  # 3. Set the OpenRouter key as a secret (will prompt for value).
+  npx wrangler secret put OPENROUTER_KEY
+
+  # 4. Deploy.
+  npx wrangler deploy
+
+The deployed Worker URL ends up at firedamp-api.<account>.workers.dev. Paste it
+into web/index.html as <meta name="firedamp-api" content="…">.
+
+Local development
+-----------------
+
+  npx wrangler dev
+
+This serves the Worker on http://localhost:8787, talking to the *remote* D1.
+For an isolated local DB add --local and use `wrangler d1 execute … --local`
+to apply the schema there too.
+
+Operational notes
+-----------------
+
+- Origin check (ALLOWED_ORIGINS) gates browser callers but Referer/Origin can
+  be spoofed by a determined caller. The hard guard is the OpenRouter key's
+  own credit limit — set one in the OpenRouter dashboard.
+- Cache key is (plume_id, model, sha256(prompt)). When the prompt template
+  changes we don't invalidate; old rows are kept and a new prompt produces a
+  new row. The newest matching row wins on read.
+- D1 free tier: 5 GB, 5M reads/day, 100k writes/day — far above what firedamp
+  uses.

@@ -1,4 +1,4 @@
-.PHONY: data ogim ogim-upload rebuild serve vendor clean clean-all help
+.PHONY: data ogim ogim-upload rebuild serve vendor worker-dev worker-deploy worker-schema worker-tail clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
 data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
@@ -42,6 +42,19 @@ web/vendor/.ok:
 serve: vendor
 	uv run scripts/serve.py
 
+# ── Cloudflare Worker (firedamp-api) ─────────────────────────────
+worker-dev:
+	cd worker && npx wrangler dev
+
+worker-deploy:
+	cd worker && npx wrangler deploy
+
+worker-schema:
+	cd worker && npx wrangler d1 execute firedamp-analyses --file schema.sql --remote
+
+worker-tail:
+	cd worker && npx wrangler tail
+
 # ── Cleanup ──────────────────────────────────────────────────────
 clean:
 	rm -f data/*.ok data/*.csv data/imeo_plumes.csv web/data/plumes.bin
@@ -56,5 +69,9 @@ help:
 	@echo "make rebuild       Full pipeline: data + ogim + upload"
 	@echo "make vendor        Download vendored JS/CSS/fonts"
 	@echo "make serve         Dev server on :8000"
+	@echo "make worker-dev    wrangler dev for the firedamp-api Worker"
+	@echo "make worker-deploy wrangler deploy"
+	@echo "make worker-schema Apply worker/schema.sql to the remote D1"
+	@echo "make worker-tail   Tail Worker logs"
 	@echo "make clean         Remove generated data files"
 	@echo "make clean-all     Remove all generated files including vendor"

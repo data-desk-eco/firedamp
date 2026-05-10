@@ -15,6 +15,23 @@ const SRC_LABELS = {
 };
 
 // ---------------------------------------------------------------------------
+// AI analysis — routed through the firedamp-api Cloudflare Worker, which
+// holds the OpenRouter key as a server secret and caches every response in
+// D1. See worker/README for setup. The Worker emits OpenRouter-shaped SSE.
+// ---------------------------------------------------------------------------
+
+const FIREDAMP_API = (() => {
+    // Override for local Worker development: ?api=local
+    if (new URLSearchParams(location.search).get('api') === 'local') {
+        return 'http://localhost:8787';
+    }
+    return document.querySelector('meta[name="firedamp-api"]')?.content?.trim() || '';
+})();
+const OPENROUTER_MODEL_LABEL = 'Qwen3-VL 30B';
+
+let analysisRequestId = 0;
+
+// ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 
@@ -614,6 +631,14 @@ async function addOGIMLayers() {
             minzoom: 8,
             paint: { 'circle-radius': 0, 'circle-opacity': 0 }
         });
+        map.addLayer({
+            id: 'ogim-pipelines-preload',
+            type: 'line',
+            source: 'ogim',
+            'source-layer': 'pipelines',
+            minzoom: 6,
+            paint: { 'line-opacity': 0, 'line-width': 0 }
+        });
     } catch (e) {
         console.warn('OGIM layers not available:', e.message);
     }
@@ -636,11 +661,11 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 const SKIP_TYPES = new Set(['N/A', 'DRY HOLE', 'UNKNOWN', '']);
 const SKIP_STATUSES = new Set(['ABANDONED', 'INACTIVE']);
 
-function findNearbyInfra(lon, lat, maxResults = 10) {
+function findNearbyInfra(lon, lat, { maxResults = 12, radiusKm = 2 } = {}) {
     if (!map.getSource('ogim')) return [];
     const results = [];
     const seen = new Set();
-    for (const sourceLayer of ['facilities', 'wells']) {
+    for (const sourceLayer of ['facilities', 'wells', 'pipelines']) {
         const features = map.querySourceFeatures('ogim', { sourceLayer });
         for (const f of features) {
             const id = f.properties.OGIM_ID;
@@ -649,16 +674,41 @@ function findNearbyInfra(lon, lat, maxResults = 10) {
             const type = (f.properties.FAC_TYPE || '').trim();
             const status = (f.properties.OGIM_STATUS || '').trim();
             if (SKIP_TYPES.has(type) || SKIP_STATUSES.has(status)) continue;
-            const [flon, flat] = f.geometry.coordinates;
-            const dist = haversineKm(lat, lon, flat, flon);
-            if (dist > 2) continue;
+
+            // Pipelines are LineString / MultiLineString — find the closest vertex.
+            // Wells / facilities are Points.
+            let closest = null;
+            const g = f.geometry;
+            if (g.type === 'Point') {
+                closest = { lon: g.coordinates[0], lat: g.coordinates[1] };
+            } else if (g.type === 'LineString') {
+                closest = closestVertex(lat, lon, g.coordinates);
+            } else if (g.type === 'MultiLineString') {
+                for (const part of g.coordinates) {
+                    const c = closestVertex(lat, lon, part);
+                    if (!closest || c.dist < closest.dist) closest = c;
+                }
+            }
+            if (!closest) continue;
+            const dist = closest.dist != null ? closest.dist : haversineKm(lat, lon, closest.lat, closest.lon);
+            if (dist > radiusKm) continue;
+
+            const kind = sourceLayer === 'facilities' ? 'facility'
+                       : sourceLayer === 'wells' ? 'well' : 'pipeline';
+            const fallbackName = sourceLayer === 'pipelines' ? (type || 'Pipeline')
+                              : sourceLayer === 'facilities' ? 'Facility' : 'Well';
             results.push({
-                name: f.properties.FAC_NAME || type || (sourceLayer === 'facilities' ? 'Facility' : 'Well'),
+                kind,
+                name: f.properties.FAC_NAME || type || fallbackName,
+                type,
                 operator: f.properties.OPERATOR || '',
+                status,
+                country: f.properties.COUNTRY || '',
                 ogimId: id,
-                lon: flon,
-                lat: flat,
-                dist
+                lon: closest.lon,
+                lat: closest.lat,
+                dist,
+                geometry: kind === 'pipeline' ? g : null
             });
         }
     }
@@ -666,10 +716,57 @@ function findNearbyInfra(lon, lat, maxResults = 10) {
     return results.slice(0, maxResults);
 }
 
+function closestVertex(lat, lon, coords) {
+    let best = null;
+    for (const [vlon, vlat] of coords) {
+        const d = haversineKm(lat, lon, vlat, vlon);
+        if (!best || d < best.dist) best = { lon: vlon, lat: vlat, dist: d };
+    }
+    return best;
+}
+
+// Wait for OGIM tiles around (lon,lat) to load, then return nearby infra.
+// Used by the AI pipeline so it works regardless of the visual toggle state.
+async function loadNearbyInfra(lon, lat, opts = {}) {
+    if (!map.getSource('ogim')) return [];
+    const z = map.getZoom();
+    if (z < 8) {
+        await new Promise(resolve => {
+            const onIdle = () => { map.off('idle', onIdle); resolve(); };
+            map.on('idle', onIdle);
+            // Nudge tile loading by querying source features (forces fetch at current view)
+            setTimeout(() => map.querySourceFeatures('ogim', { sourceLayer: 'wells' }), 0);
+            setTimeout(() => map.off('idle', onIdle) || resolve(), 6000);
+        });
+    } else {
+        // Already zoomed in; give a short tick for in-flight tiles
+        await new Promise(r => map.loaded() ? r() : map.once('idle', r));
+    }
+    return findNearbyInfra(lon, lat, opts);
+}
+
 function formatDist(km) {
     if (km < 1) return `${Math.round(km * 1000)} m`;
     if (km < 10) return `${km.toFixed(1)} km`;
     return `${Math.round(km)} km`;
+}
+
+function nearbyMarkup(nearby) {
+    if (!nearby || !nearby.length) return '';
+    return `<details class="nearby-accordion">
+        <summary class="nearby-summary">Nearby infrastructure <span class="nearby-count">${nearby.length}</span></summary>
+        <div class="nearby-list">
+            ${nearby.map(f => `<div class="nearby-item" onclick="flyToInfra(${f.lon},${f.lat})">
+                <div class="nearby-name">${escapeHtml(f.name)}</div>
+                <div class="nearby-meta">${[f.operator, formatDist(f.dist)].filter(Boolean).map(escapeHtml).join(' · ')}</div>
+                <div class="nearby-id">OGIM ${f.ogimId}</div>
+            </div>`).join('')}
+        </div>
+    </details>`;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 // ---------------------------------------------------------------------------
@@ -708,7 +805,18 @@ function toggleOGIM(visible) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
     }
     document.getElementById('legend-infra').style.display = visible ? 'block' : 'none';
-    if (selectedFeature) showDetail(selectedFeature);
+    // OGIM PMTiles minzoom is 6 — at lower zoom toggling produces no visible
+    // change, which reads as broken. Nudge the user up so they see the data.
+    if (visible && map.getZoom() < 6) {
+        map.flyTo({ zoom: 6.5, speed: 0.8 });
+    }
+    // Refresh nearby infra section only (avoid re-running AI analysis)
+    if (selectedFeature) {
+        const p = selectedFeature.properties;
+        const nearby = findNearbyInfra(Number(p.lon), Number(p.lat));
+        const el = document.getElementById('detail-nearby');
+        if (el) el.innerHTML = nearbyMarkup(nearby);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -865,20 +973,10 @@ function showDetail(feature, fromPermalink) {
     const srcClass = p.src || 'cm';
     const srcLabel = SRC_LABELS[p.src] || p.src;
 
-    // Find nearby infrastructure
-    const nearby = ogimVisible ? findNearbyInfra(lon, lat) : [];
-    let nearbyHtml = '';
-    if (nearby.length > 0) {
-        nearbyHtml = `
-        <div class="detail-row">
-            <div class="detail-field-label" style="margin:4px 0 8px;font-size:var(--font-xs)">Nearby infrastructure</div>
-            ${nearby.map(f => `<div class="nearby-item" onclick="flyToInfra(${f.lon},${f.lat})">
-                <div class="nearby-name">${f.name}</div>
-                <div class="nearby-meta">${[f.operator, formatDist(f.dist)].filter(Boolean).join(' \u00b7 ')}</div>
-                <div class="nearby-id">OGIM ${f.ogimId}</div>
-            </div>`).join('')}
-        </div>`;
-    }
+    // Find nearby infrastructure (best-effort, may be empty if OGIM tiles not yet loaded).
+    // Populated below via loadNearbyInfra() after panel is shown.
+    const nearby = findNearbyInfra(lon, lat);
+    const nearbyHtml = `<div id="detail-nearby">${nearbyMarkup(nearby)}</div>`;
 
     const n = overlappingFeatures.length;
     const navHtml = n > 1
@@ -907,14 +1005,24 @@ function showDetail(feature, fromPermalink) {
         </div>
         ${p.cty ? `<div class="detail-row"><div class="detail-field"><span class="detail-field-label">Country</span><span class="detail-field-value">${p.cty}</span></div></div>` : ''}
         ${nearbyHtml}
+        <div class="enrich-section">
+            <div class="enrich-section-label">
+                <span>Analysis</span>
+                <button class="enrich-regenerate" onclick="regenerateAnalysis()" title="Regenerate (skip cache)">↻</button>
+            </div>
+            <div id="enrich-results" class="enrich-loading">Loading…</div>
+        </div>
     `;
     panel.classList.remove('hidden');
+
+    runPlumeAnalysis(feature);
 }
 
 function closeDetail() {
     selectedFeature = null;
     overlappingFeatures = [];
     overlapIndex = 0;
+    analysisRequestId++;     // invalidate any in-flight LLM stream
     setPlumeHash(null);
     clearHighlight();
     document.getElementById('right-panel').classList.add('hidden');
@@ -946,6 +1054,473 @@ window.closeDetail = closeDetail;
 window.flyToInfra = flyToInfra;
 window.overlapNext = overlapNext;
 window.overlapPrev = overlapPrev;
+
+// ---------------------------------------------------------------------------
+// AI plume analysis — Overpass + OGIM + Esri imagery → Qwen3-VL via OpenRouter
+// ---------------------------------------------------------------------------
+
+const OVERPASS_ENDPOINTS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+];
+
+function buildOverpassQuery(south, west, north, east) {
+    const bbox = `${south},${west},${north},${east}`;
+    return `[out:json][timeout:10];(
+        nwr["man_made"="petroleum_well"](${bbox});
+        nwr["man_made"="pipeline"](${bbox});
+        nwr["man_made"="storage_tank"](${bbox});
+        nwr["man_made"="works"](${bbox});
+        nwr["man_made"="gasometer"](${bbox});
+        nwr["industrial"="oil"](${bbox});
+        nwr["industrial"="gas"](${bbox});
+        nwr["industrial"="refinery"](${bbox});
+        nwr["industrial"="wellsite"](${bbox});
+        nwr["industrial"="mine"](${bbox});
+        nwr["landuse"="industrial"](${bbox});
+        nwr["landuse"="quarry"](${bbox});
+        nwr["landuse"="landfill"](${bbox});
+        nwr["power"="plant"](${bbox});
+        nwr["plant:source"~"gas|oil|coal"](${bbox});
+        nwr["amenity"="waste_transfer_station"](${bbox});
+        nwr["amenity"="recycling"]["recycling_type"="centre"](${bbox});
+        nwr["pipeline"="substation"](${bbox});
+        nwr["substance"~"gas|oil|petroleum|natural_gas"](${bbox});
+        nwr["aeroway"="aerodrome"](${bbox});
+    );out center tags;`;
+}
+
+function summariseOsmElements(elements) {
+    const items = [];
+    const seen = new Set();
+    for (const el of elements) {
+        if (!el.tags) continue;
+        const name = el.tags['name:en'] || el.tags.name || '';
+        const lat = el.center ? el.center.lat : el.lat;
+        const lon = el.center ? el.center.lon : el.lon;
+        const keep = {};
+        for (const [k, v] of Object.entries(el.tags)) {
+            if (['source', 'source:date', 'created_by', 'note', 'fixme', 'FIXME',
+                 'addr:housenumber', 'addr:street', 'addr:city', 'addr:postcode',
+                 'building:levels', 'roof:shape', 'roof:material'].includes(k)) continue;
+            if (k.startsWith('name:') && k !== 'name:en') continue;
+            keep[k] = v;
+        }
+        const key = `${name}:${JSON.stringify(keep)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        items.push({ name, lat, lon, tags: keep });
+    }
+    return items.slice(0, 60);
+}
+
+// Reverse geocode via Nominatim — gives the LLM an authoritative place name
+// (town, region, country) so it doesn't have to guess from raw lat/lon.
+async function reverseGeocode(lat, lon) {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1&accept-language=en`;
+    try {
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (!data || !data.address) return null;
+        const a = data.address;
+        // Build a short, readable hierarchy: locality, region, country
+        const locality = a.city || a.town || a.village || a.hamlet || a.suburb || a.municipality || a.county || '';
+        const region = a.state || a.region || a.province || a.state_district || '';
+        const country = a.country || '';
+        const display = [locality, region, country].filter(Boolean).join(', ');
+        return { display: display || data.display_name || null, country, region, locality };
+    } catch (err) {
+        console.warn('Nominatim reverse geocode failed:', err);
+        return null;
+    }
+}
+
+async function queryOverpass(south, west, north, east) {
+    const query = buildOverpassQuery(south, west, north, east);
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+        try {
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                body: `data=${encodeURIComponent(query)}`,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            });
+            if (resp.status === 429 || resp.status === 504) continue;
+            if (!resp.ok) throw new Error(`Overpass ${resp.status}`);
+            return await resp.json();
+        } catch (err) {
+            console.warn(`Overpass (${endpoint}) failed:`, err);
+        }
+    }
+    return null;
+}
+
+function formatOsmFeatures(features) {
+    if (!features.length) return '(no tagged features in radius)';
+    return features.map(f => {
+        const tagPairs = Object.entries(f.tags).map(([k, v]) => `${k}=${v}`).join(', ');
+        const name = f.name || '(unnamed)';
+        return `- ${name} [${tagPairs}]`;
+    }).join('\n');
+}
+
+function formatOgimInfra(items) {
+    if (!items.length) return '(no OGIM features within radius)';
+    return items.map(it => {
+        const parts = [it.name || it.type || it.kind, it.operator, it.status, formatDist(it.dist)]
+            .filter(Boolean);
+        return `- ${parts.join(' · ')}`;
+    }).join('\n');
+}
+
+function buildPlumePrompt(p, osmFeatures, ogimItems, place) {
+    const lat = Number(p.lat).toFixed(4);
+    const lon = Number(p.lon).toFixed(4);
+    const rateThr = (Number(p.rate) / 1000).toFixed(2);
+    const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(2) : null;
+    const sec = p.sec ? sectorLabel(p.sec) : 'unknown';
+    const date = p.dt || 'unknown';
+    const sat = p.sat || 'unknown';
+    const src = SRC_LABELS[p.src] || p.src;
+
+    return `You are an environmental investigations assistant. A satellite has detected a methane plume and you are helping a journalist or researcher work out the most likely source.
+
+Plume:
+- Location: ${lat}°, ${lon}°${place?.display ? ` — ${place.display} (per OpenStreetMap reverse geocode; treat this as the authoritative place name and DO NOT contradict it based on coordinates)` : ''}
+- Detected: ${date} by ${sat}
+- Source catalogue: ${src}
+- Reported emission rate: ${rateThr} t/hr${uncThr ? ` (±${uncThr})` : ''}
+- Sector classification: ${sec}
+
+The attached image is an Esri World Imagery snapshot (~1 km wide) centred on the plume coordinate. Esri tiles are typically 1–3 years old; use them to ground-truth what is physically present. Overlaid on the image: a ring with crosshair marks the plume location ("plume" label); cross-shaped marks are OGIM wells; diamond marks are OGIM facilities; thin lines are OGIM pipelines. Names are painted next to wells and facilities.
+
+OGIM v2.7 oil & gas infrastructure within ~2 km (note: OGIM coverage is incomplete and patchy — many real wells, tanks, compressors and gathering lines are not listed, especially outside North America. Treat OGIM as a hint, not a complete inventory):
+${formatOgimInfra(ogimItems)}
+
+OpenStreetMap features within ~2 km (broader infrastructure: pipelines, power plants, mines, landfills, refineries, airports, etc.):
+${formatOsmFeatures(osmFeatures)}
+
+Strict grounding rules — read carefully:
+1. The image is the strongest evidence. If a well-pad, tank, compressor station, mine face, or landfill cell sits directly under or beside the magenta plume ring, attribute the plume to *that* visible structure.
+2. Distance matters. An OGIM well or facility only counts as the source if it sits *on the same pad / structure* as the plume ring (typically <50 m and clearly the same site in the image). An OGIM entry 100+ m away with the plume sitting on a different pad is NOT the source — it is a neighbour. Do not attach a distant OGIM operator name to a different visible structure: name what you can see ("an unlabelled well pad", "a tank battery") rather than borrowing an operator from the nearest OGIM row.
+3. Do NOT name any famous facility from elsewhere — Red Hills Gas Plant, Aliso Canyon, Nord Stream, etc. — unless it is in the supplied data.
+4. Many plumes sit over forest, farmland, or wetland with no infrastructure on the ground (especially SRON/TROPOMI detections at ~7 km resolution, which have large geolocation uncertainty). If so, say so honestly and suggest checking upwind.
+5. You have no web access for this task. Do not claim to have searched, do not write phrases like "no reported incidents found" or "no operator announcements", and do not invent or imply news coverage. Reason only from the supplied OGIM list, OSM list, place name, and image.
+6. Do not describe the overlay's appearance ("magenta ring", "white ×", "amber diamond", etc.). The colours are internal to this preprocessing step and look different in the user's interface. Refer to the underlying things instead — "the plume", "a well", "a facility".
+
+Output format — two parts separated by a blank line:
+
+Line 1: \`SOURCE: <label>\` where \`<label>\` is at most 8 words naming the most likely source. Examples:
+  SOURCE: Apache gas well pad (OGIM 5912691)
+  SOURCE: Unlabelled tank battery
+  SOURCE: Coal mine vent shaft (OSM 12345678)
+  SOURCE: No obvious source within 2 km
+If you can attribute to a specific OGIM or OSM row in the lists above, append \`(OGIM <ogim_id>)\` or \`(OSM <osm_id>)\`. Do not invent IDs.
+
+Then a blank line.
+
+Then a single short paragraph (under 100 words, plain text, no markdown, no lists): the place, why this source, and any caveats. Do not speculate about events, news, or incidents.`;
+}
+
+// ── Esri imagery snapshot (2x2 tile grid) with plume + OGIM overlay ──
+function lonLatToTile(lon, lat, z) {
+    const n = 2 ** z;
+    const x = (lon + 180) / 360 * n;
+    const latRad = lat * Math.PI / 180;
+    const y = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n;
+    return { x, y };
+}
+
+async function captureEsriSnapshot(lon, lat, zoom = 16, ogimItems = []) {
+    lon = ((lon + 180) % 360 + 360) % 360 - 180;
+    const t = lonLatToTile(lon, lat, zoom);
+    const baseX = Math.floor(t.x - 0.5);
+    const baseY = Math.floor(t.y - 0.5);
+    const maxTile = 2 ** zoom;
+
+    const TILE = 256;
+    const W = TILE * 2, H = TILE * 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    const loads = [];
+    for (let dx = 0; dx < 2; dx++) {
+        for (let dy = 0; dy < 2; dy++) {
+            const x = ((baseX + dx) % maxTile + maxTile) % maxTile;
+            const y = Math.max(0, Math.min(maxTile - 1, baseY + dy));
+            const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
+            loads.push(new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => { ctx.drawImage(img, dx * TILE, dy * TILE); resolve(); };
+                img.onerror = () => reject(new Error(`tile ${zoom}/${x}/${y} failed`));
+                img.src = url;
+            }));
+        }
+    }
+    await Promise.all(loads);
+
+    // Project (lon, lat) to canvas pixel — used for plume + OGIM markers.
+    const project = (plon, plat) => {
+        const pt = lonLatToTile(plon, plat, zoom);
+        return { x: (pt.x - baseX) * TILE, y: (pt.y - baseY) * TILE };
+    };
+
+    // OGIM markers (drawn first so plume ring sits on top).
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+
+    // Draw pipelines first so points sit on top of them
+    for (const it of ogimItems) {
+        if (it.kind !== 'pipeline' || !it.geometry) continue;
+        const segs = it.geometry.type === 'LineString'
+            ? [it.geometry.coordinates]
+            : it.geometry.coordinates;
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+        ctx.lineWidth = 4;
+        for (const seg of segs) {
+            ctx.beginPath();
+            seg.forEach(([plon, plat], i) => {
+                const p = project(plon, plat);
+                if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+        }
+        ctx.strokeStyle = 'rgba(255, 230, 100, 0.95)';
+        ctx.lineWidth = 1.5;
+        for (const seg of segs) {
+            ctx.beginPath();
+            seg.forEach(([plon, plat], i) => {
+                const p = project(plon, plat);
+                if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+        }
+    }
+
+    for (const it of ogimItems) {
+        if (it.kind === 'pipeline') continue;
+        const { x, y } = project(it.lon, it.lat);
+        if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue;
+        if (it.kind === 'well') {
+            // White × with halo
+            ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6);
+            ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6);
+            ctx.stroke();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        } else {
+            // Amber diamond for facilities
+            ctx.beginPath();
+            ctx.moveTo(x, y - 8);
+            ctx.lineTo(x + 8, y);
+            ctx.lineTo(x, y + 8);
+            ctx.lineTo(x - 8, y);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.85)';
+            ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.fill();
+            ctx.stroke();
+        }
+        // Label (facility name or operator) when present
+        const label = it.name || it.operator;
+        if (label) {
+            ctx.font = '11px system-ui, sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.fillText(label, x + 11, y + 4);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(label, x + 10, y + 3);
+        }
+    }
+
+    // Plume ring at centre — magenta ring with crosshair.
+    const c = project(lon, lat);
+    ctx.strokeStyle = '#ff2dd1';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 22, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(c.x - 30, c.y); ctx.lineTo(c.x - 12, c.y);
+    ctx.moveTo(c.x + 12, c.y); ctx.lineTo(c.x + 30, c.y);
+    ctx.moveTo(c.x, c.y - 30); ctx.lineTo(c.x, c.y - 12);
+    ctx.moveTo(c.x, c.y + 12); ctx.lineTo(c.x, c.y + 30);
+    ctx.stroke();
+    ctx.fillStyle = '#ff2dd1';
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.fillText('plume', c.x + 26, c.y - 18);
+
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+function renderAnalysisHTML(text) {
+    const { source, body } = splitSource(text);
+    return `<div class="enrich-report">
+        ${source ? `<div class="enrich-source">${escapeHtml(source)}</div>` : ''}
+        ${body ? `<p class="enrich-para">${escapeHtml(body)}</p>` : ''}
+    </div>`;
+}
+
+function splitSource(text) {
+    // Look for "SOURCE: <line>\n" at the very start. If absent, treat all as body.
+    const m = text.match(/^\s*SOURCE\s*:\s*([^\n]*)(?:\n([\s\S]*))?$/i);
+    if (!m) return { source: '', body: text.trim() };
+    return { source: (m[1] || '').trim(), body: (m[2] || '').trim() };
+}
+
+async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { force = false } = {}) {
+    if (!FIREDAMP_API) {
+        container.innerHTML = '<span class="enrich-empty">Analysis API not configured. Set <code>meta[name=&quot;firedamp-api&quot;]</code> in index.html.</span>';
+        return;
+    }
+
+    container.innerHTML = `<div class="enrich-status">Capturing imagery…</div>
+        <div class="enrich-report" style="display:none">
+            <div class="enrich-source"></div>
+            <p class="enrich-para"></p>
+        </div>`;
+    const statusEl = container.querySelector('.enrich-status');
+    const reportEl = container.querySelector('.enrich-report');
+    const sourceEl = container.querySelector('.enrich-source');
+    const paraEl = container.querySelector('.enrich-para');
+
+    let imageDataUrl = null;
+    try {
+        imageDataUrl = await captureEsriSnapshot(lon, lat, 16, ogimItems);
+    } catch (err) {
+        console.warn('Esri snapshot failed, proceeding text-only:', err);
+    }
+
+    statusEl.textContent = `Querying ${OPENROUTER_MODEL_LABEL}…`;
+
+    try {
+        const resp = await fetch(`${FIREDAMP_API}/api/analyse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                plumeId: plume.id || `${lat.toFixed(4)},${lon.toFixed(4)}`,
+                prompt,
+                image: imageDataUrl,
+                lat, lon,
+                dt: plume.dt, rate: plume.rate, src: plume.src,
+                force,
+            }),
+        });
+        if (!resp.ok) {
+            const errBody = await resp.text().catch(() => '');
+            throw new Error(`firedamp-api ${resp.status}: ${errBody.slice(0, 200)}`);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let text = '';
+        const citations = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('data:')) continue;
+                const payload = trimmed.slice(5).trim();
+                if (!payload || payload === '[DONE]') continue;
+                let event;
+                try { event = JSON.parse(payload); } catch { continue; }
+                const choice = event.choices?.[0];
+                if (!choice) continue;
+                const delta = choice.delta || choice.message || {};
+                if (delta.content) {
+                    text += delta.content;
+                    const { source, body } = splitSource(text);
+                    sourceEl.textContent = source;
+                    paraEl.textContent = body;
+                    reportEl.style.display = '';
+                    statusEl.style.display = 'none';
+                }
+                for (const ann of (delta.annotations || [])) {
+                    const url = ann.url_citation?.url || ann.url;
+                    if (url && !citations.includes(url)) citations.push(url);
+                }
+            }
+        }
+
+        statusEl.style.display = 'none';
+        if (!text.trim()) {
+            container.innerHTML = '<span class="enrich-empty">Analysis unavailable</span>';
+            return;
+        }
+
+        if (citations.length) {
+            const sourcesHtml = citations.slice(0, 8).map(u => {
+                const host = (() => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } })();
+                return `<a class="enrich-cite" href="${escapeHtml(u)}" target="_blank" rel="noopener">${escapeHtml(host)}</a>`;
+            }).join(' · ');
+            const citesEl = document.createElement('div');
+            citesEl.className = 'enrich-cites';
+            citesEl.innerHTML = sourcesHtml;
+            reportEl.appendChild(citesEl);
+        }
+    } catch (err) {
+        console.warn('Analysis stream failed:', err);
+        statusEl.style.display = 'none';
+        container.innerHTML = `<span class="enrich-empty">Analysis failed: ${escapeHtml(String(err.message || err))}</span>`;
+    }
+}
+
+function runPlumeAnalysis(feature, { force = false } = {}) {
+    const id = ++analysisRequestId;
+    const p = feature.properties;
+    const lon = Number(p.lon);
+    const lat = Number(p.lat);
+
+    const targetEl = () => analysisRequestId === id ? document.getElementById('enrich-results') : null;
+
+    (async () => {
+        const el = targetEl();
+        if (!el) return;
+        el.innerHTML = '<div class="enrich-loading">Loading nearby infrastructure…</div>';
+
+        // Bounding box ~2 km around plume
+        const dLat = 2 / 111;
+        const dLon = 2 / (111 * Math.cos(lat * Math.PI / 180));
+        const south = lat - dLat, north = lat + dLat;
+        const west = lon - dLon, east = lon + dLon;
+
+        const [overpassData, ogimItems, place] = await Promise.all([
+            queryOverpass(south, west, north, east),
+            loadNearbyInfra(lon, lat, { maxResults: 20, radiusKm: 2 }),
+            reverseGeocode(lat, lon),
+        ]);
+        if (analysisRequestId !== id) return;
+
+        const nearbyContainer = document.getElementById('detail-nearby');
+        if (nearbyContainer) nearbyContainer.innerHTML = nearbyMarkup(ogimItems);
+
+        const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements) : [];
+        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place);
+
+        const el2 = targetEl();
+        if (!el2) return;
+        await streamPlumeLLM(el2, prompt, p, lon, lat, ogimItems, { force });
+    })();
+}
+
+function regenerateAnalysis() {
+    if (selectedFeature) runPlumeAnalysis(selectedFeature, { force: true });
+}
+window.regenerateAnalysis = regenerateAnalysis;
 
 // ---------------------------------------------------------------------------
 // Source toggle buttons

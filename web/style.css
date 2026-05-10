@@ -99,6 +99,13 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     margin-top: 4px;
 }
 
+.subtitle-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border-subtle);
+}
+.subtitle-link:hover { color: var(--text-primary); }
+
 .panel-body, .subtitle {
     overflow: hidden;
     transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
@@ -393,6 +400,42 @@ a.detail-id:hover {
 
 /* --- Nearby infrastructure --- */
 
+.nearby-accordion {
+    border-top: 1px solid var(--border-subtle);
+    margin: 4px 0 0;
+}
+.nearby-summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 10px 16px;
+    font-size: var(--font-xs);
+    color: var(--text-faint);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s;
+}
+.nearby-summary::-webkit-details-marker { display: none; }
+.nearby-summary:hover { color: var(--text-secondary); }
+.nearby-summary::before {
+    content: '▸';
+    font-size: 9px;
+    transition: transform 0.15s;
+    display: inline-block;
+    color: var(--text-hint);
+}
+.nearby-accordion[open] > .nearby-summary::before {
+    transform: rotate(90deg);
+}
+.nearby-count {
+    color: var(--text-hint);
+    font-variant-numeric: tabular-nums;
+}
+.nearby-list {
+    padding: 0 16px 8px;
+}
+
 .nearby-item {
     border-top: 1px solid var(--border-subtle);
     cursor: pointer;
@@ -403,11 +446,11 @@ a.detail-id:hover {
 .nearby-item:last-of-type { margin-bottom: -10px; }
 .nearby-item:hover { background: rgba(255, 255, 255, 0.05); }
 .nearby-name {
-    font-size: var(--font-sm);
+    font-size: var(--font-base);
     color: var(--text-secondary);
 }
 .nearby-meta {
-    font-size: var(--font-xs);
+    font-size: var(--font-sm);
     color: var(--text-faint);
     margin-top: 2px;
 }
@@ -596,4 +639,160 @@ h4.legend-section {
     }
 
     .logo { display: none; }
+}
+
+/* --- AI plume analysis (ported from stac-trace) --- */
+
+.enrich-section {
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 4px;
+}
+
+.enrich-section-label {
+    color: var(--text-faint);
+    font-size: var(--font-xs);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.enrich-regenerate {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-hint);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 2px;
+    transition: color 0.15s, border-color 0.15s, transform 0.4s;
+}
+.enrich-regenerate:hover {
+    color: var(--text-secondary);
+    border-color: var(--text-faint);
+}
+.enrich-regenerate:active {
+    transform: rotate(180deg);
+}
+
+.enrich-loading {
+    font-size: var(--font-xs);
+    color: var(--text-hint);
+}
+
+.enrich-empty {
+    font-size: var(--font-xs);
+    color: var(--text-hint);
+    display: block;
+    padding: 6px 0;
+}
+
+.enrich-status {
+    font-size: var(--font-xs);
+    color: var(--text-hint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.enrich-report {
+    margin-top: 6px;
+}
+
+.enrich-source {
+    font-size: var(--font-base);
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+.enrich-source:empty { display: none; }
+
+.enrich-para {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+.enrich-para:empty { display: none; }
+
+.enrich-keyform {
+    padding: 4px 0 2px;
+}
+
+.enrich-keyform-msg {
+    font-size: var(--font-xs);
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0 0 8px;
+}
+
+.enrich-keyform-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.enrich-key-input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    padding: 5px 8px;
+    font: inherit;
+    font-size: var(--font-xs);
+    font-family: 'SF Mono', 'Menlo', monospace;
+    border-radius: 2px;
+    outline: none;
+}
+
+.enrich-key-input:focus {
+    border-color: var(--text-muted);
+}
+
+.enrich-key-save {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    padding: 5px 10px;
+    font: inherit;
+    font-size: var(--font-xs);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.enrich-key-save:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--text-primary);
+}
+
+.enrich-keyform-link {
+    font-size: var(--font-xs);
+    color: var(--text-faint);
+    text-decoration: none;
+}
+
+.enrich-keyform-link:hover {
+    color: var(--text-muted);
+}
+
+.enrich-cites {
+    margin-top: 8px;
+    font-size: var(--font-xs);
+    color: var(--text-faint);
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.enrich-cite {
+    color: var(--text-faint);
+    text-decoration: none;
+}
+
+.enrich-cite:hover {
+    color: var(--text-secondary);
+    text-decoration: underline;
 }

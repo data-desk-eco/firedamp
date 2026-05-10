@@ -1,0 +1,35 @@
+name: Export AI analyses
+
+# Daily snapshot of the firedamp-api D1 database to the latest-data release,
+# so the dataset survives even if the Worker is rotated or the account closed.
+
+on:
+  schedule:
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch analyses from Worker
+        env:
+          API_URL: https://firedamp-api.louis-6bf.workers.dev
+          ALLOWED_ORIGIN: https://research.datadesk.eco
+        run: |
+          curl -sf -H "Origin: $ALLOWED_ORIGIN" \
+            "$API_URL/api/analyses?limit=10000" \
+            -o analyses.json
+          jq 'length' analyses.json
+          gzip -k analyses.json
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload latest-data analyses.json analyses.json.gz --clobber

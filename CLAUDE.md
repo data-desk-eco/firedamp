@@ -33,6 +33,18 @@ Compact binary: 20 bytes per plume + satellite name table + ID block.
 - Record: lat(f32), lon(f32), days-since-2020(u16), rate_kg/hr(u32), unc(u32), src|sec(u8), sat_idx(u8)
 - Footer: newline-separated plume IDs (SRON uses `display_id|source_file` composite format)
 
+## AI plume analysis
+
+Detail panels include an LLM-generated source attribution (Qwen3-VL via OpenRouter), grounded on:
+- Reverse-geocoded place name (Nominatim)
+- OGIM wells, facilities, and pipeline segments within ~2 km
+- OpenStreetMap features within ~2 km (Overpass)
+- An Esri World Imagery snapshot with the plume location and OGIM features rendered onto it
+
+The OpenRouter key never ships to the browser. Requests go through `worker/` (Cloudflare Worker, `firedamp-api`), which holds the key as a Wrangler secret and caches every response in D1 (`firedamp-analyses`). See `worker/README` for setup. The Worker URL is configured via `<meta name="firedamp-api">` in `web/index.html`; on `localhost` the client auto-talks to `http://localhost:8787` (`make worker-dev`).
+
+The Worker exposes `GET /api/analyses` for dumping the accumulated dataset.
+
 ## Frontend
 
 Key files:
