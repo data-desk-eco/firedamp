@@ -2,43 +2,95 @@ firedamp
 ========
 
 Methane plume aggregator. Maps satellite-detected methane plumes
-alongside O&G infrastructure from the OGIM database.
+alongside O&G infrastructure from the OGIM database, and offers a
+per-plume AI source attribution (Qwen3-VL via OpenRouter, grounded on
+OGIM, OpenStreetMap, place name, wind, and an Esri imagery snapshot).
 
 Live: https://research.datadesk.eco/firedamp/
 
-Sources
--------
-- Carbon Mapper  plume detections (API)
-- IMEO / MARS    UNEP methane plume database (manual download)
-- SRON           TROPOMI weekly plume CSVs (FTP)
-- OGIM v2.7     global O&G infrastructure (Zenodo GeoPackage)
+
+Plume sources
+-------------
+- Carbon Mapper      satellite + aircraft hyperspectral (API)
+- IMEO / MARS        UNEP methane plume database (web scrape)
+- SRON               TROPOMI weekly plume CSVs (FTP)
+- OGIM v2.7          global O&G infrastructure (Zenodo GeoPackage)
+
+
+Repo layout
+-----------
+    web/             static frontend (no build step, no npm)
+      app.js           map, binary parser, detail panel, AI client
+      style.css
+      index.html
+      layers.js        custom overlays (?layer=<slug>)
+      dataset.html     AI-attribution browser (not currently linked)
+      vendor/          MapLibre, PMTiles, Inter font
+    scripts/         Python ETL (uv-managed)
+      fetch_carbon_mapper.py
+      fetch_sron.py
+      fetch_imeo.py
+      build.py         aggregates everything into web/data/plumes.bin
+      build_ogim.sh    OGIM GeoPackage -> PMTiles (slow, ~30 min)
+      serve.py         dev server with HTTP Range for PMTiles
+      vendor.sh
+    worker/          Cloudflare Worker `firedamp-api` (see worker/README)
+    data/            input CSVs and intermediates (gitignored)
+    .github/workflows/
+      deploy.yml          Pages on push to main
+      update-data.yml     daily plume refresh
+      export-analyses.yml daily D1 snapshot to latest-data release
+
 
 Setup
 -----
-Requires Python (managed with uv) and optionally ogr2ogr + tippecanoe
-for rebuilding OGIM tiles.
+Requires Python (managed with uv). OGIM rebuild additionally requires
+ogr2ogr, tippecanoe, and tile-join.
 
     make vendor        download vendored JS/CSS/fonts
     make serve         dev server on :8000
 
-    make data          fetch plume sources, build plumes.bin
+
+Pipelines
+---------
+    make data          fetch CM + SRON + IMEO, build plumes.bin
     make ogim          OGIM GeoPackage -> PMTiles
     make ogim-upload   upload PMTiles to GCS
     make rebuild       full pipeline: data + ogim + upload
 
-Architecture
-------------
-Static HTML/JS/CSS frontend using MapLibre GL. No build step, no npm.
-Python scripts handle data fetching and binary encoding.
 
-Deployed via GitHub Pages. Push to main triggers deploy.
-OGIM PMTiles (~500 MB) served from Google Cloud Storage.
+AI source attribution
+---------------------
+Detail panels include a model-generated source attribution. Requests
+flow through the Cloudflare Worker in `worker/`, which holds the
+OpenRouter key as a server secret and caches every response in a D1
+database. See worker/README for setup. The browser hits the Worker via
+the URL in `<meta name="firedamp-api">` in web/index.html.
+
+A separate browser at /dataset.html lists every cached analysis (live
+in the source tree but not linked from the main UI yet — re-enable by
+uncommenting the subtitle link in index.html and restoring the cp lines
+in the two deploy workflows).
+
 
 URL scheme
 ----------
-Map position:     #map=<zoom>/<lat>/<lon>
-Plume permalink:  #plume=<id>
-Custom layers:    ?layer=<slug>
+    Map position     #map=<zoom>/<lat>/<lon>
+    Plume permalink  #plume=<id>
+    Custom layer     ?layer=<slug>
+    Local Worker     ?api=local   (when running `make worker-dev`)
+
+
+Deployment
+----------
+Push to main -> deploy.yml -> GitHub Pages. plumes.bin is pulled from
+the `latest-data` GitHub Release at deploy time. update-data.yml
+rebuilds plumes.bin daily. OGIM PMTiles are deployed separately via
+`make ogim-upload` to gs://firedamp-data/.
+
+When adding new web assets, add them to the `cp` line in both
+deploy.yml and update-data.yml.
+
 
 License
 -------

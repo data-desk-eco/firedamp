@@ -6,5 +6,5 @@ __pycache__/
 /data/
 web/data/ogim.pmtiles
 web/data/plumes.bin
-web/data/sources.json
 worker/.wrangler/
+
