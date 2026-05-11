@@ -1347,7 +1347,7 @@ ${nearby}
 HOW TO DECIDE
 - The image is the primary evidence. Identify what is physically at the centre ring.
 - For a well, only attribute to an OGIM/OSM id when its listed distance is small (≲50 m) AND the matching wellhead is visible at the ring.
-- For a named facility (gas plant, tank battery, compressor station, refinery, landfill), attribute to it whenever the plume ring sits inside the same fenced or cleared site as the facility — even if the listed point is 100–400 m away, because OGIM stores one coordinate for what is often a sprawling compound.
+- For a named facility (gas plant, tank battery, compressor station, refinery, landfill), attribute to it whenever the plume ring sits inside the same fenced or cleared site as the facility, because OGIM stores one coordinate for what is often a sprawling compound.
 - When the visible structure has no matching list entry, label it descriptively without borrowing a distant operator name (e.g. "Unlabelled well pad", "Tank battery", "Compressor station").
 - If the ring sits over empty land (vegetation, desert, water, farmland) with no plausible source, set source_kind to "none" and source_label to "No obvious source within 2 km".
 
