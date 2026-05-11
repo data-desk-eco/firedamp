@@ -1315,7 +1315,7 @@ function sectorHintPhrase(sec) {
     }
 }
 
-function buildPlumePrompt(p, osmFeatures, ogimItems, place) {
+function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
     const rateThr = (Number(p.rate) / 1000).toFixed(2);
@@ -1333,10 +1333,15 @@ function buildPlumePrompt(p, osmFeatures, ogimItems, place) {
     if (hasOsm)  nearbyBlocks.push(`OpenStreetMap features within 2 km:\n${osmList}`);
     const nearby = nearbyBlocks.length ? nearbyBlocks.join('\n\n') : 'No OGIM or OSM entries within 2 km.';
 
+    const windLine = wind
+        ? `Daily-mean surface wind on the detection date: ${wind.speed.toFixed(1)} m/s from the ${compass(wind.fromDeg)} (${Math.round(wind.fromDeg)}°), drifting toward the ${compass(wind.toDeg)}. The true source should sit on the upwind side of the plume ring.`
+        : '';
+
     return `Identify the most likely source of this methane plume.
 
 A ${src} satellite detected a ${rateThr} t/hr methane plume at ${lat}°, ${lon}° in ${placeStr} on ${date} (${sat}). ${sectorHintPhrase(p.sec)}
 ${spatialUncertaintyNote(p)}
+${windLine}
 
 IMAGE
 An Esri satellite snapshot ~1 km wide, centred on the plume coordinate. A ring with crosshair marks the coordinate. Overlay symbols on the image: × = OGIM well, ◇ = OGIM facility (named alongside), thin line = OGIM pipeline.
@@ -1346,9 +1351,11 @@ ${nearby}
 
 HOW TO DECIDE
 - The image is the primary evidence. Identify what is physically at the centre ring.
-- For a well, only attribute to an OGIM/OSM id when its listed distance is small (≲50 m) AND the matching wellhead is visible at the ring.
+- Well pads are sprawling sites, not points. When multiple OGIM wells share one cleared pad and the plume ring sits inside that same cleared footprint (the bulldozed earth, access track, tanks and × marks all forming one site), attribute confidently to the well pad even if the nearest listed well is 100–400 m away — these are the same source.
+- Only attribute to a specific OGIM/OSM well id when its listed distance is ≲50 m AND the matching × symbol is visible at the ring. Otherwise label descriptively ("Unlabelled well pad", operator name only if obvious from the list) and leave attributed_id null.
 - For a named facility (gas plant, tank battery, compressor station, refinery, landfill), attribute to it whenever the plume ring sits inside the same fenced or cleared site as the facility, because OGIM stores one coordinate for what is often a sprawling compound.
-- When the visible structure has no matching list entry, label it descriptively without borrowing a distant operator name (e.g. "Unlabelled well pad", "Tank battery", "Compressor station").
+- Pipelines and gathering lines (the thin lines on the image, and any OGIM "pipeline" / "gathering" entries) are buried or low-pressure conduits that vent far less methane than wellheads, tanks, separators, dehydrators and compressors. Treat them as a last-resort source. If a well pad or facility is plausible in the same scene, prefer it over the pipeline — only attribute to a pipeline when there is a visible above-ground pipeline feature at the ring (riser, valve, pig launcher, blowdown stack, leaking trench) AND no well pad or facility is plausible nearby.
+- When wind data is given, prefer candidate sources that sit upwind of the ring. Wind doesn't override the image, but it breaks ties between candidates on opposite sides of the ring and adds confidence when a well pad or facility is clearly upwind.
 - If the ring sits over empty land (vegetation, desert, water, farmland) with no plausible source, set source_kind to "none" and source_label to "No obvious source within 2 km".
 
 OUTPUT GUIDANCE
@@ -1713,15 +1720,17 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
         if (analysisRequestId !== id) return;
 
         const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements, lat, lon) : [];
-        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place);
 
-        // Give wind a very short slack — if Open-Meteo answers fast we store
-        // it in D1, but a slow response never blocks shipping the prompt.
-        // The UI updates whenever the wind promise eventually resolves.
+        // Give wind a very short slack — if Open-Meteo answers fast it goes
+        // into the prompt (upwind/downwind reasoning helps source attribution)
+        // and we store it in D1. A slow response never blocks the AI call.
+        // The UI still updates whenever the wind promise eventually resolves.
         const wind = await Promise.race([
             windPromise,
             new Promise(r => setTimeout(() => r(null), 400)),
         ]);
+
+        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place, wind);
 
         const el2 = targetEl();
         if (!el2) return;
