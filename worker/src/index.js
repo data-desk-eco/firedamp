@@ -109,6 +109,9 @@ async function analyse(req, env, ctx, origin) {
             messages: [{ role: 'user', content: userContent }],
             // Strict JSON schema output. OpenRouter routes only to providers
             // that honour structured outputs because of require_parameters.
+            // The per-field descriptions are picked up by Gemini/GPT/Claude
+            // and act as soft instructions — they catch a lot of formatting
+            // drift that the prompt body alone misses.
             response_format: {
                 type: 'json_schema',
                 json_schema: {
@@ -118,16 +121,36 @@ async function analyse(req, env, ctx, origin) {
                         type: 'object',
                         additionalProperties: false,
                         properties: {
-                            source_label: { type: 'string', description: 'At most 8 words naming the most likely source.' },
+                            source_label: {
+                                type: 'string',
+                                description:
+                                    "At most 8 words naming the source in plain English for a journalist. " +
+                                    "Examples: 'Caerus Uinta gas well', 'Unlabelled tank battery', " +
+                                    "'Sanitary landfill', 'Coal mine vent', 'No obvious source within 2 km'. " +
+                                    "Never contains 'OGIM:' or 'OSM:'; those go in attributed_id. " +
+                                    "Never a field name like 'Sector Waste'.",
+                            },
                             source_kind: {
                                 type: 'string',
                                 enum: ['well', 'facility', 'pipeline', 'mine', 'landfill', 'other', 'none'],
+                                description: "Use 'none' only when no source is identifiable from the image or data.",
                             },
                             attributed_id: {
                                 type: ['string', 'null'],
-                                description: 'OGIM:<id> | OSM:<type>/<id> | null. Must match an id from the supplied lists.',
+                                description:
+                                    "Copy verbatim from one of the supplied lists, in either 'OGIM:<id>' or " +
+                                    "'OSM:<type>/<id>' form. Use null when the visible source has no matching list " +
+                                    "entry (common for unlabelled pads). Never invent IDs. Never use a separator " +
+                                    "other than the colon.",
                             },
-                            paragraph: { type: 'string', description: 'Under 100 words. Plain text. No markdown.' },
+                            paragraph: {
+                                type: 'string',
+                                description:
+                                    "1 to 3 plain sentences. State the source and the visible evidence. " +
+                                    "Do not list rejected hypotheses, do not describe overlay markers/colours, " +
+                                    "do not end with 'no obvious source within 2 km' unless that IS the answer. " +
+                                    "No markdown, no lists, no news/incident claims.",
+                            },
                         },
                         required: ['source_label', 'source_kind', 'attributed_id', 'paragraph'],
                     },

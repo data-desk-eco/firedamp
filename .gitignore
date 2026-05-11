@@ -8,3 +8,5 @@ web/data/ogim.pmtiles
 web/data/plumes.bin
 worker/.wrangler/
 
+.playwright-mcp/
+promptlab/

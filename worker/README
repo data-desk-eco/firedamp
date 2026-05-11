@@ -1,7 +1,7 @@
 firedamp-api — Cloudflare Worker
 ================================
 
-Proxies plume-analysis requests to OpenRouter (Qwen3-VL via JSON
+Proxies plume-analysis requests to OpenRouter (Gemini 2.5 Flash via JSON
 schema-mode structured outputs), holding the API key as a Wrangler
 secret so it never ships to the browser. Caches every response in D1
 for free repeat reads and as a queryable dataset.

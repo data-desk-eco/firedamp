@@ -27,7 +27,7 @@ const FIREDAMP_API = (() => {
     }
     return document.querySelector('meta[name="firedamp-api"]')?.content?.trim() || '';
 })();
-const OPENROUTER_MODEL_LABEL = 'Qwen3-VL 30B';
+const OPENROUTER_MODEL_LABEL = 'Gemini 2.5 Flash';
 
 let analysisRequestId = 0;
 
@@ -1109,7 +1109,7 @@ function buildOverpassQuery(south, west, north, east) {
     );out center tags;`;
 }
 
-function summariseOsmElements(elements) {
+function summariseOsmElements(elements, plumeLat, plumeLon) {
     const items = [];
     const seen = new Set();
     for (const el of elements) {
@@ -1128,9 +1128,25 @@ function summariseOsmElements(elements) {
         const key = `${name}:${JSON.stringify(keep)}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        items.push({ osmId: `${el.type}/${el.id}`, name, lat, lon, tags: keep });
+        const dist = (lat != null && lon != null && plumeLat != null && plumeLon != null)
+            ? haversineMetres(plumeLat, plumeLon, lat, lon) : null;
+        items.push({ osmId: `${el.type}/${el.id}`, name, lat, lon, tags: keep, dist });
     }
+    // Sort by distance ascending so the LLM sees the closest entries first.
+    items.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
     return items.slice(0, 60);
+}
+
+// Great-circle distance in metres. Used to sort OSM features near the plume
+// so the LLM sees the closest matches first (mirroring the OGIM list).
+function haversineMetres(lat1, lon1, lat2, lon2) {
+    const toRad = d => d * Math.PI / 180;
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2) ** 2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
 }
 
 // Reverse geocode via Nominatim — gives the LLM an authoritative place name
@@ -1227,20 +1243,24 @@ async function queryOverpass(south, west, north, east) {
 }
 
 function formatOsmFeatures(features) {
-    if (!features.length) return '(no tagged features in radius)';
+    if (!features.length) return '(none)';
     return features.map(f => {
         const tagPairs = Object.entries(f.tags).map(([k, v]) => `${k}=${v}`).join(', ');
         const name = f.name || '(unnamed)';
-        return `- [OSM ${f.osmId}] ${name} [${tagPairs}]`;
+        const dist = f.dist != null ? `(${formatDist(f.dist)} away)` : '';
+        return `- OSM:${f.osmId}  ${dist}  — ${name} — ${tagPairs}`;
     }).join('\n');
 }
 
+// LLM-facing OGIM list: `OGIM:<id>` matches the required attributed_id format
+// exactly, and distance is shown prominently so the model doesn't have to
+// scan past the type/operator to find it.
 function formatOgimInfra(items) {
-    if (!items.length) return '(no OGIM features within radius)';
+    if (!items.length) return '(none)';
     return items.map(it => {
-        const parts = [it.name || it.type || it.kind, it.operator, it.status, formatDist(it.dist)]
-            .filter(Boolean);
-        return `- [OGIM ${it.ogimId}] ${parts.join(' · ')}`;
+        const attrs = [it.name || it.type || it.kind, it.operator, it.status].filter(Boolean).join(' · ');
+        const dist = formatDist(it.dist) || '?';
+        return `- OGIM:${it.ogimId}  (${dist} away)  — ${attrs}`;
     }).join('\n');
 }
 
@@ -1248,84 +1268,76 @@ function spatialUncertaintyNote(p) {
     const src = p.src;
     const sat = String(p.sat || '').toUpperCase();
     if (src === 'cm') {
-        if (/AVIRIS|GAO|AV3|AV20/.test(sat)) {
-            return 'Spatial uncertainty: aircraft hyperspectral (AVIRIS-NG / GAO / AVIRIS-3). Plume origin is usually localized within a few tens of metres of the actual leak — the coordinate is highly precise. Trust it.';
-        }
-        if (/TANAGER/.test(sat)) {
-            return 'Spatial uncertainty: Tanager-1 satellite hyperspectral, ~30 m pixel. The coordinate is normally within ~50 m of the source.';
-        }
-        if (/EMIT/.test(sat)) {
-            return 'Spatial uncertainty: EMIT (NASA ISS instrument), ~60 m pixel. The coordinate is normally within ~100 m of the source.';
-        }
-        if (/ENMAP/.test(sat)) {
-            return 'Spatial uncertainty: EnMAP, ~30 m pixel. The coordinate is normally within ~50 m of the source.';
-        }
-        return 'Spatial uncertainty: Carbon Mapper hyperspectral detection (aircraft or 30–60 m satellite). Coordinate is typically within tens to ~100 m of the actual source.';
+        if (/AVIRIS|GAO|AV3|AV20/.test(sat)) return 'Coordinate is precise to within a few tens of metres.';
+        if (/TANAGER/.test(sat)) return 'Coordinate is precise to within ~50 m.';
+        if (/EMIT/.test(sat))   return 'Coordinate is precise to within ~100 m.';
+        if (/ENMAP/.test(sat))  return 'Coordinate is precise to within ~50 m.';
+        return 'Coordinate is precise to within ~100 m.';
     }
     if (src === 'imeo') {
-        return 'Spatial uncertainty: UNEP IMEO/MARS, multi-sensor (Sentinel-2/3, Landsat, PRISMA, GHGSat, EMIT, sometimes TROPOMI). Coordinates are analyst-vetted but uncertainty inherits from the underlying instrument — usually <500 m for high-resolution satellites, can be several km when TROPOMI-derived.';
+        return 'Coordinate is analyst-vetted; uncertainty is <500 m for high-resolution sensors, several km when TROPOMI-derived.';
     }
     if (src === 'sron') {
-        return 'Spatial uncertainty: SRON via TROPOMI/Sentinel-5P. Pixel footprint is roughly 5.5 × 7 km at nadir, and even after SRON\'s wind-trajectory back-calculation the published centroid often still sits several kilometres from the true point source — the actual leak is frequently upwind. Do NOT require infrastructure to be directly under the plume marker on the image. If the area beneath the marker is empty, the leak is almost certainly a nearby (within ~5 km) facility, especially a gas plant, compressor station, coal mine vent, or large landfill that is visible elsewhere in the image. Mention the TROPOMI geolocation uncertainty in your answer and, if relevant, suggest checking upwind.';
+        return ('TROPOMI pixel footprint is ~5.5×7 km; the true source can sit several kilometres from the marker, '
+              + 'often upwind. Do not require infrastructure directly under the marker — look around the wider scene '
+              + 'for a gas plant, compressor station, coal mine vent, or landfill, and suggest checking upwind if relevant.');
     }
     return '';
+}
+
+function sectorHintPhrase(sec) {
+    switch (sec) {
+        case 'og':    return 'The catalogue tags this plume as oil & gas (a well pad, tank battery, compressor, gas plant, or refinery is most likely).';
+        case 'coal':  return 'The catalogue tags this plume as coal (a coal mine, vent shaft, or coal processing facility is most likely).';
+        case 'waste': return 'The catalogue tags this plume as waste (a landfill, recycling/transfer station, or wastewater plant is most likely).';
+        case 'other': return "The catalogue tags this plume as 'other' — sector is unclear.";
+        default:      return 'The catalogue does not classify this plume\'s sector.';
+    }
 }
 
 function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
     const rateThr = (Number(p.rate) / 1000).toFixed(2);
-    const uncThr = p.unc != null && p.unc !== 'null' ? (Number(p.unc) / 1000).toFixed(2) : null;
-    const sec = p.sec ? sectorLabel(p.sec) : 'unknown';
     const date = p.dt || 'unknown';
-    const sat = p.sat || 'unknown';
+    const sat = p.sat || 'unknown sensor';
     const src = SRC_LABELS[p.src] || p.src;
+    const placeStr = place?.display || 'an unknown location';
+    const windPhrase = wind
+        ? ` Surface wind on the detection day was ${wind.speed.toFixed(1)} m/s from the ${compass(wind.fromDeg)}.`
+        : '';
 
-    return `You are an environmental investigations assistant. A satellite has detected a methane plume and you are helping a journalist or researcher work out the most likely source.
+    const ogimList = formatOgimInfra(ogimItems);
+    const osmList = formatOsmFeatures(osmFeatures);
+    const hasOgim = ogimList && ogimList !== '(none)';
+    const hasOsm = osmList && osmList !== '(none)';
+    const nearbyBlocks = [];
+    if (hasOgim) nearbyBlocks.push(`OGIM oil & gas infrastructure within 2 km (coverage is patchy — many real wells/tanks/pipelines are missing):\n${ogimList}`);
+    if (hasOsm)  nearbyBlocks.push(`OpenStreetMap features within 2 km:\n${osmList}`);
+    const nearby = nearbyBlocks.length ? nearbyBlocks.join('\n\n') : 'No OGIM or OSM entries within 2 km.';
 
-Plume:
-- Location: ${lat}°, ${lon}°${place?.display ? ` — ${place.display} (per OpenStreetMap reverse geocode; treat this as the authoritative place name and DO NOT contradict it based on coordinates)` : ''}
-- Detected: ${date} by ${sat}
-- Source catalogue: ${src}
-- Reported emission rate: ${rateThr} t/hr${uncThr ? ` (±${uncThr})` : ''}
-- Sector classification: ${sec}
-${wind ? `- Wind on detection day (daily vector mean, 10 m, Open-Meteo): ${wind.speed.toFixed(1)} m/s blowing from ${compass(wind.fromDeg)} (${Math.round(wind.fromDeg)}°). The upwind direction — where the source is more likely to sit if the plume has drifted — is toward the ${compass(wind.fromDeg)}.` : ''}
+    return `Identify the most likely source of this methane plume.
 
+A ${src} satellite detected a ${rateThr} t/hr methane plume at ${lat}°, ${lon}° in ${placeStr} on ${date} (${sat}).${windPhrase} ${sectorHintPhrase(p.sec)}
 ${spatialUncertaintyNote(p)}
 
-The attached image is an Esri World Imagery snapshot (~1 km wide) centred on the plume coordinate. Esri tiles are typically 1–3 years old; use them to ground-truth what is physically present. Overlaid on the image: a ring with crosshair marks the plume location ("plume" label); cross-shaped marks are OGIM wells; diamond marks are OGIM facilities; thin lines are OGIM pipelines. Names are painted next to wells and facilities.
+IMAGE
+An Esri satellite snapshot ~1 km wide, centred on the plume coordinate. A ring with crosshair marks the coordinate. Overlay symbols on the image: × = OGIM well, ◇ = OGIM facility (named alongside), thin line = OGIM pipeline.
 
-OGIM v2.7 oil & gas infrastructure within ~2 km (note: OGIM coverage is incomplete and patchy — many real wells, tanks, compressors and gathering lines are not listed, especially outside North America. Treat OGIM as a hint, not a complete inventory):
-${formatOgimInfra(ogimItems)}
+NEARBY DATA (closest entries first):
+${nearby}
 
-OpenStreetMap features within ~2 km (broader infrastructure: pipelines, power plants, mines, landfills, refineries, airports, etc.):
-${formatOsmFeatures(osmFeatures)}
+HOW TO DECIDE
+- The image is the primary evidence. Identify what is physically at the centre ring.
+- Use an OGIM or OSM id only when the listed distance is small (≲50 m for a well, ≲100 m for a facility) AND the matching structure is visible in the image at the ring.
+- When the visible structure has no matching list entry, label it descriptively without borrowing a distant operator name (e.g. "Unlabelled well pad", "Tank battery", "Compressor station").
+- If the ring sits over empty land (vegetation, desert, water, farmland) with no plausible source, set source_kind to "none" and source_label to "No obvious source within 2 km".
 
-Strict grounding rules — read carefully:
-1. The image is the strongest evidence. If a well-pad, tank, compressor station, mine face, or landfill cell sits directly under or beside the magenta plume ring, attribute the plume to *that* visible structure.
-2. Distance matters. An OGIM well or facility only counts as the source if it sits *on the same pad / structure* as the plume ring (typically <50 m and clearly the same site in the image). An OGIM entry 100+ m away with the plume sitting on a different pad is NOT the source — it is a neighbour. Do not attach a distant OGIM operator name to a different visible structure: name what you can see ("an unlabelled well pad", "a tank battery") rather than borrowing an operator from the nearest OGIM row.
-3. Do NOT name any famous facility from elsewhere — Red Hills Gas Plant, Aliso Canyon, Nord Stream, etc. — unless it is in the supplied data.
-4. Many plumes sit over forest, farmland, or wetland with no infrastructure on the ground (especially SRON/TROPOMI detections at ~7 km resolution, which have large geolocation uncertainty). If so, say so honestly and suggest checking upwind. "No obvious source within 2 km" is a common and acceptable answer — when in doubt, use it.
-5. OSM tags can be stale or wrong. Before citing an OSM feature as the source, verify the matching structure is actually visible in the image. A "landuse=quarry" or "landuse=industrial" polygon with nothing distinctive on the ground is almost always a stale tag — DO NOT attribute the plume to it. Same logic for OSM features marked but invisible. When OSM is the only nearby "feature" and the imagery is empty, the right answer is "no obvious source", not the OSM tag.
-6. Honour the sector classification. The catalogue has already classified this plume as ${sec}. Attributing an oil & gas plume to a quarry, landfill, or coal mine — or vice versa — is almost certainly wrong. Only override the sector when the imagery very clearly shows a mismatched structure type directly under the plume.
-7. You have no web access for this task. Do not claim to have searched, do not write phrases like "no reported incidents found" or "no operator announcements", and do not invent or imply news coverage. Reason only from the supplied OGIM list, OSM list, place name, and image.
-8. Do not describe the overlay's appearance ("magenta ring", "white ×", "amber diamond", etc.). The colours are internal to this preprocessing step and look different in the user's interface. Refer to the underlying things instead — "the plume", "a well", "a facility".
-
-Respond with a single valid JSON object — no markdown, no surrounding prose — with exactly these keys:
-
-{
-  "source_label": "<at most 8 words naming the most likely source — e.g. 'Apache gas well pad', 'Unlabelled tank battery', 'Coal mine vent shaft', 'No obvious source within 2 km'. Do NOT include an OGIM or OSM id in this label — put the id in attributed_id only.>",
-  "source_kind": "well" | "facility" | "pipeline" | "mine" | "landfill" | "other" | "none",
-  "attributed_id": "OGIM:<ogim_id>" | "OSM:<element_type>/<element_id>" | null,
-  "paragraph": "<under 100 words: the place, why this source, any caveats. Plain text, no markdown, no lists. Do not speculate about events, news, or incidents.>"
-}
-
-Rules for "attributed_id":
-- Set it only when you can point to a specific row in the supplied OGIM or OSM lists.
-- Use the exact id strings from those lists. Do NOT invent IDs.
-- Use null when the structure is visible in the image but not in the data (most common for unlabelled well pads), or when no specific source is identifiable.
-
-Set "source_kind" to "none" when the answer is "no obvious source within 2 km".`;
+OUTPUT GUIDANCE
+- source_label is a short human-readable name for a journalist. Good shapes: "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "Coal mine vent shaft", "No obvious source within 2 km". Never write a field name like "Sector Waste" or an ID like "OGIM:1234".
+- attributed_id is either "OGIM:<id>" or "OSM:<type>/<id>" copied verbatim from the lists above, or null. Never invent IDs. Never use a different separator than the colon.
+- paragraph is 1–3 plain sentences naming the source and the visible evidence. Skip rejected hypotheses. Skip the overlay markers/colours. Skip boilerplate closers. No web-derived claims (you have no internet).
+`;
 }
 
 // ── Esri imagery snapshot (2x2 tile grid) with plume + OGIM overlay ──
@@ -1677,7 +1689,7 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
 
         renderWind(wind);
 
-        const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements) : [];
+        const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements, lat, lon) : [];
         const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place, wind);
 
         const el2 = targetEl();
