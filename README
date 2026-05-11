@@ -3,7 +3,7 @@ firedamp
 
 Methane plume aggregator. Maps satellite-detected methane plumes
 alongside O&G infrastructure from the OGIM database, and offers a
-per-plume AI source attribution (Gemini 2.5 Flash via OpenRouter, grounded on
+per-plume AI source attribution (Gemma 4 via OpenRouter, grounded on
 OGIM, OpenStreetMap, place name, wind, and an Esri imagery snapshot).
 
 Live: https://research.datadesk.eco/firedamp/

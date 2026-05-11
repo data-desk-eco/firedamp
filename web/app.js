@@ -27,7 +27,7 @@ const FIREDAMP_API = (() => {
     }
     return document.querySelector('meta[name="firedamp-api"]')?.content?.trim() || '';
 })();
-const OPENROUTER_MODEL_LABEL = 'Gemini 2.5 Flash';
+const OPENROUTER_MODEL_LABEL = 'Gemma 4';
 
 let analysisRequestId = 0;
 
@@ -658,7 +658,12 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const SKIP_TYPES = new Set(['N/A', 'DRY HOLE', 'UNKNOWN', '']);
+// Only filter clearly defunct features. 'N/A' on FAC_TYPE is common for
+// facilities whose role is captured in CATEGORY instead (e.g. GATHERING AND
+// PROCESSING plants like Ladder Creek) and on plenty of active wells too —
+// dropping them used to leave the AI pipeline with an empty nearby list even
+// when a named facility was sitting right under the plume.
+const SKIP_TYPES = new Set(['DRY HOLE', 'UNKNOWN', '']);
 const SKIP_STATUSES = new Set(['ABANDONED', 'INACTIVE']);
 
 function findNearbyInfra(lon, lat, { maxResults = 12, radiusKm = 2 } = {}) {
@@ -697,10 +702,12 @@ function findNearbyInfra(lon, lat, { maxResults = 12, radiusKm = 2 } = {}) {
                        : sourceLayer === 'wells' ? 'well' : 'pipeline';
             const fallbackName = sourceLayer === 'pipelines' ? (type || 'Pipeline')
                               : sourceLayer === 'facilities' ? 'Facility' : 'Well';
+            const category = (f.properties.CATEGORY || '').trim();
             results.push({
                 kind,
-                name: f.properties.FAC_NAME || type || fallbackName,
+                name: f.properties.FAC_NAME || type || category || fallbackName,
                 type,
+                category,
                 operator: f.properties.OPERATOR || '',
                 status,
                 country: f.properties.COUNTRY || '',
@@ -727,22 +734,31 @@ function closestVertex(lat, lon, coords) {
 
 // Wait for OGIM tiles around (lon,lat) to load, then return nearby infra.
 // Used by the AI pipeline so it works regardless of the visual toggle state.
+//
+// Opening a plume from a permalink triggers a flyTo() in parallel with the
+// analysis pipeline; if we only wait for `map.loaded()` we can race the flyTo
+// and end up querying tiles before they arrive, returning an empty list even
+// when OGIM has matching features. Re-querying after each idle event until we
+// either find features or hit a 7 s budget catches that race.
 async function loadNearbyInfra(lon, lat, opts = {}) {
     if (!map.getSource('ogim')) return [];
-    const z = map.getZoom();
-    if (z < 8) {
-        await new Promise(resolve => {
-            const onIdle = () => { map.off('idle', onIdle); resolve(); };
-            map.on('idle', onIdle);
-            // Nudge tile loading by querying source features (forces fetch at current view)
-            setTimeout(() => map.querySourceFeatures('ogim', { sourceLayer: 'wells' }), 0);
-            setTimeout(() => map.off('idle', onIdle) || resolve(), 6000);
-        });
-    } else {
-        // Already zoomed in; give a short tick for in-flight tiles
-        await new Promise(r => map.loaded() ? r() : map.once('idle', r));
+    const deadline = Date.now() + 7000;
+    let items = [];
+    while (Date.now() < deadline) {
+        await Promise.race([
+            new Promise(r => map.once('idle', r)),
+            new Promise(r => setTimeout(r, 1500)),
+        ]);
+        // Force tile loading at the plume location regardless of the OGIM
+        // visibility toggle. Wells/facilities/pipelines live in separate
+        // source layers so querying each one is what kicks off the fetch.
+        map.querySourceFeatures('ogim', { sourceLayer: 'wells' });
+        map.querySourceFeatures('ogim', { sourceLayer: 'facilities' });
+        map.querySourceFeatures('ogim', { sourceLayer: 'pipelines' });
+        items = findNearbyInfra(lon, lat, opts);
+        if (items.length > 0) return items;
     }
-    return findNearbyInfra(lon, lat, opts);
+    return items;
 }
 
 function formatDist(km) {
@@ -1258,7 +1274,11 @@ function formatOsmFeatures(features) {
 function formatOgimInfra(items) {
     if (!items.length) return '(none)';
     return items.map(it => {
-        const attrs = [it.name || it.type || it.kind, it.operator, it.status].filter(Boolean).join(' · ');
+        // Name + (type or category) + operator. Status is mostly noise unless
+        // it differs from PRODUCING/N/A — keep it short.
+        const typeOrCategory = it.type && it.type !== 'N/A' ? it.type : it.category;
+        const attrs = [it.name, typeOrCategory, it.operator, (it.status && it.status !== 'N/A') ? it.status : null]
+            .filter(Boolean).join(' · ');
         const dist = formatDist(it.dist) || '?';
         return `- OGIM:${it.ogimId}  (${dist} away)  — ${attrs}`;
     }).join('\n');
@@ -1329,7 +1349,8 @@ ${nearby}
 
 HOW TO DECIDE
 - The image is the primary evidence. Identify what is physically at the centre ring.
-- Use an OGIM or OSM id only when the listed distance is small (≲50 m for a well, ≲100 m for a facility) AND the matching structure is visible in the image at the ring.
+- For a well, only attribute to an OGIM/OSM id when its listed distance is small (≲50 m) AND the matching wellhead is visible at the ring.
+- For a named facility (gas plant, tank battery, compressor station, refinery, landfill), attribute to it whenever the plume ring sits inside the same fenced or cleared site as the facility — even if the listed point is 100–400 m away, because OGIM stores one coordinate for what is often a sprawling compound.
 - When the visible structure has no matching list entry, label it descriptively without borrowing a distant operator name (e.g. "Unlabelled well pad", "Tank battery", "Compressor station").
 - If the ring sits over empty land (vegetation, desert, water, farmland) with no plausible source, set source_kind to "none" and source_label to "No obvious source within 2 km".
 
