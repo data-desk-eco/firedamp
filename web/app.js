@@ -1315,7 +1315,7 @@ function sectorHintPhrase(sec) {
     }
 }
 
-function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
+function buildPlumePrompt(p, osmFeatures, ogimItems, place) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
     const rateThr = (Number(p.rate) / 1000).toFixed(2);
@@ -1323,9 +1323,6 @@ function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
     const sat = p.sat || 'unknown sensor';
     const src = SRC_LABELS[p.src] || p.src;
     const placeStr = place?.display || 'an unknown location';
-    const windPhrase = wind
-        ? ` Surface wind on the detection day was ${wind.speed.toFixed(1)} m/s from the ${compass(wind.fromDeg)}.`
-        : '';
 
     const ogimList = formatOgimInfra(ogimItems);
     const osmList = formatOsmFeatures(osmFeatures);
@@ -1338,7 +1335,7 @@ function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
 
     return `Identify the most likely source of this methane plume.
 
-A ${src} satellite detected a ${rateThr} t/hr methane plume at ${lat}°, ${lon}° in ${placeStr} on ${date} (${sat}).${windPhrase} ${sectorHintPhrase(p.sec)}
+A ${src} satellite detected a ${rateThr} t/hr methane plume at ${lat}°, ${lon}° in ${placeStr} on ${date} (${sat}). ${sectorHintPhrase(p.sec)}
 ${spatialUncertaintyNote(p)}
 
 IMAGE
@@ -1692,7 +1689,7 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
             }
         }
 
-        el.innerHTML = '<div class="enrich-loading">Loading nearby infrastructure, place, wind…</div>';
+        el.innerHTML = '<div class="enrich-loading">Loading nearby infrastructure and place…</div>';
 
         // Bounding box ~2 km around plume for Overpass
         const dLat = 2 / 111;
@@ -1700,18 +1697,31 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
         const south = lat - dLat, north = lat + dLat;
         const west = lon - dLon, east = lon + dLon;
 
-        const [overpassData, ogimItems, place, wind] = await Promise.all([
+        // Wind is decorative metadata, not load-bearing for the prompt — fire
+        // it in parallel and let it render whenever it lands instead of
+        // gating the AI call on Open-Meteo's response time.
+        const windPromise = fetchWind(lat, lon, p.dt).then(w => {
+            if (analysisRequestId === id) renderWind(w);
+            return w;
+        });
+
+        const [overpassData, ogimItems, place] = await Promise.all([
             queryOverpass(south, west, north, east),
             loadNearbyInfra(lon, lat, { maxResults: 20, radiusKm: 2 }),
             reverseGeocode(lat, lon),
-            fetchWind(lat, lon, p.dt),
         ]);
         if (analysisRequestId !== id) return;
 
-        renderWind(wind);
-
         const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements, lat, lon) : [];
-        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place, wind);
+        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place);
+
+        // Give wind a very short slack — if Open-Meteo answers fast we store
+        // it in D1, but a slow response never blocks shipping the prompt.
+        // The UI updates whenever the wind promise eventually resolves.
+        const wind = await Promise.race([
+            windPromise,
+            new Promise(r => setTimeout(() => r(null), 400)),
+        ]);
 
         const el2 = targetEl();
         if (!el2) return;
