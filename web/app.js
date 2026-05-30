@@ -27,7 +27,7 @@ const FIREDAMP_API = (() => {
     }
     return document.querySelector('meta[name="firedamp-api"]')?.content?.trim() || '';
 })();
-const OPENROUTER_MODEL_LABEL = 'Gemma 4';
+const OPENROUTER_MODEL_LABEL = 'Qwen3-VL';
 
 let analysisRequestId = 0;
 
@@ -1091,7 +1091,7 @@ window.overlapNext = overlapNext;
 window.overlapPrev = overlapPrev;
 
 // ---------------------------------------------------------------------------
-// AI plume analysis — Overpass + OGIM + Esri imagery → Qwen3-VL via OpenRouter
+// AI plume analysis — one annotated Esri map (OGIM/OSM pins) → Qwen3-VL via OpenRouter
 // ---------------------------------------------------------------------------
 
 const OVERPASS_ENDPOINTS = [
@@ -1101,7 +1101,7 @@ const OVERPASS_ENDPOINTS = [
 
 function buildOverpassQuery(south, west, north, east) {
     const bbox = `${south},${west},${north},${east}`;
-    return `[out:json][timeout:10];(
+    return `[out:json][timeout:25];(
         nwr["man_made"="petroleum_well"](${bbox});
         nwr["man_made"="pipeline"](${bbox});
         nwr["man_made"="storage_tank"](${bbox});
@@ -1258,64 +1258,106 @@ async function queryOverpass(south, west, north, east) {
     return null;
 }
 
-function formatOsmFeatures(features) {
-    if (!features.length) return '(none)';
-    return features.map(f => {
-        const tagPairs = Object.entries(f.tags).map(([k, v]) => `${k}=${v}`).join(', ');
-        const name = f.name || '(unnamed)';
-        const dist = f.dist != null ? `(${formatDist(f.dist)} away)` : '';
-        return `- OSM:${f.osmId}  ${dist}  — ${name} — ${tagPairs}`;
-    }).join('\n');
-}
-
-// LLM-facing OGIM list: `OGIM:<id>` matches the required attributed_id format
-// exactly, and distance is shown prominently so the model doesn't have to
-// scan past the type/operator to find it.
-function formatOgimInfra(items) {
-    if (!items.length) return '(none)';
-    return items.map(it => {
-        // Name + (type or category) + operator. Status is mostly noise unless
-        // it differs from PRODUCING/N/A — keep it short.
-        const typeOrCategory = it.type && it.type !== 'N/A' ? it.type : it.category;
-        const attrs = [it.name, typeOrCategory, it.operator, (it.status && it.status !== 'N/A') ? it.status : null]
-            .filter(Boolean).join(' · ');
-        const dist = formatDist(it.dist) || '?';
-        return `- OGIM:${it.ogimId}  (${dist} away)  — ${attrs}`;
-    }).join('\n');
-}
-
-function spatialUncertaintyNote(p) {
-    const src = p.src;
+// ── Per-source spatial-uncertainty model ──
+// One artifact, sized to the data. SRON/TROPOMI is the hard case: the ground
+// pixel is ~5.5×7 km and the plume drifts before it is imaged, so the true leak
+// sits anywhere within several km of the marker (≈2 km for a large isolated
+// emitter, 10 km+ in cluttered areas), almost always upwind — hence windBias,
+// which shifts the map frame upwind so the search area fills it.
+//   ringM    radius of the dashed uncertainty circle drawn on the map (m)
+//   viewM    half-width of the map frame (m); span ≈ 2·viewM
+//   searchKm radius to gather OGIM/OSM candidates (km)
+function plumeUncertainty(p) {
     const sat = String(p.sat || '').toUpperCase();
-    if (src === 'cm') {
-        if (/AVIRIS|GAO|AV3|AV20/.test(sat)) return 'Coordinate is precise to within a few tens of metres.';
-        if (/TANAGER/.test(sat)) return 'Coordinate is precise to within ~50 m.';
-        if (/EMIT/.test(sat))   return 'Coordinate is precise to within ~100 m.';
-        if (/ENMAP/.test(sat))  return 'Coordinate is precise to within ~50 m.';
-        return 'Coordinate is precise to within ~100 m.';
+    if (p.src === 'cm') {
+        if (/AVIRIS|GAO|AV3|AV20/.test(sat))
+            return { ringM: 50, viewM: 250, searchKm: 1, windBias: false,
+                note: 'The coordinate is precise to within a few tens of metres — the source is essentially at the ⊕.' };
+        if (/TANAGER|ENMAP/.test(sat))
+            return { ringM: 80, viewM: 350, searchKm: 1, windBias: false,
+                note: 'The coordinate is accurate to within ~50 m.' };
+        return { ringM: 130, viewM: 550, searchKm: 1.5, windBias: false,
+            note: 'The coordinate is accurate to within ~100 m.' };
     }
-    if (src === 'imeo') {
-        return 'Coordinate is analyst-vetted; uncertainty is <500 m for high-resolution sensors, several km when TROPOMI-derived.';
-    }
-    if (src === 'sron') {
-        return ('TROPOMI pixel footprint is ~5.5×7 km; the true source can sit several kilometres from the marker, '
-              + 'often upwind. Do not require infrastructure directly under the marker — look around the wider scene '
-              + 'for a gas plant, compressor station, coal mine vent, or landfill, and suggest checking upwind if relevant.');
-    }
-    return '';
+    if (p.src === 'imeo')
+        return { ringM: 600, viewM: 1600, searchKm: 2.5, windBias: false,
+            note: 'The coordinate is analyst-vetted: within ~500 m for high-resolution sensors, up to a few km when TROPOMI-derived.' };
+    if (p.src === 'sron')
+        return { ringM: 4000, viewM: 5500, searchKm: 11, windBias: true,
+            note: 'This is a TROPOMI detection. Its ground pixel is ~5.5×7 km and the plume drifts before being imaged, so the true source can lie several km from the ⊕ — roughly 2 km for a large isolated emitter, commonly 10 km or more in cluttered areas — and almost always UPWIND. Treat the ⊕ as the centre of a search area (the dashed circle), not the source itself.' };
+    return { ringM: 300, viewM: 1200, searchKm: 2, windBias: false, note: '' };
 }
 
-function sectorHintPhrase(sec) {
+// Move distM metres from (lat, lon) along a compass bearing. Used to shift the
+// SRON map frame upwind (bearing = wind's "from" direction).
+function offsetLatLon(lat, lon, distM, bearingDeg) {
+    const br = bearingDeg * Math.PI / 180;
+    return {
+        lat: lat + (distM * Math.cos(br)) / 111320,
+        lon: lon + (distM * Math.sin(br)) / (111320 * Math.cos(lat * Math.PI / 180)),
+    };
+}
+
+function fmtMetres(m) {
+    if (m == null) return '?';
+    return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+}
+
+// Pick the most descriptive single type tag for an OSM feature.
+const OSM_TYPE_KEYS = ['man_made', 'industrial', 'power', 'plant:source',
+                       'substance', 'landuse', 'amenity', 'aeroway', 'pipeline'];
+function osmShortType(tags) {
+    for (const k of OSM_TYPE_KEYS) if (tags[k]) return String(tags[k]).replace(/_/g, ' ');
+    return 'site';
+}
+
+// Merge OGIM + OSM into one numbered candidate list shared by the map pins and
+// the text KEY, so every number on the image has a matching key entry. Closest
+// to the marker first, capped, and limited to features inside the map frame.
+function buildCandidates(ogimItems, osmFeatures, centerLat, centerLon, viewM, max = 12) {
+    const cands = [];
+    for (const it of ogimItems) {
+        const typeOrCategory = it.type && it.type !== 'N/A' ? it.type : it.category;
+        const label = [it.name, typeOrCategory, it.operator]
+            .filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' · ');
+        cands.push({ id: `OGIM:${it.ogimId}`, kind: it.kind, lat: it.lat, lon: it.lon,
+            dist: it.dist != null ? it.dist * 1000 : null, label, geometry: it.geometry });
+    }
+    for (const f of osmFeatures) {
+        if (f.lat == null || f.lon == null) continue;
+        const type = osmShortType(f.tags);
+        const kind = /well/.test(type) ? 'well' : /pipeline/.test(type) ? 'pipeline' : 'facility';
+        const name = f.name && f.name !== '(unnamed)' ? f.name : null;
+        const label = [name, type, f.tags.operator].filter(Boolean).join(' · ');
+        cands.push({ id: `OSM:${f.osmId}`, kind, lat: f.lat, lon: f.lon, dist: f.dist ?? null, label, geometry: null });
+    }
+    const margin = viewM * 1.05;
+    return cands
+        .filter(c => haversineMetres(centerLat, centerLon, c.lat, c.lon) <= margin)
+        .sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))
+        .slice(0, max)
+        .map((c, i) => ({ ...c, n: i + 1 }));
+}
+
+function formatCandidateKey(cands) {
+    if (!cands.length) return 'No catalogued infrastructure in the frame.';
+    return cands.map(c => `${c.n}. ${c.id} — ${c.label || c.kind} · ${fmtMetres(c.dist)}`).join('\n');
+}
+
+function sectorHint(sec) {
     switch (sec) {
-        case 'og':    return 'The catalogue tags this plume as oil & gas (a well pad, tank battery, compressor, gas plant, or refinery is most likely).';
-        case 'coal':  return 'The catalogue tags this plume as coal (a coal mine, vent shaft, or coal processing facility is most likely).';
-        case 'waste': return 'The catalogue tags this plume as waste (a landfill, recycling/transfer station, or wastewater plant is most likely).';
-        case 'other': return "The catalogue tags this plume as 'other' — sector is unclear.";
-        default:      return 'The catalogue does not classify this plume\'s sector.';
+        case 'og':    return 'Catalogue sector: oil & gas.';
+        case 'coal':  return 'Catalogue sector: coal.';
+        case 'waste': return 'Catalogue sector: waste.';
+        case 'other': return 'Catalogue sector: other/unclear.';
+        default:      return '';
     }
 }
 
-function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
+// One clean artifact: an annotated satellite map plus a text KEY. The model is
+// trusted to read the imagery and judge for itself, rather than being walked
+// through a rulebook.
+function buildPlumePrompt(p, candidates, unc, place, wind, spanKm) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
     const rateThr = (Number(p.rate) / 1000).toFixed(2);
@@ -1323,46 +1365,30 @@ function buildPlumePrompt(p, osmFeatures, ogimItems, place, wind) {
     const sat = p.sat || 'unknown sensor';
     const src = SRC_LABELS[p.src] || p.src;
     const placeStr = place?.display || 'an unknown location';
-
-    const ogimList = formatOgimInfra(ogimItems);
-    const osmList = formatOsmFeatures(osmFeatures);
-    const hasOgim = ogimList && ogimList !== '(none)';
-    const hasOsm = osmList && osmList !== '(none)';
-    const nearbyBlocks = [];
-    if (hasOgim) nearbyBlocks.push(`OGIM oil & gas infrastructure within 2 km (coverage is patchy — many real wells/tanks/pipelines are missing):\n${ogimList}`);
-    if (hasOsm)  nearbyBlocks.push(`OpenStreetMap features within 2 km:\n${osmList}`);
-    const nearby = nearbyBlocks.length ? nearbyBlocks.join('\n\n') : 'No OGIM or OSM entries within 2 km.';
+    const sector = sectorHint(p.sec);
 
     const windLine = wind
-        ? `Daily-mean surface wind on the detection date: ${wind.speed.toFixed(1)} m/s from the ${compass(wind.fromDeg)} (${Math.round(wind.fromDeg)}°), drifting toward the ${compass(wind.toDeg)}. The true source should sit on the upwind side of the plume ring.`
+        ? `Daily-mean surface wind was ${wind.speed.toFixed(1)} m/s from the ${compass(wind.fromDeg)} (the arrow shows the way the plume drifts), so the source should lie upwind, toward the ${compass(wind.fromDeg)}.`
         : '';
+    const pipeNote = candidates.some(c => c.kind === 'pipeline') ? ' Yellow lines are pipelines.' : '';
 
-    return `Identify the most likely source of this methane plume.
+    return `You are a methane source-attribution analyst. You are shown one annotated satellite map and the full record that OpenStreetMap and the OGIM oil-&-gas inventory hold for this spot (the KEY). Use your own judgement.
 
-A ${src} satellite detected a ${rateThr} t/hr methane plume at ${lat}°, ${lon}° in ${placeStr} on ${date} (${sat}). ${sectorHintPhrase(p.sec)}
-${spatialUncertaintyNote(p)}
-${windLine}
+A ${src} satellite (${sat}) measured a ${rateThr} t/hr methane plume near ${lat}°, ${lon}° in ${placeStr} on ${date}.${sector ? ' ' + sector : ''}
 
-IMAGE
-An Esri satellite snapshot ~1 km wide, centred on the plume coordinate. A ring with crosshair marks the coordinate. Overlay symbols on the image: × = OGIM well, ◇ = OGIM facility (named alongside), thin line = OGIM pipeline.
+THE MAP
+A satellite image about ${spanKm} km across. The pink ⊕ marks the reported detection coordinate. ${unc.note}${windLine ? ' ' + windLine : ''} Numbered pins are nearby infrastructure, listed in the KEY.${pipeNote}
 
-NEARBY DATA (closest entries first):
-${nearby}
+KEY (nearest the ⊕ first — copy an id verbatim into attributed_id)
+${formatCandidateKey(candidates)}
 
-HOW TO DECIDE
-- The image is the primary evidence. Identify what is physically at the centre ring.
-- Well pads are sprawling sites, not points. When multiple OGIM wells share one cleared pad and the plume ring sits inside that same cleared footprint (the bulldozed earth, access track, tanks and × marks all forming one site), attribute confidently to the well pad even if the nearest listed well is 100–400 m away — these are the same source.
-- Only attribute to a specific OGIM/OSM well id when its listed distance is ≲50 m AND the matching × symbol is visible at the ring. Otherwise label descriptively ("Unlabelled well pad", operator name only if obvious from the list) and leave attributed_id null.
-- For a named facility (gas plant, tank battery, compressor station, refinery, landfill), attribute to it whenever the plume ring sits inside the same fenced or cleared site as the facility, because OGIM stores one coordinate for what is often a sprawling compound.
-- Pipelines and gathering lines (the thin lines on the image, and any OGIM "pipeline" / "gathering" entries) are buried or low-pressure conduits that vent far less methane than wellheads, tanks, separators, dehydrators and compressors. Treat them as a last-resort source. If a well pad or facility is plausible in the same scene, prefer it over the pipeline — only attribute to a pipeline when there is a visible above-ground pipeline feature at the ring (riser, valve, pig launcher, blowdown stack, leaking trench) AND no well pad or facility is plausible nearby.
-- When wind data is given, prefer candidate sources that sit upwind of the ring. Wind doesn't override the image, but it breaks ties between candidates on opposite sides of the ring and adds confidence when a well pad or facility is clearly upwind.
-- If the ring sits over empty land (vegetation, desert, water, farmland) with no plausible source, set source_kind to "none" and source_label to "No obvious source within 2 km".
+Identify the single most likely source. Read the imagery first; the pins only supply names and ids. Strong methane emitters are wellheads, tanks, separators, dehydrators, compressors and gas/processing plants; buried pipelines and gathering lines vent far less, so fall back to a pipeline only when nothing else is plausible.${wind ? ' Favour candidates upwind of the ⊕.' : ''} If the frame shows no plausible source, say so plainly.
 
-OUTPUT GUIDANCE
-- source_label is a short human-readable name for a journalist. Good shapes: "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "Coal mine vent shaft", "No obvious source within 2 km". Never write a field name like "Sector Waste" or an ID like "OGIM:1234".
-- attributed_id is either "OGIM:<id>" or "OSM:<type>/<id>" copied verbatim from the lists above, or null. Never invent IDs. Never use a different separator than the colon.
-- paragraph is 1–3 plain sentences naming the source and the visible evidence. Skip rejected hypotheses. Skip the overlay markers/colours. Skip boilerplate closers. No web-derived claims (you have no internet).
-`;
+Reply with ONLY this JSON object: {"source_label":…, "source_kind":…, "attributed_id":…, "paragraph":…}
+- source_label: ≤8 words, plain English for a journalist (e.g. "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "No obvious source nearby"). Never an id or a field name.
+- source_kind: one of well, facility, pipeline, mine, landfill, other, none.
+- attributed_id: an OGIM:/OSM: id copied verbatim from the KEY, or null when the visible source isn't listed. Never invent ids.
+- paragraph: 1–3 plain sentences naming the source and the visible evidence. No rejected hypotheses, no mention of the pins/overlay, no web claims.`;
 }
 
 // ── Esri imagery snapshot (2x2 tile grid) with plume + OGIM overlay ──
@@ -1374,23 +1400,40 @@ function lonLatToTile(lon, lat, z) {
     return { x, y };
 }
 
-async function captureEsriSnapshot(lon, lat, zoom = 16, ogimItems = []) {
-    lon = ((lon + 180) % 360 + 360) % 360 - 180;
-    const t = lonLatToTile(lon, lat, zoom);
-    const baseX = Math.floor(t.x - 0.5);
-    const baseY = Math.floor(t.y - 0.5);
+// Pin colours by kind. Each candidate is drawn as a numbered disc keyed to the
+// text KEY in the prompt.
+const PIN_FILL = { well: '#ffffff', facility: '#ffc861', pipeline: '#ffe664', mine: '#c9a0ff', landfill: '#9be39b', other: '#7ecbff' };
+
+// One annotated satellite map: Esri imagery framed to the plume's spatial
+// uncertainty, with a dashed uncertainty ring, a wind arrow, the detection ⊕,
+// and numbered pins for the supplied candidates. Returns a JPEG data URL.
+async function captureAnnotatedMap({ centerLon, centerLat, plumeLon, plumeLat, viewM, ringM, candidates = [], wind = null }) {
+    centerLon = ((centerLon + 180) % 360 + 360) % 360 - 180;
+
+    // Choose zoom + grid so the frame spans ~2·viewM, keeping detail by using a
+    // 3×3 tile mosaic for the wider (SRON) frames.
+    const EARTH = 40075016.686;
+    const grid = viewM > 800 ? 3 : 2;
+    const span = 2 * viewM * 1.08;
+    let zoom = Math.round(Math.log2(EARTH * Math.cos(centerLat * Math.PI / 180) * grid / span));
+    zoom = Math.max(10, Math.min(18, zoom));
     const maxTile = 2 ** zoom;
+    const mPerPx = EARTH * Math.cos(centerLat * Math.PI / 180) / (256 * maxTile);
 
     const TILE = 256;
-    const W = TILE * 2, H = TILE * 2;
+    const W = TILE * grid, H = TILE * grid;
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
 
+    const t = lonLatToTile(centerLon, centerLat, zoom);
+    const baseX = Math.round(t.x - grid / 2);
+    const baseY = Math.round(t.y - grid / 2);
+
     const loads = [];
-    for (let dx = 0; dx < 2; dx++) {
-        for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < grid; dx++) {
+        for (let dy = 0; dy < grid; dy++) {
             const x = ((baseX + dx) % maxTile + maxTile) % maxTile;
             const y = Math.max(0, Math.min(maxTile - 1, baseY + dy));
             const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
@@ -1405,101 +1448,98 @@ async function captureEsriSnapshot(lon, lat, zoom = 16, ogimItems = []) {
     }
     await Promise.all(loads);
 
-    // Project (lon, lat) to canvas pixel — used for plume + OGIM markers.
     const project = (plon, plat) => {
         const pt = lonLatToTile(plon, plat, zoom);
         return { x: (pt.x - baseX) * TILE, y: (pt.y - baseY) * TILE };
     };
-
-    // OGIM markers (drawn first so plume ring sits on top).
-    ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
 
-    // Draw pipelines first so points sit on top of them
-    for (const it of ogimItems) {
-        if (it.kind !== 'pipeline' || !it.geometry) continue;
-        const segs = it.geometry.type === 'LineString'
-            ? [it.geometry.coordinates]
-            : it.geometry.coordinates;
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-        ctx.lineWidth = 4;
-        for (const seg of segs) {
-            ctx.beginPath();
-            seg.forEach(([plon, plat], i) => {
-                const p = project(plon, plat);
-                if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-            });
-            ctx.stroke();
-        }
-        ctx.strokeStyle = 'rgba(255, 230, 100, 0.95)';
-        ctx.lineWidth = 1.5;
-        for (const seg of segs) {
-            ctx.beginPath();
-            seg.forEach(([plon, plat], i) => {
-                const p = project(plon, plat);
-                if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
-            });
-            ctx.stroke();
+    // Pipelines first, so pins land on top.
+    for (const c of candidates) {
+        if (c.kind !== 'pipeline' || !c.geometry) continue;
+        const segs = c.geometry.type === 'LineString' ? [c.geometry.coordinates] : c.geometry.coordinates;
+        for (const pass of [{ s: 'rgba(0,0,0,0.55)', w: 5 }, { s: 'rgba(255,230,100,0.95)', w: 2 }]) {
+            ctx.strokeStyle = pass.s; ctx.lineWidth = pass.w;
+            for (const seg of segs) {
+                ctx.beginPath();
+                seg.forEach(([plon, plat], i) => {
+                    const p = project(plon, plat);
+                    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+                });
+                ctx.stroke();
+            }
         }
     }
 
-    for (const it of ogimItems) {
-        if (it.kind === 'pipeline') continue;
-        const { x, y } = project(it.lon, it.lat);
+    const plume = project(plumeLon, plumeLat);
+
+    // Dashed uncertainty ring around the detection coordinate.
+    const ringPx = ringM / mPerPx;
+    if (ringPx > 8) {
+        ctx.save();
+        ctx.setLineDash([8, 7]);
+        ctx.strokeStyle = 'rgba(255,45,209,0.75)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(plume.x, plume.y, ringPx, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Wind arrow from the detection coordinate, pointing the way the plume drifts.
+    if (wind && wind.toDeg != null) {
+        const len = Math.min(W, H) * 0.16;
+        const a = wind.toDeg * Math.PI / 180; // bearing → screen vector (0°=up, clockwise)
+        const dx = Math.sin(a), dy = -Math.cos(a);
+        const ex = plume.x + dx * len, ey = plume.y + dy * len;
+        ctx.strokeStyle = 'rgba(120,235,255,0.95)';
+        ctx.fillStyle = 'rgba(120,235,255,0.95)';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(plume.x, plume.y); ctx.lineTo(ex, ey); ctx.stroke();
+        const head = 9, ha = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - head * Math.sin(a - ha), ey + head * Math.cos(a - ha));
+        ctx.lineTo(ex - head * Math.sin(a + ha), ey + head * Math.cos(a + ha));
+        ctx.closePath(); ctx.fill();
+        ctx.font = 'bold 11px system-ui, sans-serif';
+        ctx.fillText('wind', ex + dx * 8, ey + dy * 8);
+    }
+
+    // Numbered candidate pins.
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const c of candidates) {
+        const { x, y } = project(c.lon, c.lat);
         if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue;
-        if (it.kind === 'well') {
-            // White × with halo
-            ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6);
-            ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6);
-            ctx.stroke();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        } else {
-            // Amber diamond for facilities
-            ctx.beginPath();
-            ctx.moveTo(x, y - 8);
-            ctx.lineTo(x + 8, y);
-            ctx.lineTo(x, y + 8);
-            ctx.lineTo(x - 8, y);
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(255, 200, 100, 0.85)';
-            ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-            ctx.lineWidth = 1.5;
-            ctx.fill();
-            ctx.stroke();
-        }
-        // Label (facility name or operator) when present
-        const label = it.name || it.operator;
-        if (label) {
-            ctx.font = '11px system-ui, sans-serif';
-            ctx.fillStyle = '#000';
-            ctx.fillText(label, x + 11, y + 4);
-            ctx.fillStyle = '#fff';
-            ctx.fillText(label, x + 10, y + 3);
-        }
+        ctx.beginPath();
+        ctx.arc(x, y, 11, 0, Math.PI * 2);
+        ctx.fillStyle = PIN_FILL[c.kind] || PIN_FILL.other;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.stroke();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 12px system-ui, sans-serif';
+        ctx.fillText(String(c.n), x, y + 0.5);
     }
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'alphabetic';
 
-    // Plume ring at centre — magenta ring with crosshair.
-    const c = project(lon, lat);
+    // Detection coordinate — magenta ⊕ on top of everything.
     ctx.strokeStyle = '#ff2dd1';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(c.x, c.y, 22, 0, Math.PI * 2);
+    ctx.arc(plume.x, plume.y, 13, 0, Math.PI * 2);
     ctx.stroke();
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(c.x - 30, c.y); ctx.lineTo(c.x - 12, c.y);
-    ctx.moveTo(c.x + 12, c.y); ctx.lineTo(c.x + 30, c.y);
-    ctx.moveTo(c.x, c.y - 30); ctx.lineTo(c.x, c.y - 12);
-    ctx.moveTo(c.x, c.y + 12); ctx.lineTo(c.x, c.y + 30);
+    ctx.moveTo(plume.x - 22, plume.y); ctx.lineTo(plume.x - 7, plume.y);
+    ctx.moveTo(plume.x + 7, plume.y); ctx.lineTo(plume.x + 22, plume.y);
+    ctx.moveTo(plume.x, plume.y - 22); ctx.lineTo(plume.x, plume.y - 7);
+    ctx.moveTo(plume.x, plume.y + 7); ctx.lineTo(plume.x, plume.y + 22);
     ctx.stroke();
-    ctx.fillStyle = '#ff2dd1';
-    ctx.font = 'bold 12px system-ui, sans-serif';
-    ctx.fillText('plume', c.x + 26, c.y - 18);
 
     return canvas.toDataURL('image/jpeg', 0.9);
 }
@@ -1565,18 +1605,19 @@ function flyToOgim(ogimId) {
 }
 window.flyToOgim = flyToOgim;
 
-async function streamPlumeLLM(container, prompt, plume, lon, lat, ogimItems, { force = false, place = null, wind = null } = {}) {
+async function streamPlumeLLM(container, prompt, plume, mapOpts, { force = false, place = null, wind = null } = {}) {
     if (!FIREDAMP_API) {
         container.innerHTML = '<span class="enrich-empty">Analysis API not configured. Set <code>meta[name=&quot;firedamp-api&quot;]</code> in index.html.</span>';
         return;
     }
+    const lat = mapOpts.plumeLat, lon = mapOpts.plumeLon;
 
     container.innerHTML = `<div class="enrich-status">Capturing imagery…</div>`;
     const statusEl = container.querySelector('.enrich-status');
 
     let imageDataUrl = null;
     try {
-        imageDataUrl = await captureEsriSnapshot(lon, lat, 16, ogimItems);
+        imageDataUrl = await captureAnnotatedMap(mapOpts);
     } catch (err) {
         console.warn('Esri snapshot failed, proceeding text-only:', err);
     }
@@ -1698,15 +1739,17 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
 
         el.innerHTML = '<div class="enrich-loading">Loading nearby infrastructure and place…</div>';
 
-        // Bounding box ~2 km around plume for Overpass
-        const dLat = 2 / 111;
-        const dLon = 2 / (111 * Math.cos(lat * Math.PI / 180));
+        // Search radius scales with the source's spatial uncertainty (SRON spans
+        // ~11 km). The Overpass box is capped to keep the query from timing out
+        // in dense basins; OGIM tiles are local and cheap, so they get the full
+        // radius.
+        const unc = plumeUncertainty(p);
+        const obKm = Math.min(unc.searchKm, 8);
+        const dLat = obKm / 111;
+        const dLon = obKm / (111 * Math.cos(lat * Math.PI / 180));
         const south = lat - dLat, north = lat + dLat;
         const west = lon - dLon, east = lon + dLon;
 
-        // Wind is decorative metadata, not load-bearing for the prompt — fire
-        // it in parallel and let it render whenever it lands instead of
-        // gating the AI call on Open-Meteo's response time.
         const windPromise = fetchWind(lat, lon, p.dt).then(w => {
             if (analysisRequestId === id) renderWind(w);
             return w;
@@ -1714,27 +1757,40 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
 
         const [overpassData, ogimItems, place] = await Promise.all([
             queryOverpass(south, west, north, east),
-            loadNearbyInfra(lon, lat, { maxResults: 20, radiusKm: 2 }),
+            loadNearbyInfra(lon, lat, { maxResults: 40, radiusKm: unc.searchKm }),
             reverseGeocode(lat, lon),
         ]);
         if (analysisRequestId !== id) return;
 
         const osmFeatures = overpassData?.elements ? summariseOsmElements(overpassData.elements, lat, lon) : [];
 
-        // Give wind a very short slack — if Open-Meteo answers fast it goes
-        // into the prompt (upwind/downwind reasoning helps source attribution)
-        // and we store it in D1. A slow response never blocks the AI call.
-        // The UI still updates whenever the wind promise eventually resolves.
+        // Wind feeds upwind reasoning and, for SRON, biases the map frame, so it
+        // is load-bearing here. Open-Meteo is usually already resolved by the
+        // time Overpass returns; the slack is a backstop (a touch longer when
+        // the frame depends on it). A slow response never permanently blocks.
         const wind = await Promise.race([
             windPromise,
-            new Promise(r => setTimeout(() => r(null), 400)),
+            new Promise(r => setTimeout(() => r(null), unc.windBias ? 2500 : 400)),
         ]);
 
-        const prompt = buildPlumePrompt(p, osmFeatures, ogimItems, place, wind);
+        // One artifact: frame the map to the uncertainty, shifting it upwind for
+        // SRON so the likely-source region fills it. Candidates are numbered for
+        // both the pins and the text KEY.
+        let centerLat = lat, centerLon = lon;
+        if (unc.windBias && wind) {
+            const c = offsetLatLon(lat, lon, unc.viewM * 0.55, wind.fromDeg);
+            centerLat = c.lat; centerLon = c.lon;
+        }
+        const candidates = buildCandidates(ogimItems, osmFeatures, centerLat, centerLon, unc.viewM);
+        const spanKm = unc.viewM >= 1000 ? Math.round(unc.viewM * 2 / 1000) : (unc.viewM * 2 / 1000).toFixed(1);
+        const prompt = buildPlumePrompt(p, candidates, unc, place, wind, spanKm);
 
         const el2 = targetEl();
         if (!el2) return;
-        await streamPlumeLLM(el2, prompt, p, lon, lat, ogimItems, { force, place, wind });
+        await streamPlumeLLM(el2, prompt, p, {
+            centerLon, centerLat, plumeLon: lon, plumeLat: lat,
+            viewM: unc.viewM, ringM: unc.ringM, candidates, wind,
+        }, { force, place, wind });
     })();
 }
 

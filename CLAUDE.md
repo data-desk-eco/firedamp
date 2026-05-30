@@ -37,20 +37,23 @@ Requires `ogr2ogr`, `tippecanoe`, `tile-join` for OGIM. IMEO scrape can be block
 
 ## AI plume analysis
 
-Detail panel runs through these in parallel:
-- OGIM facilities / wells / pipeline segments within ~2 km (local tile query).
-- OSM features within ~2 km via Overpass.
+Detail panel gathers these in parallel (search radius scales with the source's spatial uncertainty — see below):
+- OGIM facilities / wells / pipeline segments (local tile query).
+- OSM features via Overpass.
 - Reverse-geocoded place name (Nominatim).
 - Daily-mean surface wind for the plume coord+date (Open-Meteo archive).
-- Esri imagery snapshot, with the plume location and OGIM features painted onto it.
 
-These get assembled into a prompt and sent to the Worker, which forwards to OpenRouter with strict JSON schema output (`source_label`, `source_kind`, `attributed_id`, `paragraph`) and stores the result in D1.
+The design philosophy is **one clean artifact + the model's own judgement**, not a rulebook. The pipeline produces a single annotated satellite map (`captureAnnotatedMap` in `web/app.js`) — Esri imagery framed to the uncertainty, with a dashed uncertainty ring, a wind arrow, the magenta ⊕ detection marker, and **numbered pins** for the nearest ~12 merged OGIM+OSM features. The prompt (`buildPlumePrompt`) describes the map briefly, lists the pins as a text **KEY** (number → name/type/`OGIM:`/`OSM:` id), and asks the model to read the imagery and attribute the source. Sent to the Worker → OpenRouter with `source_label`, `source_kind`, `attributed_id`, `paragraph` output, stored in D1.
 
 **Peek shortcut**: re-opening an already-analysed plume hits `GET /api/analysis/<plumeId>`, restores from D1, and skips Overpass / Nominatim / Open-Meteo / image / OpenRouter. The regenerate `↻` button forces a full re-run (`force: true`).
 
 **Key handling**: OpenRouter key is a Wrangler secret on the Worker — never in the browser. Worker URL is configured via `<meta name="firedamp-api">` in `web/index.html`. Local Worker dev: `make worker-dev` then visit `?api=local`.
 
-**Spatial uncertainty in prompt**: source-and-satellite-specific. AVIRIS-NG/GAO: metres-precision. CM satellite hyperspectral: ~30-100 m. IMEO: <500 m to several km. SRON/TROPOMI: ~5.5×7 km pixel; the marker is often km from the leak; check upwind.
+**Spatial uncertainty** (`plumeUncertainty` in `web/app.js`) drives the map frame size, the search radius, and the dashed ring, per source/sensor:
+- CM AVIRIS-NG/GAO/AV3/AV20: tens of m → tight ~0.5 km frame.
+- CM Tanager/EnMAP: ~50 m. CM satellite (EMIT etc.): ~100 m → ~1 km frame.
+- IMEO: <500 m to a few km → ~3 km frame.
+- SRON/TROPOMI: pixel ~5.5×7 km; source ≈2 km (isolated) to 10 km+ (cluttered), almost always **upwind**. Frame is ~11 km, **shifted upwind** by the daily-mean wind so the search area fills it; ~11 km search radius. The ⊕ is the centre of a search area, not the source.
 
 ## Worker (`worker/`)
 
@@ -62,6 +65,8 @@ make worker-deploy   # wrangler deploy
 make worker-schema   # apply schema.sql to remote D1
 make worker-tail     # tail Worker logs
 ```
+
+**Model config** (`wrangler.toml` vars): `MODEL` is the OpenRouter model (currently `qwen/qwen3-vl-235b-a22b-instruct` — a cheap, strong vision model; the task always sends an image so the model must be multimodal). `MODEL_FALLBACK` (`qwen/qwen3-vl-32b-instruct`) is used after the primary hits a transient 429/502/503. Results are always cached/stored under `MODEL` regardless of which answered, so peek stays coherent. Note: OpenRouter `:free` routes (e.g. Google AI Studio) are too rate-limited for image requests — avoid them as the primary. `response_format` JSON schema is sent without `require_parameters` (providers that ignore it still work because the prompt asks for the JSON and the client parses defensively).
 
 ## Frontend
 

@@ -10,7 +10,8 @@ database_name = "firedamp-analyses"
 database_id = "e6278e15-1bc8-4cb6-acd2-8a29d555991e"
 
 [vars]
-MODEL = "google/gemma-4-26b-a4b-it"
+MODEL = "qwen/qwen3-vl-235b-a22b-instruct"
+MODEL_FALLBACK = "qwen/qwen3-vl-32b-instruct"
 ALLOWED_ORIGINS = "https://research.datadesk.eco,https://data-desk-eco.github.io,http://localhost:8000,http://127.0.0.1:8000"
 
 # Set the OpenRouter key as a secret (NOT in this file):

@@ -93,7 +93,7 @@ async function analyse(req, env, ctx, origin) {
     const userContent = [{ type: 'text', text: prompt }];
     if (image) userContent.push({ type: 'image_url', image_url: { url: image } });
 
-    const orResp = await fetch(OPENROUTER_URL, {
+    const orFetch = (m) => fetch(OPENROUTER_URL, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${env.OPENROUTER_KEY}`,
@@ -102,16 +102,19 @@ async function analyse(req, env, ctx, origin) {
             'X-Title': 'firedamp',
         },
         body: JSON.stringify({
-            model,
+            model: m,
             stream: true,
             temperature: 0.3,
             max_tokens: 700,
             messages: [{ role: 'user', content: userContent }],
-            // Strict JSON schema output. OpenRouter routes only to providers
-            // that honour structured outputs because of require_parameters.
-            // The per-field descriptions are picked up by Gemini/GPT/Claude
-            // and act as soft instructions — they catch a lot of formatting
-            // drift that the prompt body alone misses.
+            // JSON schema output where the provider supports it. We do NOT set
+            // require_parameters, because free models (e.g. gemma-4-31b-it:free)
+            // route to providers that don't honour structured outputs, and
+            // requiring it would leave no eligible provider. The prompt itself
+            // asks for the JSON object, and the client parses defensively
+            // (parseAnalysis / safeJsonParse), so providers that ignore
+            // response_format still yield usable output. The per-field
+            // descriptions act as soft instructions where the schema is applied.
             response_format: {
                 type: 'json_schema',
                 json_schema: {
@@ -156,9 +159,33 @@ async function analyse(req, env, ctx, origin) {
                     },
                 },
             },
-            provider: { require_parameters: true },
         }),
     });
+
+    // Free routes (e.g. gemma-4-31b-it:free via Google AI Studio) are heavily
+    // rate-limited upstream, especially for image requests. Retry transient
+    // 429/502/503 with backoff on the configured (free) model, then fall back to
+    // the paid sibling — same model, a fraction of a cent per call — so the
+    // feature never breaks when the free pool is exhausted. All retries happen
+    // here, before the body is consumed; once streaming starts we are committed.
+    // Retry transient 429/502/503 with backoff, then fail over to MODEL_FALLBACK
+    // (a cheaper sibling) if configured, so a single provider hiccup never breaks
+    // the feature. The result is always cached/stored under env.MODEL so peek
+    // stays coherent regardless of which model actually answered.
+    const fallback = env.MODEL_FALLBACK || null;
+    const attempts = fallback
+        ? [[model, 0], [model, 1000], [fallback, 0], [fallback, 1500]]
+        : [[model, 0], [model, 1000], [model, 2500], [model, 4000]];
+    let orResp;
+    for (let i = 0; i < attempts.length; i++) {
+        const [m, delay] = attempts[i];
+        if (delay) await new Promise(r => setTimeout(r, delay));
+        orResp = await orFetch(m);
+        if (orResp.ok || ![429, 502, 503].includes(orResp.status)) break;
+        // Free the connection before retrying — but keep the last failed body so
+        // its error can be surfaced.
+        if (i < attempts.length - 1) { try { await orResp.body?.cancel(); } catch { /* ignore */ } }
+    }
 
     if (!orResp.ok || !orResp.body) {
         const errText = await orResp.text().catch(() => '');
