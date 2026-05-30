@@ -1271,12 +1271,12 @@ function plumeUncertainty(p) {
     const sat = String(p.sat || '').toUpperCase();
     if (p.src === 'cm') {
         if (/AVIRIS|GAO|AV3|AV20/.test(sat))
-            return { ringM: 50, viewM: 250, searchKm: 1, windBias: false,
+            return { ringM: 30, viewM: 80, searchKm: 1, windBias: false,
                 note: 'The coordinate is precise to within a few tens of metres — the source is essentially at the ⊕.' };
         if (/TANAGER|ENMAP/.test(sat))
-            return { ringM: 80, viewM: 350, searchKm: 1, windBias: false,
+            return { ringM: 45, viewM: 130, searchKm: 1, windBias: false,
                 note: 'The coordinate is accurate to within ~50 m.' };
-        return { ringM: 130, viewM: 550, searchKm: 1.5, windBias: false,
+        return { ringM: 100, viewM: 320, searchKm: 1.5, windBias: false,
             note: 'The coordinate is accurate to within ~100 m.' };
     }
     if (p.src === 'imeo')
@@ -1416,7 +1416,7 @@ async function captureAnnotatedMap({ centerLon, centerLat, plumeLon, plumeLat, v
     const grid = viewM > 800 ? 3 : 2;
     const span = 2 * viewM * 1.08;
     let zoom = Math.round(Math.log2(EARTH * Math.cos(centerLat * Math.PI / 180) * grid / span));
-    zoom = Math.max(10, Math.min(18, zoom));
+    zoom = Math.max(10, Math.min(19, zoom));
     const maxTile = 2 ** zoom;
     const mPerPx = EARTH * Math.cos(centerLat * Math.PI / 180) / (256 * maxTile);
 
@@ -1441,7 +1441,9 @@ async function captureAnnotatedMap({ centerLon, centerLat, plumeLon, plumeLat, v
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 img.onload = () => { ctx.drawImage(img, dx * TILE, dy * TILE); resolve(); };
-                img.onerror = () => reject(new Error(`tile ${zoom}/${x}/${y} failed`));
+                // A missing tile (common at the highest zooms) shouldn't sink the
+                // whole capture — skip it and keep the rest of the mosaic.
+                img.onerror = () => resolve();
                 img.src = url;
             }));
         }

@@ -51,6 +51,8 @@ class RangeHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges")
+        # Dev server: never cache, so edits to JS/CSS show up on reload.
+        self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
 
