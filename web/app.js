@@ -1272,16 +1272,16 @@ function plumeUncertainty(p) {
     if (p.src === 'cm') {
         if (/AVIRIS|GAO|AV3|AV20/.test(sat))
             return { ringM: 30, viewM: 80, searchKm: 1, windBias: false,
-                note: 'The coordinate is precise to within a few tens of metres — the source is essentially at the ⊕.' };
+                note: 'Airborne hyperspectral sensor with metre-scale pixels: the coordinate is precise to within a few tens of metres — the source is essentially at the ⊕.' };
         if (/TANAGER|ENMAP/.test(sat))
             return { ringM: 45, viewM: 130, searchKm: 1, windBias: false,
-                note: 'The coordinate is accurate to within ~50 m.' };
+                note: 'Satellite sensor with ~30 m pixels: the coordinate is accurate to within ~50 m.' };
         return { ringM: 100, viewM: 320, searchKm: 1.5, windBias: false,
-            note: 'The coordinate is accurate to within ~100 m.' };
+            note: 'Satellite sensor with ~60 m pixels: the coordinate is accurate to within ~100 m.' };
     }
     if (p.src === 'imeo')
         return { ringM: 600, viewM: 1600, searchKm: 2.5, windBias: false,
-            note: 'The coordinate is analyst-vetted: within ~500 m for high-resolution sensors, up to a few km when TROPOMI-derived.' };
+            note: 'Detecting sensors range from ~25 m pixels to TROPOMI’s ~5.5×7 km. The coordinate is analyst-vetted: within ~500 m for high-resolution sensors, up to a few km when TROPOMI-derived.' };
     if (p.src === 'sron')
         return { ringM: 4000, viewM: 5500, searchKm: 11, windBias: true,
             note: 'This is a TROPOMI detection. Its ground pixel is ~5.5×7 km and the plume drifts before being imaged, so the true source can lie several km from the ⊕ — roughly 2 km for a large isolated emitter, commonly 10 km or more in cluttered areas — and almost always UPWIND. Treat the ⊕ as the centre of a search area (the dashed circle), not the source itself.' };
@@ -1382,7 +1382,7 @@ A satellite image about ${spanKm} km across. The pink ⊕ marks the reported det
 KEY (nearest the ⊕ first — copy an id verbatim into attributed_id)
 ${formatCandidateKey(candidates)}
 
-Identify the single most likely source. Read the imagery first; the pins only supply names and ids. Strong methane emitters are wellheads, tanks, separators, dehydrators, compressors and gas/processing plants; buried pipelines and gathering lines vent far less, so fall back to a pipeline only when nothing else is plausible.${wind ? ' Favour candidates upwind of the ⊕.' : ''} If the frame shows no plausible source, say so plainly.
+Identify the single most likely source. Read the imagery first; the pins only supply names and ids. Rank candidates by typical likelihood: gas/processing plants, compressor stations and flares > wellheads, tanks, separators, dehydrators > buried pipelines and gathering lines, which vent far less — fall back to a pipeline only when nothing else is plausible. A coal mine or landfill in frame usually outranks everything.${wind ? ' Favour candidates upwind of the ⊕.' : ''} If the frame shows no plausible source, say so plainly.
 
 Reply with ONLY this JSON object: {"source_label":…, "source_kind":…, "attributed_id":…, "paragraph":…}
 - source_label: ≤8 words, plain English for a journalist (e.g. "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "No obvious source nearby"). Never an id or a field name.
