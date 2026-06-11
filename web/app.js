@@ -1368,7 +1368,7 @@ function buildPlumePrompt(p, candidates, unc, place, wind, spanKm) {
     const sector = sectorHint(p.sec);
 
     const windLine = wind
-        ? `Daily-mean surface wind was ${wind.speed.toFixed(1)} m/s from the ${compass(wind.fromDeg)} (the arrow shows the way the plume drifts), so the source should lie upwind, toward the ${compass(wind.fromDeg)}.`
+        ? `Daily-mean surface wind was ${wind.speed.toFixed(1)} m/s. The cyan arrow points DOWNWIND — the way the plume drifted, toward the ${compass(wind.toDeg)}. The source lies the opposite way: look ${compass(wind.fromDeg)} of the ⊕, against the arrow, where the map says "upwind".`
         : '';
     const pipeNote = candidates.some(c => c.kind === 'pipeline') ? ' Yellow lines are pipelines.' : '';
 
@@ -1382,7 +1382,7 @@ A satellite image about ${spanKm} km across. The pink ⊕ marks the reported det
 KEY (nearest the ⊕ first — copy an id verbatim into attributed_id)
 ${formatCandidateKey(candidates)}
 
-Identify the single most likely source. Read the imagery first; the pins only supply names and ids. Rank candidates by typical likelihood: gas/processing plants, compressor stations and flares > wellheads, tanks, separators, dehydrators > buried pipelines and gathering lines, which vent far less — fall back to a pipeline only when nothing else is plausible. A coal mine or landfill in frame usually outranks everything.${wind ? ' Favour candidates upwind of the ⊕.' : ''} If the frame shows no plausible source, say so plainly.
+Identify the single most likely source. Read the imagery first; the pins only supply names and ids. Rank candidates by typical likelihood: gas/processing plants, compressor stations and flares > wellheads, tanks, separators, dehydrators > buried pipelines and gathering lines, which vent far less — fall back to a pipeline only when nothing else is plausible. A coal mine or landfill in frame usually outranks everything.${wind ? ` Favour candidates to the ${compass(wind.fromDeg)} (upwind) of the ⊕.` : ''} If the frame shows no plausible source, say so plainly.
 
 Reply with ONLY this JSON object: {"source_label":…, "source_kind":…, "attributed_id":…, "paragraph":…}
 - source_label: ≤8 words, plain English for a journalist (e.g. "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "No obvious source nearby"). Never an id or a field name.
@@ -1506,7 +1506,9 @@ async function captureAnnotatedMap({ centerLon, centerLat, plumeLon, plumeLat, v
         ctx.lineTo(ex - head * Math.sin(a + ha), ey + head * Math.cos(a + ha));
         ctx.closePath(); ctx.fill();
         ctx.font = 'bold 11px system-ui, sans-serif';
-        ctx.fillText('wind', ex + dx * 8, ey + dy * 8);
+        ctx.textAlign = 'center';
+        ctx.fillText('drift', ex + dx * 18, ey + dy * 18);
+        ctx.fillText('upwind', plume.x - dx * len, plume.y - dy * len);
     }
 
     // Numbered candidate pins.
