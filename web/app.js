@@ -1102,19 +1102,9 @@ const OVERPASS_ENDPOINTS = [
 function buildOverpassQuery(south, west, north, east) {
     const bbox = `${south},${west},${north},${east}`;
     return `[out:json][timeout:25];(
-        nwr["man_made"="petroleum_well"](${bbox});
-        nwr["man_made"="pipeline"](${bbox});
-        nwr["man_made"="storage_tank"](${bbox});
-        nwr["man_made"="works"](${bbox});
-        nwr["man_made"="gasometer"](${bbox});
-        nwr["industrial"="oil"](${bbox});
-        nwr["industrial"="gas"](${bbox});
-        nwr["industrial"="refinery"](${bbox});
-        nwr["industrial"="wellsite"](${bbox});
-        nwr["industrial"="mine"](${bbox});
-        nwr["landuse"="industrial"](${bbox});
-        nwr["landuse"="quarry"](${bbox});
-        nwr["landuse"="landfill"](${bbox});
+        nwr["man_made"~"^(petroleum_well|pipeline|storage_tank|works|gasometer|mineshaft|adit|spoil_heap|wastewater_plant|digester)$"](${bbox});
+        nwr["industrial"](${bbox});
+        nwr["landuse"~"^(industrial|quarry|landfill)$"](${bbox});
         nwr["power"="plant"](${bbox});
         nwr["plant:source"~"gas|oil|coal"](${bbox});
         nwr["amenity"="waste_transfer_station"](${bbox});
@@ -1122,7 +1112,7 @@ function buildOverpassQuery(south, west, north, east) {
         nwr["pipeline"="substation"](${bbox});
         nwr["substance"~"gas|oil|petroleum|natural_gas"](${bbox});
         nwr["aeroway"="aerodrome"](${bbox});
-    );out center tags;`;
+    );out tags bb;`;
 }
 
 function summariseOsmElements(elements, plumeLat, plumeLon) {
@@ -1131,8 +1121,9 @@ function summariseOsmElements(elements, plumeLat, plumeLon) {
     for (const el of elements) {
         if (!el.tags) continue;
         const name = el.tags['name:en'] || el.tags.name || '';
-        const lat = el.center ? el.center.lat : el.lat;
-        const lon = el.center ? el.center.lon : el.lon;
+        const b = el.bounds || null;
+        const lat = el.lat ?? (b ? (b.minlat + b.maxlat) / 2 : null);
+        const lon = el.lon ?? (b ? (b.minlon + b.maxlon) / 2 : null);
         const keep = {};
         for (const [k, v] of Object.entries(el.tags)) {
             if (['source', 'source:date', 'created_by', 'note', 'fixme', 'FIXME',
@@ -1145,12 +1136,23 @@ function summariseOsmElements(elements, plumeLat, plumeLon) {
         if (seen.has(key)) continue;
         seen.add(key);
         const dist = (lat != null && lon != null && plumeLat != null && plumeLon != null)
-            ? haversineMetres(plumeLat, plumeLon, lat, lon) : null;
-        items.push({ osmId: `${el.type}/${el.id}`, name, lat, lon, tags: keep, dist });
+            ? boundsDist(plumeLat, plumeLon, b, lat, lon) : null;
+        items.push({ osmId: `${el.type}/${el.id}`, name, lat, lon, bounds: b, tags: keep, dist });
     }
     // Sort by distance ascending so the LLM sees the closest entries first.
     items.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
     return items.slice(0, 60);
+}
+
+// distance from a point to an OSM element: zero inside its bounding box, else
+// distance to the nearest bbox corner-clamped point; centre point otherwise.
+// keeps large polygons (mines, plants) that contain the plume from being
+// measured — and dropped — by their distant centroid.
+function boundsDist(lat, lon, b, cLat, cLon) {
+    if (!b) return haversineMetres(lat, lon, cLat, cLon);
+    return haversineMetres(lat, lon,
+        Math.min(Math.max(lat, b.minlat), b.maxlat),
+        Math.min(Math.max(lon, b.minlon), b.maxlon));
 }
 
 // Great-circle distance in metres. Used to sort OSM features near the plume
@@ -1328,12 +1330,13 @@ function buildCandidates(ogimItems, osmFeatures, centerLat, centerLon, viewM, ma
         const type = osmShortType(f.tags);
         const kind = /well/.test(type) ? 'well' : /pipeline/.test(type) ? 'pipeline' : 'facility';
         const name = f.name && f.name !== '(unnamed)' ? f.name : null;
-        const label = [name, type, f.tags.operator].filter(Boolean).join(' · ');
-        cands.push({ id: `OSM:${f.osmId}`, kind, lat: f.lat, lon: f.lon, dist: f.dist ?? null, label, geometry: null });
+        const label = [name, type, f.tags.product || f.tags.resource, f.tags.operator].filter(Boolean).join(' · ');
+        cands.push({ id: `OSM:${f.osmId}`, kind, lat: f.lat, lon: f.lon, bounds: f.bounds,
+            dist: f.dist ?? null, label, geometry: null });
     }
     const margin = viewM * 1.05;
     return cands
-        .filter(c => haversineMetres(centerLat, centerLon, c.lat, c.lon) <= margin)
+        .filter(c => boundsDist(centerLat, centerLon, c.bounds, c.lat, c.lon) <= margin)
         .sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))
         .slice(0, max)
         .map((c, i) => ({ ...c, n: i + 1 }));
@@ -1341,7 +1344,7 @@ function buildCandidates(ogimItems, osmFeatures, centerLat, centerLon, viewM, ma
 
 function formatCandidateKey(cands) {
     if (!cands.length) return 'No catalogued infrastructure in the frame.';
-    return cands.map(c => `${c.n}. ${c.id} — ${c.label || c.kind} · ${fmtMetres(c.dist)}`).join('\n');
+    return cands.map(c => `${c.n}. ${c.id} — ${c.label || c.kind} · ${c.dist === 0 ? 'site contains the ⊕' : fmtMetres(c.dist)}`).join('\n');
 }
 
 function sectorHint(sec) {
@@ -1388,7 +1391,7 @@ Reply with ONLY this JSON object: {"source_label":…, "source_kind":…, "attri
 - source_label: ≤8 words, plain English for a journalist (e.g. "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "No obvious source nearby"). Never an id or a field name.
 - source_kind: one of well, facility, pipeline, mine, landfill, other, none.
 - attributed_id: an OGIM:/OSM: id copied verbatim from the KEY, or null when the visible source isn't listed. Never invent ids.
-- paragraph: 1–3 plain sentences naming the source and the visible evidence. No rejected hypotheses, no mention of the pins/overlay, no web claims.`;
+- paragraph: 1–3 plain sentences naming the source and the visible evidence. Attribution is never certain — express a degree of confidence ("the source is likely…", "most consistent with…", reserving "almost certainly" for overwhelming evidence), never a flat "the source is". No rejected hypotheses, no mention of the pins/overlay, no web claims.`;
 }
 
 // ── Esri imagery snapshot (2x2 tile grid) with plume + OGIM overlay ──
