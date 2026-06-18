@@ -243,7 +243,10 @@ function buildFilter(src) {
     if (activeSector !== 'all') {
         filters.push(['==', ['get', 'sec'], activeSector]);
     }
-    if (activeYear === 'pre2023') {
+    if (activeYear === '30d') {
+        const cutoff = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+        filters.push(['>=', ['slice', ['get', 'dt'], 0, 10], cutoff]);
+    } else if (activeYear === 'pre2023') {
         filters.push(['<', ['slice', ['get', 'dt'], 0, 4], '2023']);
     } else if (activeYear !== 'all') {
         filters.push(['==', ['slice', ['get', 'dt'], 0, 4], activeYear]);
