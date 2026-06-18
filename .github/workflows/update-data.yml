@@ -34,6 +34,7 @@ jobs:
           if [ -f plumes-data.zip ]; then
             unzip -o plumes-data.zip -d .
             rm plumes-data.zip
+            cp web/data/plumes.bin plumes.bin.prev 2>/dev/null || true
           fi
         env:
           GH_TOKEN: ${{ github.token }}
@@ -50,7 +51,20 @@ jobs:
       - name: Build plumes.bin
         run: uv run scripts/build.py
 
+      # plumes.bin is deterministic, so identical bytes ⇒ no new plumes.
+      # skip upload + deploy on those runs (most of the 4/day off-cycle ones).
+      - name: Detect data change
+        id: diff
+        run: |
+          if [ -f plumes.bin.prev ] && cmp -s plumes.bin.prev web/data/plumes.bin; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "plumes.bin unchanged — skipping upload and deploy"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload data to release
+        if: steps.diff.outputs.changed == 'true'
         run: |
           zip -r plumes-data.zip \
             web/data/plumes.bin \
@@ -63,6 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Prepare dist
+        if: steps.diff.outputs.changed == 'true'
         run: |
           mkdir dist
           cp web/index.html web/app.js web/style.css web/layers.js dist/
@@ -72,9 +87,12 @@ jobs:
           V="${GITHUB_SHA:0:8}"
           sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
 
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/configure-pages@v4
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
       - id: deployment
+        if: steps.diff.outputs.changed == 'true'
         uses: actions/deploy-pages@v4
