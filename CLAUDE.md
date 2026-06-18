@@ -101,7 +101,7 @@ make serve         # dev server on :8000 (HTTP Range for PMTiles)
 ## Deployment
 
 - **Pages**: push to `main` runs `deploy.yml`. Pulls `plumes.bin` from the `latest-data` Release, copies `web/*` into `dist/`, cache-busts JS/CSS with the git SHA, and deploys.
-- **Plumes refresh**: `update-data.yml` runs daily (06:00 UTC), rebuilds `plumes.bin`, uploads to the Release, and redeploys Pages.
+- **Plumes refresh**: `update-data.yml` runs every 6h (00:00/06:00/12:00/18:00 UTC), rebuilds `plumes.bin`, uploads to the Release, and redeploys Pages. Carbon Mapper publishes in sub-daily batches so it's polled often; SRON (weekly) and IMEO (Cloudflare-blocked, effectively manual) don't gain from the higher cadence.
 - **AI dataset snapshot**: `export-analyses.yml` runs daily (06:30 UTC), dumps `/api/analyses` to `analyses.json{,.gz}` in the same Release as a durability backup.
 - **OGIM tiles**: `make ogim-upload` pushes to GCS manually (rarely re-run).
 - **Worker**: `make worker-deploy` (separate from Pages).

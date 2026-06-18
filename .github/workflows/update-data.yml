@@ -2,7 +2,9 @@ name: Update plume data
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    # every 6h: carbon mapper publishes new plumes in sub-daily batches, so
+    # poll often. sron (weekly) and imeo (blocked/manual) are unaffected.
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 permissions:
