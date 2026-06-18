@@ -44,9 +44,11 @@ jobs:
           uv run scripts/fetch_carbon_mapper.py
           uv run scripts/fetch_sron.py
 
-      - name: Fetch IMEO (may fail behind Cloudflare)
+      - name: Fetch IMEO
         run: uv run scripts/fetch_imeo.py
         continue-on-error: true
+        env:
+          IMEO_API_KEY: ${{ secrets.IMEO_API_KEY }}
 
       - name: Build plumes.bin
         run: uv run scripts/build.py
