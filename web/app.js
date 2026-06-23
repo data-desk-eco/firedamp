@@ -44,6 +44,7 @@ let ogimVisible = false;
 let selectedFeature = null;
 let overlappingFeatures = [];
 let overlapIndex = 0;
+const plumeLayers = ['plumes-cm', 'plumes-imeo', 'plumes-sron'];
 
 // ---------------------------------------------------------------------------
 // Plume permalink helpers — #plume=<id> (standalone, no map coords needed)
@@ -62,6 +63,20 @@ function setPlumeHash(id) {
 function getPlumeHash() {
     const m = location.hash.match(/plume=([^&]*)/);
     return m ? decodeURIComponent(m[1]) : null;
+}
+
+// Rendered plume features within 10px of a screen point, nearest first — shared
+// by map clicks and permalink restore so both get the same overlap grouping.
+function plumesAt(point, lngLat) {
+    const t = 10;
+    const bbox = [[point.x - t, point.y - t], [point.x + t, point.y + t]];
+    const layers = plumeLayers.filter(l => map.getLayer(l) && map.getLayoutProperty(l, 'visibility') !== 'none');
+    return map.queryRenderedFeatures(bbox, { layers }).sort((a, b) => {
+        const [aLng, aLat] = a.geometry.coordinates;
+        const [bLng, bLat] = b.geometry.coordinates;
+        return Math.hypot(aLng - lngLat.lng, aLat - lngLat.lat)
+             - Math.hypot(bLng - lngLat.lng, bLat - lngLat.lat);
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -513,6 +528,17 @@ map.on('load', async () => {
             };
             showDetail(feat, true);
             map.flyTo({ center: [match.lon, match.lat], zoom: Math.max(map.getZoom(), 15) });
+            // Once the camera settles, regroup overlapping plumes so the prev/next
+            // nav appears just as it does for a map click.
+            map.once('moveend', () => {
+                const features = plumesAt(map.project([match.lon, match.lat]), { lng: match.lon, lat: match.lat });
+                const idx = features.findIndex(f => f.properties.id === linkedId);
+                if (features.length < 2 || idx < 0) return;
+                // Anchor the linked plume first so the nav reads "1 / N".
+                overlappingFeatures = [features[idx], ...features.filter((_, i) => i !== idx)];
+                overlapIndex = 0;
+                showDetail(overlappingFeatures[0], true);
+            });
         }
     }
 
@@ -870,8 +896,6 @@ function setupInteractions() {
         offset: 10
     });
 
-    const plumeLayers = ['plumes-cm', 'plumes-imeo', 'plumes-sron'];
-
     // Hover
     for (const layer of plumeLayers) {
         map.on('mouseenter', layer, e => {
@@ -897,26 +921,11 @@ function setupInteractions() {
 
     // Click
     map.on('click', e => {
-        const tolerance = 10;
-        const bbox = [
-            [e.point.x - tolerance, e.point.y - tolerance],
-            [e.point.x + tolerance, e.point.y + tolerance]
-        ];
-        const activeLayers = plumeLayers.filter(l => map.getLayer(l) && map.getLayoutProperty(l, 'visibility') !== 'none');
-        const features = map.queryRenderedFeatures(bbox, { layers: activeLayers });
-
-        if (features.length === 0) {
+        const features = plumesAt(e.point, e.lngLat);
+        if (!features.length) {
             closeDetail();
             return;
         }
-
-        // Sort by distance to click, stash all for overlap navigation
-        features.sort((a, b) => {
-            const [aLng, aLat] = a.geometry.coordinates;
-            const [bLng, bLat] = b.geometry.coordinates;
-            return Math.hypot(aLng - e.lngLat.lng, aLat - e.lngLat.lat)
-                 - Math.hypot(bLng - e.lngLat.lng, bLat - e.lngLat.lat);
-        });
         overlappingFeatures = features;
         overlapIndex = 0;
 
