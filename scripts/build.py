@@ -47,7 +47,7 @@ SAT_SHORT = {
 }
 
 EPOCH = date(2020, 1, 1)
-SRC_MAP = {"cm": 0, "imeo": 1, "sron": 2}
+SRC_MAP = {"cm": 0, "imeo": 1, "sron": 2, "ghgsat": 3}
 SEC_MAP = {None: 0, "og": 1, "coal": 2, "waste": 3, "other": 4}
 
 
@@ -195,6 +195,37 @@ def build_sron(path):
     return plumes
 
 
+# ghgsat: leaked, local-only. the whole data/ dir is gitignored and CI never
+# fetches this source, so it can only ever enter a locally-built plumes.bin —
+# never the published Release. rate/unc in kg/hr; error is a relative fraction.
+def build_ghgsat(path):
+    if not path.exists():
+        return []
+    plumes = []
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            if row.get("gas_type", "").upper() != "CH4":
+                continue
+            rate = safe_float(row.get("emission_rate"))
+            lat = safe_float(row.get("latitude"))
+            lon = safe_float(row.get("longitude"))
+            if rate is None or lat is None or lon is None:
+                continue
+            err = safe_float(row.get("emission_error_rate"))
+            plumes.append({
+                "id": row.get("id", ""),
+                "src": "ghgsat",
+                "lat": round(lat, 4),
+                "lon": round(lon, 4),
+                "dt": (row.get("date") or "")[:10] or None,
+                "rate": round(rate),
+                "unc": round(rate * err) if err is not None else None,
+                "sat": row.get("sensor", "GHGSat"),
+            })
+    print(f"  GHGSat: {len(plumes)} plumes (local-only)")
+    return plumes
+
+
 def write_binary(plumes, path):
     sats = sorted({p.get("sat") or "" for p in plumes})
     sat_idx = {s: i for i, s in enumerate(sats)}
@@ -235,8 +266,9 @@ def main():
     cm = build_cm(Path("data/carbon_mapper.csv"))
     imeo = build_imeo_plumes(Path("data/imeo_plumes.csv"))
     sron = build_sron(Path("data/sron_all.csv"))
+    ghgsat = build_ghgsat(Path("data/ghgsat.csv"))
 
-    all_plumes = cm + imeo + sron
+    all_plumes = cm + imeo + sron + ghgsat
 
     plumes_path = out_dir / "plumes.bin"
     write_binary(all_plumes, plumes_path)

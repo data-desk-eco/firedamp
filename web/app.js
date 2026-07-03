@@ -3,16 +3,23 @@
 // ---------------------------------------------------------------------------
 
 const SRC_COLORS = {
-    cm:   '#00ffff',
-    imeo: '#ff00ff',
-    sron: '#ffff00'
+    cm:     '#00ffff',
+    imeo:   '#ff00ff',
+    sron:   '#ffff00',
+    ghgsat: '#ff7a00'
 };
 
 const SRC_LABELS = {
-    cm:   'Carbon Mapper',
-    imeo: 'IMEO / MARS',
-    sron: 'SRON'
+    cm:     'Carbon Mapper',
+    imeo:   'IMEO / MARS',
+    sron:   'SRON',
+    ghgsat: 'GHGSat'
 };
+
+// source render/filter order. ghgsat is leaked, local-only data: it only exists
+// when a locally-built plumes.bin includes it, and its toggle stays hidden
+// otherwise (see the reveal on load), so nothing surfaces on the live map.
+const SRCS = ['cm', 'imeo', 'sron', 'ghgsat'];
 
 // ---------------------------------------------------------------------------
 // AI analysis — routed through the firedamp-api Cloudflare Worker, which
@@ -36,7 +43,7 @@ let analysisRequestId = 0;
 // ---------------------------------------------------------------------------
 
 let plumesData = null;       // raw plumes array from plumes.json
-let activeSources = new Set(['cm', 'imeo', 'sron']);
+let activeSources = new Set(SRCS);
 let activeSector = 'all';
 let activeYear = 'all';
 let activeRate = 'all';
@@ -44,7 +51,7 @@ let ogimVisible = false;
 let selectedFeature = null;
 let overlappingFeatures = [];
 let overlapIndex = 0;
-const plumeLayers = ['plumes-cm', 'plumes-imeo', 'plumes-sron'];
+const plumeLayers = SRCS.map(s => `plumes-${s}`);
 
 // ---------------------------------------------------------------------------
 // Plume permalink helpers — #plume=<id> (standalone, no map coords needed)
@@ -277,7 +284,7 @@ function buildFilter(src) {
 // ---------------------------------------------------------------------------
 
 function applyFilters() {
-    for (const src of ['cm', 'imeo', 'sron']) {
+    for (const src of SRCS) {
         const layerId = `plumes-${src}`;
         if (!map.getLayer(layerId)) continue;
         map.setFilter(layerId, buildFilter(src));
@@ -314,7 +321,7 @@ function parsePlumes(buffer) {
     }
 
     // Records
-    const SRC_NAMES = ['cm', 'imeo', 'sron'];
+    const SRC_NAMES = SRCS;
     const SEC_NAMES = [null, 'og', 'coal', 'waste', 'other'];
     const EPOCH = Date.UTC(2020, 0, 1);
     const DAY_MS = 86400000;
@@ -366,6 +373,10 @@ map.on('load', async () => {
     // Load binary data
     const buf = await fetch('data/plumes.bin').then(r => r.arrayBuffer());
     plumesData = parsePlumes(buf);
+
+    // reveal the ghgsat toggle/legend only when local-only ghgsat data is present
+    if (plumesData.some(p => p.src === 'ghgsat'))
+        document.querySelectorAll('[data-ghgsat]').forEach(el => { el.hidden = false; });
 
     // OGIM layers (hidden by default, rendered below plumes)
     await addOGIMLayers();
@@ -481,7 +492,7 @@ map.on('load', async () => {
     map.addSource('plumes', { type: 'geojson', data: geojson });
 
     // One circle layer per source for independent toggling
-    for (const src of ['cm', 'imeo', 'sron']) {
+    for (const src of SRCS) {
         map.addLayer({
             id: `plumes-${src}`,
             type: 'circle',
@@ -1296,6 +1307,9 @@ function plumeUncertainty(p) {
     if (p.src === 'imeo')
         return { ringM: 600, viewM: 1600, searchKm: 2.5, windBias: false,
             note: 'Detecting sensors range from ~25 m pixels to TROPOMI’s ~5.5×7 km. The coordinate is analyst-vetted: within ~500 m for high-resolution sensors, up to a few km when TROPOMI-derived.' };
+    if (p.src === 'ghgsat')
+        return { ringM: 50, viewM: 160, searchKm: 1, windBias: false,
+            note: 'GHGSat targeted satellite with ~25 m pixels: the coordinate pinpoints the source to within ~50 m — essentially at the ⊕.' };
     if (p.src === 'sron')
         return { ringM: 4000, viewM: 5500, searchKm: 11, windBias: true,
             note: 'This is a TROPOMI detection. Its ground pixel is ~5.5×7 km and the plume drifts before being imaged, so the true source can lie several km from the ⊕ — roughly 2 km for a large isolated emitter, commonly 10 km or more in cluttered areas — and almost always UPWIND. Treat the ⊕ as the centre of a search area (the dashed circle), not the source itself.' };
