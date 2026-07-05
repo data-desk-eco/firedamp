@@ -1,38 +1,7 @@
 import csv
-import hashlib
 import struct
-from datetime import date, datetime, timezone
+from datetime import date
 from pathlib import Path
-
-ISO3_TO_2 = {
-    "ARG": "AR", "DZA": "DZ", "USA": "US", "TKM": "TM", "IRN": "IR",
-    "CHN": "CN", "RUS": "RU", "KAZ": "KZ", "IRQ": "IQ", "LBY": "LY",
-    "MEX": "MX", "IND": "IN", "PAK": "PK", "UZB": "UZ", "EGY": "EG",
-    "NGA": "NG", "VEN": "VE", "SAU": "SA", "ARE": "AE", "OMN": "OM",
-    "BGD": "BD", "MYS": "MY", "IDN": "ID", "AUS": "AU", "CAN": "CA",
-    "BRA": "BR", "COL": "CO", "PER": "PE", "BOL": "BO", "ECU": "EC",
-    "TTO": "TT", "GHA": "GH", "CIV": "CI", "CMR": "CM", "TCD": "TD",
-    "AGO": "AO", "MOZ": "MZ", "TZA": "TZ", "KEN": "KE", "ETH": "ET",
-    "SDN": "SD", "TUN": "TN", "MAR": "MA", "POL": "PL", "DEU": "DE",
-    "GBR": "GB", "NLD": "NL", "FRA": "FR", "ITA": "IT", "ESP": "ES",
-    "ROU": "RO", "UKR": "UA", "BLR": "BY", "GEO": "GE", "AZE": "AZ",
-    "TUR": "TR", "SYR": "SY", "JOR": "JO", "PSE": "PS", "ISR": "IL",
-    "LBN": "LB", "YEM": "YE", "KWT": "KW", "BHR": "BH", "QAT": "QA",
-    "MMR": "MM", "THA": "TH", "VNM": "VN", "PHL": "PH", "JPN": "JP",
-    "KOR": "KR", "TWN": "TW", "MNG": "MN", "AFG": "AF", "SRB": "RS",
-    "BGR": "BG", "CZE": "CZ", "SVK": "SK", "HUN": "HU", "HRV": "HR",
-    "BIH": "BA", "ALB": "AL", "MKD": "MK", "GRC": "GR", "CYP": "CY",
-    "LKA": "LK", "NPL": "NP", "LAO": "LA", "KHM": "KH", "PNG": "PG",
-    "NZL": "NZ", "CHL": "CL", "PRY": "PY", "URY": "UY", "GUY": "GY",
-    "SUR": "SR", "GTM": "GT", "HND": "HN", "NIC": "NI", "CRI": "CR",
-    "PAN": "PA", "CUB": "CU", "DOM": "DO", "SEN": "SN", "MLI": "ML",
-    "BFA": "BF", "NER": "NE", "BEN": "BJ", "TGO": "TG", "LBR": "LR",
-    "SLE": "SL", "GIN": "GN", "GAB": "GA", "COG": "CG", "COD": "CD",
-    "ZMB": "ZM", "ZWE": "ZW", "BWA": "BW", "NAM": "NA", "ZAF": "ZA",
-    "MDG": "MG", "MWI": "MW", "RWA": "RW", "UGA": "UG", "SOM": "SO",
-    "ERI": "ER", "NOR": "NO", "SWE": "SE", "FIN": "FI", "DNK": "DK",
-    "IRL": "IE", "PRT": "PT", "AUT": "AT", "CHE": "CH", "BEL": "BE",
-}
 
 SAT_SHORT = {
     "EMIT - NASA": "EMIT",
@@ -61,8 +30,6 @@ def map_sector(raw):
         return "coal"
     if "waste" in low:
         return "waste"
-    if raw in ("Other", "Unclassified"):
-        return "other"
     return "other"
 
 
@@ -92,11 +59,7 @@ def build_cm(path):
             if row.get("gas", "").upper() != "CH4":
                 continue
 
-            dt_raw = row.get("datetime", "")
-            try:
-                dt = dt_raw[:10]
-            except Exception:
-                dt = None
+            dt = row.get("datetime", "")[:10] or None
 
             rate = safe_float(row.get("emission_auto"))
             if rate is None:

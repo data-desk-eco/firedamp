@@ -43,13 +43,13 @@ Detail panel gathers these in parallel (search radius scales with the source's s
 - Reverse-geocoded place name (Nominatim).
 - Daily-mean surface wind for the plume coord+date (Open-Meteo archive).
 
-The design philosophy is **one clean artifact + the model's own judgement**, not a rulebook. The pipeline produces a single annotated satellite map (`captureAnnotatedMap` in `web/app.js`) — Esri imagery framed to the uncertainty, with a dashed uncertainty ring, a wind arrow, the magenta ⊕ detection marker, and **numbered pins** for the nearest ~12 merged OGIM+OSM features. The prompt (`buildPlumePrompt`) describes the map briefly, lists the pins as a text **KEY** (number → name/type/`OGIM:`/`OSM:` id), and asks the model to read the imagery and attribute the source. Sent to the Worker → OpenRouter with `source_label`, `source_kind`, `attributed_id`, `paragraph` output, stored in D1.
+The design philosophy is **one clean artifact + the model's own judgement**, not a rulebook. The pipeline produces a single annotated satellite map (`captureAnnotatedMap` in `web/analysis.js`) — Esri imagery framed to the uncertainty, with a dashed uncertainty ring, a wind arrow, the magenta ⊕ detection marker, and **numbered pins** for the nearest ~12 merged OGIM+OSM features. The prompt (`buildPlumePrompt`) describes the map briefly, lists the pins as a text **KEY** (number → name/type/`OGIM:`/`OSM:` id), and asks the model to read the imagery and attribute the source. Sent to the Worker → OpenRouter with `source_label`, `source_kind`, `attributed_id`, `paragraph` output, stored in D1.
 
 **Peek shortcut**: re-opening an already-analysed plume hits `GET /api/analysis/<plumeId>`, restores from D1, and skips Overpass / Nominatim / Open-Meteo / image / OpenRouter. The regenerate `↻` button forces a full re-run (`force: true`).
 
 **Key handling**: OpenRouter key is a Wrangler secret on the Worker — never in the browser. Worker URL is configured via `<meta name="firedamp-api">` in `web/index.html`. Local Worker dev: `make worker-dev` then visit `?api=local`.
 
-**Spatial uncertainty** (`plumeUncertainty` in `web/app.js`) drives the map frame size, the search radius, and the dashed ring, per source/sensor:
+**Spatial uncertainty** (`plumeUncertainty` in `web/analysis.js`) drives the map frame size, the search radius, and the dashed ring, per source/sensor:
 - CM AVIRIS-NG/GAO/AV3/AV20: tens of m → tight ~0.5 km frame.
 - CM Tanager/EnMAP: ~50 m. CM satellite (EMIT etc.): ~100 m → ~1 km frame.
 - IMEO: <500 m to a few km → ~3 km frame.
@@ -74,11 +74,17 @@ Tested 2026-06-11: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` (multimo
 
 ## Frontend
 
-Key files:
-- `web/app.js` — map setup, binary parser, interactions, detail panel, AI client.
+ES modules, no build step. Key files:
+- `web/app.js` — entry point: data load, layer assembly, UI wiring.
+- `web/map.js` — map instance + basemap style.
+- `web/plumes.js` — binary parser, plume layers, filters.
+- `web/ogim.js` — OGIM layers, toggle, proximity queries.
+- `web/detail.js` — detail panel, permalinks, overlap nav, interactions.
+- `web/analysis.js` — AI attribution pipeline + Worker client.
+- `web/util.js` — geometry + formatting helpers.
 - `web/style.css` — glass-morphism dark UI, CMY source colours.
-- `web/layers.js` — custom overlay layers, loaded via `?layer=<slug>`.
-- `web/dataset.html` — AI dataset browser (in source, but not linked from the main UI and not copied into the Pages deploy yet; re-enable by uncommenting the subtitle link in `index.html` and restoring the `cp` lines in the two deploy workflows).
+- `web/layers.js` — custom overlay definitions, loaded via `?layer=<slug>`.
+- `web/dataset.html` — AI dataset browser (in source, but not linked from the main UI and not copied into the Pages deploy yet; re-enable by uncommenting the subtitle link in `index.html` and adding it to `scripts/dist.sh`).
 
 ### URL scheme
 
@@ -106,4 +112,4 @@ make serve         # dev server on :8000 (HTTP Range for PMTiles)
 - **OGIM tiles**: `make ogim-upload` pushes to GCS manually (rarely re-run).
 - **Worker**: `make worker-deploy` (separate from Pages).
 
-**When adding new web assets**, add them to the `cp` line in both `deploy.yml` and `update-data.yml`.
+**When adding new web assets**, add them to `scripts/dist.sh` (shared by `deploy.yml` and `update-data.yml`).

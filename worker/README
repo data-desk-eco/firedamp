@@ -1,10 +1,11 @@
 firedamp-api — Cloudflare Worker
 ================================
 
-Proxies plume-analysis requests to OpenRouter (Gemma 4 via JSON
-schema-mode structured outputs), holding the API key as a Wrangler
-secret so it never ships to the browser. Caches every response in D1
-for free repeat reads and as a queryable dataset.
+Proxies plume-analysis requests to OpenRouter (model set by MODEL in
+wrangler.toml, currently Qwen3-VL, via JSON schema-mode structured
+outputs), holding the API key as a Wrangler secret so it never ships
+to the browser. Caches every response in D1 for free repeat reads and
+as a queryable dataset.
 
 
 Endpoints

@@ -22,10 +22,6 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
 #map { width: 100%; height: 100%; background: #000; }
 .maplibregl-ctrl, .maplibregl-ctrl-logo, .maplibregl-ctrl-attrib { display: none !important; }
 
-.custom-scroll::-webkit-scrollbar { width: 4px; }
-.custom-scroll::-webkit-scrollbar-track { background: transparent; }
-.custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
-
 .glass {
     background: var(--bg-panel);
     backdrop-filter: blur(12px);
@@ -157,24 +153,6 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
 .separator {
     border-top: 1px solid var(--border-light);
     margin: 12px 0;
-}
-
-/* --- Stats --- */
-
-.stats { }
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.stat-label {
-    font-size: var(--font-sm);
-    color: var(--text-faint);
-}
-.stat-value {
-    font-size: var(--font-sm);
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
 }
 
 /* --- Filter buttons --- */
@@ -383,23 +361,6 @@ a.detail-id:hover {
 }
 .wind-speed { font-variant-numeric: tabular-nums; }
 
-.detail-row {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border-subtle);
-}
-.detail-row:last-child { border-bottom: none; }
-
-.detail-field {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: var(--font-sm);
-    margin-bottom: 4px;
-}
-.detail-field:last-child { margin-bottom: 0; }
-.detail-field-label { color: var(--text-faint); }
-.detail-field-value { color: var(--text-secondary); }
-
 .source-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -410,6 +371,7 @@ a.detail-id:hover {
 .source-badge.cm { color: #00ffff; border-color: #00ffff; background: rgba(0, 255, 255, 0.15); }
 .source-badge.imeo { color: #ff00ff; border-color: #ff00ff; background: rgba(255, 0, 255, 0.15); }
 .source-badge.sron { color: #ffff00; border-color: #ffff00; background: rgba(255, 255, 0, 0.15); }
+.source-badge.ghgsat { color: #ff7a00; border-color: #ff7a00; background: rgba(255, 122, 0, 0.15); }
 
 .toggle-row.disabled {
     opacity: 0.4;

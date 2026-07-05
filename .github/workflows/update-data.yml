@@ -23,7 +23,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -80,21 +80,14 @@ jobs:
 
       - name: Prepare dist
         if: steps.diff.outputs.changed == 'true'
-        run: |
-          mkdir dist
-          cp web/index.html web/app.js web/style.css web/layers.js dist/
-          cp -r web/vendor dist/vendor
-          mkdir -p dist/data
-          cp web/data/plumes.bin dist/data/
-          V="${GITHUB_SHA:0:8}"
-          sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
+        run: bash scripts/dist.sh "$GITHUB_SHA"
 
       - if: steps.diff.outputs.changed == 'true'
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v6
       - if: steps.diff.outputs.changed == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
       - id: deployment
         if: steps.diff.outputs.changed == 'true'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

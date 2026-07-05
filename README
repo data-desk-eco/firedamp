@@ -3,8 +3,9 @@ firedamp
 
 Methane plume aggregator. Maps satellite-detected methane plumes
 alongside O&G infrastructure from the OGIM database, and offers a
-per-plume AI source attribution (Gemma 4 via OpenRouter, grounded on
-OGIM, OpenStreetMap, place name, wind, and an Esri imagery snapshot).
+per-plume AI source attribution (Qwen3-VL via OpenRouter, grounded on
+OGIM, OpenStreetMap, place name, wind, and an annotated Esri imagery
+snapshot).
 
 Live: https://research.datadesk.eco/firedamp/
 
@@ -19,11 +20,17 @@ Plume sources
 
 Repo layout
 -----------
-    web/             static frontend (no build step, no npm)
-      app.js           map, binary parser, detail panel, AI client
+    web/             static frontend (ES modules, no build step, no npm)
+      app.js           entry point: data load, layer assembly, UI wiring
+      map.js           map instance + basemap style
+      plumes.js        binary parser, plume layers, filters
+      ogim.js          OGIM layers, toggle, proximity queries
+      detail.js        detail panel, permalinks, interactions
+      analysis.js      AI attribution pipeline + Worker client
+      util.js          geometry + formatting helpers
+      layers.js        custom overlay definitions (?layer=<slug>)
       style.css
       index.html
-      layers.js        custom overlays (?layer=<slug>)
       dataset.html     AI-attribution browser (not currently linked)
       vendor/          MapLibre, PMTiles, Inter font
     scripts/         Python ETL (uv-managed)
@@ -32,13 +39,14 @@ Repo layout
       fetch_imeo.py
       build.py         aggregates everything into web/data/plumes.bin
       build_ogim.sh    OGIM GeoPackage -> PMTiles (slow, ~30 min)
+      dist.sh          assembles the Pages artifact (cache-busted)
       serve.py         dev server with HTTP Range for PMTiles
       vendor.sh
     worker/          Cloudflare Worker `firedamp-api` (see worker/README)
     data/            input CSVs and intermediates (gitignored)
     .github/workflows/
       deploy.yml          Pages on push to main
-      update-data.yml     daily plume refresh
+      update-data.yml     plume refresh every 6 h
       export-analyses.yml daily D1 snapshot to latest-data release
 
 
@@ -85,11 +93,11 @@ Deployment
 ----------
 Push to main -> deploy.yml -> GitHub Pages. plumes.bin is pulled from
 the `latest-data` GitHub Release at deploy time. update-data.yml
-rebuilds plumes.bin daily. OGIM PMTiles are deployed separately via
-`make ogim-upload` to gs://firedamp-data/.
+rebuilds plumes.bin every 6 h. OGIM PMTiles are deployed separately
+via `make ogim-upload` to gs://firedamp-data/.
 
-When adding new web assets, add them to the `cp` line in both
-deploy.yml and update-data.yml.
+Both workflows assemble the Pages artifact via scripts/dist.sh — add
+any new web asset there.
 
 
 License

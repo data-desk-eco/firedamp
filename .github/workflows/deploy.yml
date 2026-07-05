@@ -27,16 +27,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Prepare dist
-        run: |
-          mkdir dist
-          cp web/index.html web/app.js web/style.css web/layers.js dist/
-          cp -r web/vendor dist/vendor
-          mkdir -p dist/data
-          cp web/data/plumes.bin dist/data/
-          # Cache-bust app assets with git SHA
-          V="${GITHUB_SHA:0:8}"
-          sed -i "s|app.js|app.js?v=$V|g; s|style.css|style.css?v=$V|g; s|layers.js|layers.js?v=$V|g" dist/index.html
-          # dataset.html is intentionally not deployed yet (kept in source)
+        run: bash scripts/dist.sh "$GITHUB_SHA"
 
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

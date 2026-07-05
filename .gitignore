@@ -10,3 +10,5 @@ worker/.wrangler/
 
 .playwright-mcp/
 promptlab/
+.claude/
+dist/

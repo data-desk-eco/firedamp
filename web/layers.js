@@ -10,7 +10,7 @@
 // Usage: https://research.datadesk.eco/firedamp/?layer=permian-fieldwork
 // ---------------------------------------------------------------------------
 
-const CUSTOM_LAYERS = {
+export const CUSTOM_LAYERS = {
 
     'permian-fieldwork': {
         color: '#00ff00',

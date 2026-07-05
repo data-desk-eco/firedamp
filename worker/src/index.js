@@ -12,6 +12,10 @@ export default {
             return new Response(null, { status: 204, headers: corsHeaders(origin, env) });
         }
 
+        if (url.pathname === '/healthz') {
+            return new Response('ok', { headers: corsHeaders(origin, env) });
+        }
+
         try {
             if (url.pathname === '/api/analyse' && req.method === 'POST') {
                 return await analyse(req, env, ctx, origin);
@@ -28,9 +32,6 @@ export default {
                 status: 500,
                 headers: corsHeaders(origin, env),
             });
-        }
-        if (url.pathname === '/healthz') {
-            return new Response('ok', { headers: corsHeaders(origin, env) });
         }
         return new Response('not found', { status: 404, headers: corsHeaders(origin, env) });
     }
@@ -108,9 +109,8 @@ async function analyse(req, env, ctx, origin) {
             max_tokens: 700,
             messages: [{ role: 'user', content: userContent }],
             // JSON schema output where the provider supports it. We do NOT set
-            // require_parameters, because free models (e.g. gemma-4-31b-it:free)
-            // route to providers that don't honour structured outputs, and
-            // requiring it would leave no eligible provider. The prompt itself
+            // require_parameters: some routes ignore structured outputs, and
+            // requiring it can leave no eligible provider. The prompt itself
             // asks for the JSON object, and the client parses defensively
             // (parseAnalysis / safeJsonParse), so providers that ignore
             // response_format still yield usable output. The per-field
@@ -162,16 +162,12 @@ async function analyse(req, env, ctx, origin) {
         }),
     });
 
-    // Free routes (e.g. gemma-4-31b-it:free via Google AI Studio) are heavily
-    // rate-limited upstream, especially for image requests. Retry transient
-    // 429/502/503 with backoff on the configured (free) model, then fall back to
-    // the paid sibling — same model, a fraction of a cent per call — so the
-    // feature never breaks when the free pool is exhausted. All retries happen
-    // here, before the body is consumed; once streaming starts we are committed.
     // Retry transient 429/502/503 with backoff, then fail over to MODEL_FALLBACK
     // (a cheaper sibling) if configured, so a single provider hiccup never breaks
     // the feature. The result is always cached/stored under env.MODEL so peek
-    // stays coherent regardless of which model actually answered.
+    // stays coherent regardless of which model actually answered. All retries
+    // happen here, before the body is consumed; once streaming starts we are
+    // committed.
     const fallback = env.MODEL_FALLBACK || null;
     const attempts = fallback
         ? [[model, 0], [model, 1000], [fallback, 0], [fallback, 1500]]
