@@ -33,15 +33,21 @@ const OVERPASS_ENDPOINTS = [
     'https://overpass.kumi.systems/api/interpreter',
 ];
 
-function buildOverpassQuery(south, west, north, east) {
+// broad mode (tight frames around precise sensors) also sweeps generic
+// industrial and agricultural buildings — real sources are often mapped only
+// as building=industrial plus a name (mine vent shafts, gas plants) — while
+// wide TROPOMI frames keep named buildings only so barns don't drown the KEY.
+function buildOverpassQuery(south, west, north, east, broad) {
     const bbox = `${south},${west},${north},${east}`;
     return `[out:json][timeout:25];(
-        nwr["man_made"~"^(petroleum_well|pipeline|storage_tank|works|gasometer|mineshaft|adit|spoil_heap|wastewater_plant|digester)$"](${bbox});
+        nwr["man_made"~"^(petroleum_well|pipeline|pumping_station|storage_tank|works|gasometer|flare|chimney|kiln|mineshaft|adit|spoil_heap|tailings_pond|wastewater_plant|digester)$"](${bbox});
         nwr["industrial"](${bbox});
-        nwr["landuse"~"^(industrial|quarry|landfill)$"](${bbox});
+        nwr["landuse"~"^(industrial|quarry|landfill${broad ? '|farmyard' : ''})$"](${bbox});
+        nwr["building"~"^(industrial|barn|cowshed|sty|stable|silo|digester|slurry_tank)$"]${broad ? '' : '["name"]'}(${bbox});
         nwr["power"="plant"](${bbox});
-        nwr["plant:source"~"gas|oil|coal"](${bbox});
-        nwr["amenity"="waste_transfer_station"](${bbox});
+        nwr["plant:source"~"gas|oil|coal|biogas"](${bbox});
+        nwr["generator:source"="biogas"](${bbox});
+        nwr["amenity"~"^(waste_transfer_station|waste_disposal)$"](${bbox});
         nwr["amenity"="recycling"]["recycling_type"="centre"](${bbox});
         nwr["pipeline"="substation"](${bbox});
         nwr["substance"~"gas|oil|petroleum|natural_gas"](${bbox});
@@ -49,8 +55,8 @@ function buildOverpassQuery(south, west, north, east) {
     );out tags bb;`;
 }
 
-async function queryOverpass(south, west, north, east) {
-    const query = buildOverpassQuery(south, west, north, east);
+async function queryOverpass(south, west, north, east, broad) {
+    const query = buildOverpassQuery(south, west, north, east, broad);
     for (const endpoint of OVERPASS_ENDPOINTS) {
         try {
             const resp = await fetch(endpoint, {
@@ -162,44 +168,47 @@ async function fetchWind(lat, lon, dateISO) {
     }
 }
 
-// ── per-source spatial-uncertainty model ──
-// one artifact, sized to the data. SRON/TROPOMI is the hard case: the ground
-// pixel is ~5.5×7 km and the plume drifts before it is imaged, so the true leak
-// sits anywhere within several km of the marker (≈2 km for a large isolated
-// emitter, 10 km+ in cluttered areas), almost always upwind — hence windBias,
-// which shifts the map frame upwind so the search area fills it.
-//   ringM    radius of the dashed uncertainty circle drawn on the map (m)
-//   viewM    half-width of the map frame (m); span ≈ 2·viewM
-//   searchKm radius to gather OGIM/OSM candidates (km)
+// ── per-sensor spatial model ──
+// one row per source/sensor class, matched top-down. specM is the published
+// positional accuracy of the reported coordinate (m); empM is an adopted
+// override where observed repeat-detection scatter contradicts it — keep the
+// evidence in a comment with each override. the dashed map ring is drawn at
+// empM ?? specM; viewM (frame half-width, m) and searchKm (candidate-gathering
+// radius) scale with it.
+const SENSORS = [
+    // carbon mapper airborne — aviris-ng/gao/av3 fly 3–8 m pixels
+    { src: 'cm', sat: /AVIRIS|GAO|AV3|AV20/, specM: 30, viewM: 80, searchKm: 1 },
+    // carbon mapper tanager-1 / enmap — 30 m pixels
+    { src: 'cm', sat: /TANAGER|ENMAP/, specM: 45, viewM: 130, searchKm: 1 },
+    // carbon mapper satellite fallback — emit etc., 60 m pixels
+    { src: 'cm', specM: 100, viewM: 320, searchKm: 1.5 },
+    // imeo — analyst-vetted, mixed sensors from ~25 m pixels up to tropomi
+    { src: 'imeo', specM: 600, viewM: 1600, searchKm: 2.5 },
+    // ghgsat c-series — 25 m pixels, nominally ~50 m. widened: 10 repeat
+    // detections over the jankowice mine vent shaft (2023–24) scatter ~130 m,
+    // and the old 160 m frame cropped the shaft out of the KEY (2026-07)
+    { src: 'ghgsat', specM: 50, empM: 150, viewM: 450, searchKm: 1 },
+    // sron — tropomi 5.5×7 km pixel; the plume drifts before imaging, so the
+    // source sits ≈2 km (isolated) to 10 km+ (cluttered) away, almost always
+    // upwind — hence upwind, which shifts the frame so the search area fills it
+    { src: 'sron', specM: 4000, viewM: 5500, searchKm: 11, upwind: true },
+    { specM: 300, viewM: 1200, searchKm: 2 }, // unknown source
+];
+
 function plumeUncertainty(p) {
     const sat = String(p.sat || '').toUpperCase();
-    if (p.src === 'cm') {
-        if (/AVIRIS|GAO|AV3|AV20/.test(sat))
-            return { ringM: 30, viewM: 80, searchKm: 1, windBias: false,
-                note: 'Airborne hyperspectral sensor with metre-scale pixels: the coordinate is precise to within a few tens of metres — the source is essentially at the ⊕.' };
-        if (/TANAGER|ENMAP/.test(sat))
-            return { ringM: 45, viewM: 130, searchKm: 1, windBias: false,
-                note: 'Satellite sensor with ~30 m pixels: the coordinate is accurate to within ~50 m.' };
-        return { ringM: 100, viewM: 320, searchKm: 1.5, windBias: false,
-            note: 'Satellite sensor with ~60 m pixels: the coordinate is accurate to within ~100 m.' };
-    }
-    if (p.src === 'imeo')
-        return { ringM: 600, viewM: 1600, searchKm: 2.5, windBias: false,
-            note: 'Detecting sensors range from ~25 m pixels to TROPOMI’s ~5.5×7 km. The coordinate is analyst-vetted: within ~500 m for high-resolution sensors, up to a few km when TROPOMI-derived.' };
-    if (p.src === 'ghgsat')
-        return { ringM: 50, viewM: 160, searchKm: 1, windBias: false,
-            note: 'GHGSat targeted satellite with ~25 m pixels: the coordinate pinpoints the source to within ~50 m — essentially at the ⊕.' };
-    if (p.src === 'sron')
-        return { ringM: 4000, viewM: 5500, searchKm: 11, windBias: true,
-            note: 'This is a TROPOMI detection. Its ground pixel is ~5.5×7 km and the plume drifts before being imaged, so the true source can lie several km from the ⊕ — roughly 2 km for a large isolated emitter, commonly 10 km or more in cluttered areas — and almost always UPWIND. Treat the ⊕ as the centre of a search area (the dashed circle), not the source itself.' };
-    return { ringM: 300, viewM: 1200, searchKm: 2, windBias: false, note: '' };
+    const s = SENSORS.find(r => (!r.src || r.src === p.src) && (!r.sat || r.sat.test(sat)));
+    const ringM = s.empM ?? s.specM;
+    const note = `The dashed ring shows its positional uncertainty (~${fmtMetres(ringM)}).`
+        + (s.upwind ? ' TROPOMI plumes drift before imaging, so the source is usually upwind of the ⊕, sometimes beyond the ring.' : '');
+    return { ringM, viewM: s.viewM, searchKm: s.searchKm, windBias: !!s.upwind, note };
 }
 
 // ── candidates + prompt ──
 
 // pick the most descriptive single type tag for an OSM feature
 const OSM_TYPE_KEYS = ['man_made', 'industrial', 'power', 'plant:source',
-                       'substance', 'landuse', 'amenity', 'aeroway', 'pipeline'];
+                       'substance', 'building', 'landuse', 'amenity', 'aeroway', 'pipeline'];
 function osmShortType(tags) {
     for (const k of OSM_TYPE_KEYS) if (tags[k]) return String(tags[k]).replace(/_/g, ' ');
     return 'site';
@@ -249,9 +258,9 @@ function sectorHint(sec) {
     }
 }
 
-// one clean artifact: an annotated satellite map plus a text KEY. the model is
-// trusted to read the imagery and judge for itself, rather than being walked
-// through a rulebook.
+// minimal by design: primarily data (detection record, map, wind, KEY) plus a
+// few neutral sentences of instructions. the model is trusted to read the
+// imagery and judge for itself, rather than being walked through a rulebook.
 function buildPlumePrompt(p, candidates, unc, place, wind, spanKm) {
     const lat = Number(p.lat).toFixed(4);
     const lon = Number(p.lon).toFixed(4);
@@ -263,27 +272,25 @@ function buildPlumePrompt(p, candidates, unc, place, wind, spanKm) {
     const sector = sectorHint(p.sec);
 
     const windLine = wind
-        ? `Daily-mean surface wind was ${wind.speed.toFixed(1)} m/s. The cyan arrow points DOWNWIND — the way the plume drifted, toward the ${compass(wind.toDeg)}. The source lies the opposite way: look ${compass(wind.fromDeg)} of the ⊕, against the arrow, where the map says "upwind".`
+        ? ` Daily-mean surface wind was ${wind.speed.toFixed(1)} m/s toward the ${compass(wind.toDeg)} — the cyan arrow shows the drift; upwind is ${compass(wind.fromDeg)}.`
         : '';
     const pipeNote = candidates.some(c => c.kind === 'pipeline') ? ' Yellow lines are pipelines.' : '';
 
-    return `You are a methane source-attribution analyst. You are shown one annotated satellite map and the full record that OpenStreetMap and the OGIM oil-&-gas inventory hold for this spot (the KEY). Use your own judgement.
+    return `You are a methane source-attribution analyst. You are shown one annotated satellite map and everything OpenStreetMap and the OGIM oil-&-gas inventory record for this spot (the KEY).
 
 A ${src} satellite (${sat}) measured a ${rateThr} t/hr methane plume near ${lat}°, ${lon}° in ${placeStr} on ${date}.${sector ? ' ' + sector : ''}
 
 THE MAP
-A satellite image about ${spanKm} km across. The pink ⊕ marks the reported detection coordinate. ${unc.note}${windLine ? ' ' + windLine : ''} Numbered pins are nearby infrastructure, listed in the KEY.${pipeNote}
+A satellite image about ${spanKm} km across. The pink ⊕ marks the reported detection coordinate. ${unc.note}${windLine} Numbered pins mark the KEY entries.${pipeNote}
 
-KEY (nearest the ⊕ first — copy an id verbatim into attributed_id)
+KEY (nearest the ⊕ first)
 ${formatCandidateKey(candidates)}
 
-Identify the single most likely source. Read the imagery first; the pins only supply names and ids. Rank candidates by typical likelihood: gas/processing plants, compressor stations and flares > wellheads, tanks, separators, dehydrators > buried pipelines and gathering lines, which vent far less — fall back to a pipeline only when nothing else is plausible. A coal mine or landfill in frame usually outranks everything.${wind ? ` Favour candidates to the ${compass(wind.fromDeg)} (upwind) of the ⊕.` : ''} If the frame shows no plausible source, say so plainly.
-
-Reply with ONLY this JSON object: {"source_label":…, "source_kind":…, "attributed_id":…, "paragraph":…}
-- source_label: ≤8 words, plain English for a journalist (e.g. "Caerus Uinta gas well", "Unlabelled tank battery", "Sanitary landfill", "No obvious source nearby"). Never an id or a field name.
+From the imagery and the KEY, identify the single most likely source of this plume, or state that none is apparent. Reply with ONLY this JSON object: {"source_label":…, "source_kind":…, "attributed_id":…, "paragraph":…}
+- source_label: ≤8 words of plain English for a journalist (e.g. "Unlabelled tank battery", "No obvious source nearby").
 - source_kind: one of well, facility, pipeline, mine, landfill, other, none.
-- attributed_id: an OGIM:/OSM: id copied verbatim from the KEY, or null when the visible source isn't listed. Never invent ids.
-- paragraph: 1–3 plain sentences naming the source and the visible evidence. Attribution is never certain — express a degree of confidence ("the source is likely…", "most consistent with…", reserving "almost certainly" for overwhelming evidence), never a flat "the source is". No rejected hypotheses, no mention of the pins/overlay, no web claims.`;
+- attributed_id: an id copied verbatim from the KEY, or null when the source isn't listed there.
+- paragraph: 1–3 sentences naming the source and the visible evidence, expressing an honest degree of confidence ("likely", "most consistent with" — never certainty) and not mentioning the map annotations.`;
 }
 
 // ── annotated Esri imagery snapshot ──
@@ -658,7 +665,7 @@ export function runPlumeAnalysis(feature, { force = false } = {}) {
         });
 
         const [overpassData, ogimItems, place] = await Promise.all([
-            queryOverpass(lat - dLat, lon - dLon, lat + dLat, lon + dLon),
+            queryOverpass(lat - dLat, lon - dLon, lat + dLat, lon + dLon, unc.searchKm <= 1.5),
             loadNearbyInfra(lon, lat, { maxResults: 40, radiusKm: unc.searchKm }),
             reverseGeocode(lat, lon),
         ]);

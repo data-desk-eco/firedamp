@@ -39,20 +39,21 @@ Requires `ogr2ogr`, `tippecanoe`, `tile-join` for OGIM. IMEO needs `IMEO_API_KEY
 
 Detail panel gathers these in parallel (search radius scales with the source's spatial uncertainty — see below):
 - OGIM facilities / wells / pipeline segments (local tile query).
-- OSM features via Overpass.
+- OSM features via Overpass, with tiered breadth: tight frames (searchKm ≤ 1.5, i.e. precise sensors) also sweep generic industrial/agricultural buildings and farmyards — real sources are often mapped only as `building=industrial` + a name (e.g. mine ventilation shafts); wide TROPOMI frames keep named buildings only so barns don't drown the KEY.
 - Reverse-geocoded place name (Nominatim).
 - Daily-mean surface wind for the plume coord+date (Open-Meteo archive).
 
-The design philosophy is **one clean artifact + the model's own judgement**, not a rulebook. The pipeline produces a single annotated satellite map (`captureAnnotatedMap` in `web/analysis.js`) — Esri imagery framed to the uncertainty, with a dashed uncertainty ring, a wind arrow, the magenta ⊕ detection marker, and **numbered pins** for the nearest ~12 merged OGIM+OSM features. The prompt (`buildPlumePrompt`) describes the map briefly, lists the pins as a text **KEY** (number → name/type/`OGIM:`/`OSM:` id), and asks the model to read the imagery and attribute the source. Sent to the Worker → OpenRouter with `source_label`, `source_kind`, `attributed_id`, `paragraph` output, stored in D1.
+The design philosophy is **one clean artifact + the model's own judgement**, not a rulebook. The prompt is deliberately minimal — primarily data (detection record, map, wind, KEY) plus a few neutral sentences of instruction; no source-type ranking heuristics (a "landfill outranks everything" hint once sent a mislabelled Silesian spoil heap to production). The pipeline produces a single annotated satellite map (`captureAnnotatedMap` in `web/analysis.js`) — Esri imagery framed to the uncertainty, with a dashed uncertainty ring, a wind arrow, the magenta ⊕ detection marker, and **numbered pins** for the nearest ~12 merged OGIM+OSM features. The prompt (`buildPlumePrompt`) describes the map briefly, lists the pins as a text **KEY** (number → name/type/`OGIM:`/`OSM:` id), and asks the model to read the imagery and attribute the source. Sent to the Worker → OpenRouter with `source_label`, `source_kind`, `attributed_id`, `paragraph` output, stored in D1.
 
 **Peek shortcut**: re-opening an already-analysed plume hits `GET /api/analysis/<plumeId>`, restores from D1, and skips Overpass / Nominatim / Open-Meteo / image / OpenRouter. The regenerate `↻` button forces a full re-run (`force: true`).
 
 **Key handling**: OpenRouter key is a Wrangler secret on the Worker — never in the browser. Worker URL is configured via `<meta name="firedamp-api">` in `web/index.html`. Local Worker dev: `make worker-dev` then visit `?api=local`.
 
-**Spatial uncertainty** (`plumeUncertainty` in `web/analysis.js`) drives the map frame size, the search radius, and the dashed ring, per source/sensor:
-- CM AVIRIS-NG/GAO/AV3/AV20: tens of m → tight ~0.5 km frame.
-- CM Tanager/EnMAP: ~50 m. CM satellite (EMIT etc.): ~100 m → ~1 km frame.
-- IMEO: <500 m to a few km → ~3 km frame.
+**Spatial uncertainty** (`SENSORS` table in `web/analysis.js`) drives the map frame size, the search radius, and the dashed ring, per source/sensor. Each row holds `specM` (published positional accuracy) and optionally `empM` — a tracked empirical override adopted where observed repeat-detection scatter contradicts the spec, with the evidence kept in the row's comment. Current rows:
+- CM AVIRIS-NG/GAO/AV3/AV20: ~30 m → tight ~0.16 km frame.
+- CM Tanager/EnMAP: ~45 m. CM satellite (EMIT etc.): ~100 m → ~0.6 km frame.
+- IMEO: ~600 m (analyst-vetted, mixed sensors) → ~3 km frame.
+- GHGSat: spec ~50 m, **widened empirically to 150 m** (repeat detections over the Jankowice mine vent shaft scatter ~130 m; the old 160 m frame cropped the true source out of the KEY) → ~0.9 km frame.
 - SRON/TROPOMI: pixel ~5.5×7 km; source ≈2 km (isolated) to 10 km+ (cluttered), almost always **upwind**. Frame is ~11 km, **shifted upwind** by the daily-mean wind so the search area fills it; ~11 km search radius. The ⊕ is the centre of a search area, not the source.
 
 ## Worker (`worker/`)
