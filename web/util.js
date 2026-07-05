@@ -55,30 +55,3 @@ export function offsetLatLon(lat, lon, distM, bearingDeg) {
         lon: lon + (distM * Math.sin(br)) / (111320 * Math.cos(lat * Math.PI / 180)),
     };
 }
-
-// ── spatial grid for fast proximity filtering (custom layers) ──
-
-export function buildSpatialGrid(sites, cellDeg) {
-    const grid = new Map();
-    for (const [lon, lat] of sites) {
-        const key = Math.floor(lon / cellDeg) + ',' + Math.floor(lat / cellDeg);
-        if (!grid.has(key)) grid.set(key, []);
-        grid.get(key).push([lon, lat]);
-    }
-    return grid;
-}
-
-export function isWithinRadius(lon, lat, grid, cellDeg, radiusKm) {
-    const cx = Math.floor(lon / cellDeg);
-    const cy = Math.floor(lat / cellDeg);
-    for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-            const cell = grid.get((cx + dx) + ',' + (cy + dy));
-            if (!cell) continue;
-            for (const [slon, slat] of cell) {
-                if (haversineKm(lat, lon, slat, slon) <= radiusKm) return true;
-            }
-        }
-    }
-    return false;
-}

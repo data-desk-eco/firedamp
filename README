@@ -28,7 +28,6 @@ Repo layout
       detail.js        detail panel, permalinks, interactions
       analysis.js      AI attribution pipeline + Worker client
       util.js          geometry + formatting helpers
-      layers.js        custom overlay definitions (?layer=<slug>)
       style.css
       index.html
       dataset.html     AI-attribution browser (not currently linked)
@@ -85,7 +84,6 @@ URL scheme
 ----------
     Map position     #map=<zoom>/<lat>/<lon>
     Plume permalink  #plume=<id>
-    Custom layer     ?layer=<slug>
     Local Worker     ?api=local   (when running `make worker-dev`)
 
 

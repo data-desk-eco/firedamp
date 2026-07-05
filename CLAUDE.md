@@ -83,14 +83,12 @@ ES modules, no build step. Key files:
 - `web/analysis.js` — AI attribution pipeline + Worker client.
 - `web/util.js` — geometry + formatting helpers.
 - `web/style.css` — glass-morphism dark UI, CMY source colours.
-- `web/layers.js` — custom overlay definitions, loaded via `?layer=<slug>`.
 - `web/dataset.html` — AI dataset browser (in source, but not linked from the main UI and not copied into the Pages deploy yet; re-enable by uncommenting the subtitle link in `index.html` and adding it to `scripts/dist.sh`).
 
 ### URL scheme
 
 - `#map=<zoom>/<lat>/<lon>` — MapLibre-managed.
 - `#plume=<id>` — plume permalink (position derived from data).
-- `?layer=<slug>` — custom overlay (see `layers.js`).
 - `?api=local` — point AI requests at `http://localhost:8787` (wrangler dev).
 
 ### Overlap navigation
