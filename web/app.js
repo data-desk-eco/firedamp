@@ -35,6 +35,9 @@ const FIREDAMP_API = (() => {
     return document.querySelector('meta[name="firedamp-api"]')?.content?.trim() || '';
 })();
 const OPENROUTER_MODEL_LABEL = 'Qwen3-VL';
+// ?debug — skip the peek fast-path and show the exact prompt + annotated map
+// sent to the model. the worker still serves its D1 cache, so no LLM cost.
+const DEBUG_AI = new URLSearchParams(location.search).has('debug');
 
 let analysisRequestId = 0;
 
@@ -1655,6 +1658,15 @@ async function streamPlumeLLM(container, prompt, plume, mapOpts, { force = false
         console.warn('Esri snapshot failed, proceeding text-only:', err);
     }
 
+    if (DEBUG_AI) {
+        document.getElementById('enrich-debug')?.remove();
+        container.insertAdjacentHTML('beforebegin',
+            `<details id="enrich-debug" open><summary>agent input</summary>` +
+            (imageDataUrl ? `<img src="${imageDataUrl}" alt="annotated map">` : '<em>no image (capture failed)</em>') +
+            `<pre>${escapeHtml(prompt)}</pre></details>`);
+        console.log('[firedamp debug] prompt:\n' + prompt, '\nimage:', imageDataUrl);
+    }
+
     statusEl.textContent = `Querying ${OPENROUTER_MODEL_LABEL}…`;
 
     try {
@@ -1746,7 +1758,7 @@ function runPlumeAnalysis(feature, { force = false } = {}) {
         // plume, use it directly and skip Overpass / Nominatim / Open-Meteo
         // / image capture / OpenRouter entirely. This is what makes
         // re-opening a previously-analysed plume effectively free.
-        if (!force && FIREDAMP_API) {
+        if (!force && !DEBUG_AI && FIREDAMP_API) {
             try {
                 const peek = await fetch(`${FIREDAMP_API}/api/analysis/${encodeURIComponent(plumeId)}`);
                 if (analysisRequestId !== id) return;

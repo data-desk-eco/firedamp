@@ -708,6 +708,28 @@ h4.legend-section {
     padding: 6px 0;
 }
 
+/* ?debug — exact model input (annotated map + prompt) */
+#enrich-debug {
+    font-size: var(--font-xs);
+    color: var(--text-hint);
+    margin-bottom: 8px;
+}
+#enrich-debug img {
+    max-width: 100%;
+    border-radius: 4px;
+    margin: 6px 0;
+}
+#enrich-debug pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+    padding: 6px;
+    margin: 0;
+}
+
 .enrich-status {
     font-size: var(--font-xs);
     color: var(--text-hint);
