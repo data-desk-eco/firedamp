@@ -1,0 +1,183 @@
+{
+ "14373": {
+  "attributed_id": "OSM:way/527023432",
+  "confidence": "high",
+  "evidence": [
+   "https://www.gem.wiki/KWK_ROW_Coal_Mine",
+   "https://www.gem.wiki/%C5%9Al%C4%85skie_Voivodship_Methane_Observation_2023-06-19,_5",
+   "https://ember-energy.org/eu-coal-mines-still-vent-methane-satellite-findings-from-poland/",
+   "https://www.openstreetmap.org/way/527023432",
+   "https://data.carbonmapper.org/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Polska Grupa G\u00f3rnicza (PGG)",
+  "paragraph": "The methane plume detected by GHGSat-C6 on 29 May 2023 is most consistent with emissions from the Szyb III Poniatowski ventilation shaft of the KWK ROW underground coal mine in Jankowice, Poland. The plume origin (50.0309, 18.5722) sits just 150 m from the shaft, with wind from the NE carrying the plume toward the detection point; 15 separate satellite detections from GHGSat, Carbon Mapper, EMIT, and EnMAP cluster tightly around this shaft between 2023 and 2025, with eight explicitly classified as coal-mine sources. Global Energy Monitor researchers independently attributed plumes at these exact coordinates to the KWK ROW mine's ventilation system, and a February 2026 Ember analysis documented repeated methane venting from drainage systems at the Jankowice unit at rates of 1,000\u20131,800 kg/hr \u2014 consistent with the 1,774 kg/hr observed here.",
+  "run_at": "2026-07-07",
+  "source_kind": "mine",
+  "source_label": "Ventilation shaft Szyb III Poniatowski, KWK ROW mine",
+  "source_name": "Szyb III Poniatowski KWK ROW Ruch Jankowice"
+ },
+ "25efba54-83e0-40fe-b972-b9860d1d0a80": {
+  "attributed_id": "OSM:way/368996867",
+  "confidence": "medium",
+  "evidence": [
+   "https://pl.wikipedia.org/wiki/Kopalnia_W\u0119gla_Kamiennego_Jas-Mos",
+   "https://www.gem.wiki/Jas_Mos_Coal_Mine",
+   "https://www.openstreetmap.org/way/368996867",
+   "https://srk.com.pl/",
+   "https://www.openstreetmap.org/way/368356352"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Sp\u00f3\u0142ka Restrukturyzacji Kopal\u0144 (SRK) S.A.",
+  "paragraph": "The ~37 t/hr methane plume detected by TROPOMI on 2 March 2023 is most consistent with emissions from the KWK Jas-Mos underground coal mine, located 4.2 km east of the detection in the Upper Silesian Coal Basin. Although the mine was officially closed on 31 December 2022 and transferred to SRK for restructuring, ventilation systems typically remain operational during early-stage liquidation, and abandoned deep mines in gassy coal seams can continue to emit methane at high rates. A second TROPOMI detection of similar magnitude (33 t/hr) was recorded 1.9 km from the mine, and wind from the northeast is broadly consistent with the plume being detected west-southwest of the facility. The rate \u2014 equivalent to 37 tonnes per hour \u2014 is characteristic of mine ventilation shaft emissions and far exceeds what any landfill or industrial facility in the area could produce.",
+  "run_at": "2026-07-07",
+  "source_kind": "mine",
+  "source_label": "KWK Jas-Mos coal mine ventilation (under liquidation)",
+  "source_name": "Kopalnia W\u0119gla Kamiennego \u201eJas-Mos\u201d"
+ },
+ "GAO20220627t163654p0000-A": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://carbonmapper.org/data/plume/GAO20220627t163654p0000-A"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": null,
+  "paragraph": "The 952 kg/hr methane plume detected by the Global Airborne Observatory on 27 June 2022 is most consistent with an oil and gas facility at 47.9699\u00b0N, 103.2070\u00b0W \u2014 the upwind (southwest) end of the imaged plume mask at the reported coordinates. A southwest wind of 3 m/s carried the plume northeast across the detection scene. Carbon Mapper classified the source as Oil & Gas (1B2), and the location sits in the heart of North Dakota's Bakken shale play where Oasis Petroleum North America LLC and other operators maintain dense well pads. However, neither the OGIM v2.7 inventory nor OpenStreetMap records any facility within 630 metres of the inferred source point \u2014 the nearest mapped wells are the Oasis-operated BERQUIST pad roughly 760 metres south. Given the aircraft sensor's 5\u201315 metre geolocation accuracy, the emitting infrastructure is almost certainly at the plume origin point itself and is simply absent from available asset databases. No repeat detections have been recorded at this exact location, suggesting an intermittent or one-off emission event such as a blowdown, maintenance activity, or temporary upset.",
+  "run_at": "2026-07-07",
+  "source_kind": "facility",
+  "source_label": "Unmapped oil and gas infrastructure in the Bakken",
+  "source_name": null
+ },
+ "emi20240217t052731p04010-A": {
+  "attributed_id": "OSM:way/293501831",
+  "confidence": "high",
+  "evidence": [
+   "https://www.gem.wiki/East_Well_of_Sihe_Coal_Mine",
+   "https://baike.baidu.com/item/%E6%99%8B%E7%85%A4%E9%9B%86%E5%9B%A2%E5%AF%BA%E6%B2%B3%E7%9F%BF/5417851",
+   "https://www.globalmethane.org/expo-docs/posters/CoalMines/CM_CN_Project_Sihe_FINAL.pdf",
+   "https://www.climatechangenews.com/2022/04/25/chinas-coal-miners-face-a-challenge-to-capture-leaked-methane/",
+   "https://cdm.unfccc.int/Projects/DB/DNV-CUK1214826895.32/view"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Jinneng Holding Equipment Manufacturing Group",
+  "paragraph": "A ventilation shaft of the Sihe Coal Mine, one of China's largest and gassiest underground coal mines, is the source of this persistent methane plume. The detection cluster at 35.6084\u00b0N, 112.5282\u00b0E sits approximately 1.4 km NNE of the mine's main industrial complex and has been observed emitting methane across 19 high-confidence satellite detections from four sensors (Carbon Mapper, GHGSat, EMIT, PRISMA) between 2021 and 2026, with rates ranging from 4,000 to over 37,000 kg/hr. The Sihe mine, operated by Jinneng Holding in the Qinshui Basin, has a documented absolute gas emission rate of 486.6 m\u00b3/min and is classified as an outburst-prone mine; its CMM power plant captures high-concentration methane but roughly 40% of mine gas is low-concentration and vented. The TROPOMI instrument has also detected enormous plumes of up to 242,000 kg/hr within 1.5 km of this location, consistent with combined emissions from multiple ventilation shafts across the Sihe complex.",
+  "run_at": "2026-07-07",
+  "source_kind": "mine",
+  "source_label": "Sihe Coal Mine ventilation shaft, Qinshui Basin, Shanxi",
+  "source_name": "Sihe Coal Mine (Jinneng Holding Equipment Manufacturing Group)"
+ },
+ "f2fd0ea9-3f92-486d-9062-5bf880c737db": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://www.foxnews.com/world/explosions-rock-iranian-gas-pipeline-suspected-terrorist-action.amp",
+   "https://en.wikipedia.org/wiki/2024_in_Iran",
+   "https://www.openstreetmap.org/way/538321219"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "National Iranian Gas Company (NIGC)",
+  "paragraph": "A natural gas pipeline is the likely source of this 162 t/hr methane plume, detected by EMIT on 14 February 2024. The plume sits directly above an underground gas transmission pipeline (OSM Way 538321219), with the wind from the SSW aligning the detection precisely downwind of the pipeline segment. On the same day, explosions described by Iranian officials as 'sabotage and terrorist action' struck this very pipeline \u2014 a 790-mile trunkline running from Asaluyeh to the Caspian Sea \u2014 with Iran's gas network control centre confirming blasts at several locations along the route. A second satellite sensor (Carbon Mapper) detected a 42 t/hr plume at the same coordinates, corroborating a major release event.",
+  "run_at": "2026-07-07",
+  "source_kind": "pipeline",
+  "source_label": "Natural gas pipeline venting during Feb 14 sabotage",
+  "source_name": "Iran Gas Trunkline (IGAT), Asaluyeh\u2013Caspian segment"
+ },
+ "sron_20260527_41.43N_88.33W|SRON_Weekly_Methane_Plumes_2026_wk22_v20260601.csv": {
+  "attributed_id": "OGIM:108649",
+  "confidence": "medium",
+  "evidence": [
+   "https://www.epa.gov/enforcement/aux-sable-liquid-products-clean-air-act-settlement",
+   "https://www.pembina.com/operations/facilities/aux-sable",
+   "https://ghgdata.epa.gov/flight/details/1005770/2023/E",
+   "http://www.o-p-s.net/aux-sable-liquid-products-agrees-to-take-measures-to-resolve-clean-air-act-violations-at-its-natural-gas-processing-facility-in-morris-illinois/",
+   "https://plaincarbon.com/facility/1005770"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Pembina (Aux Sable Liquid Products LP)",
+  "paragraph": "Aux Sable Liquid Products' natural gas processing facility in Morris, Illinois, is the most likely source of the 58,000 kg/hr methane plume detected by TROPOMI on 27 May 2026. Located 2.8 km southeast of the detection coordinate \u2014 well within the 5.5\u00d77 km TROPOMI pixel \u2014 the facility is the largest natural gas processing plant in the United States, capable of processing 2.1 billion cubic feet of gas per day. The plant has a documented history of fugitive emissions: a 2018 EPA settlement found it had exceeded its VOC emission limits by approximately 27.5 tons per year since 2000 due to equipment leaks and faulty emission calculations, and it was required to implement enhanced leak detection and repair. The very light wind (0.6 m/s from the NNE) means the plume would have drifted only about 2 km, and Aux Sable is the only facility within range with the throughput to plausibly generate a 58 t/hr emission, likely from a process upset, emergency blowdown, or flare malfunction. No other satellite detections exist at this location in the 4-source archive, consistent with an intermittent operational event.",
+  "run_at": "2026-07-07",
+  "source_kind": "facility",
+  "source_label": "Aux Sable gas processing plant, Morris Illinois",
+  "source_name": "Aux Sable Liquid Products"
+ },
+ "sron_20260530_21.82S_148.47E|SRON_Weekly_Methane_Plumes_2026_wk22_v20260601.csv": {
+  "attributed_id": "OSM:way/293259137",
+  "confidence": "high",
+  "evidence": [
+   "https://www.gem.wiki/Coppabella_coal_mine",
+   "https://www.openstreetmap.org/way/293259137",
+   "https://data.carbonmapper.org/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Coppabella and Moorvale Joint Venture (CMJV, majority Peabody Energy)",
+  "paragraph": "The 23,000 kg/hr TROPOMI methane plume detected on 30 May 2026 is most consistent with fugitive emissions from the Coppabella Coal Mine, a large open-cut metallurgical coal mine in Queensland's Bowen Basin. The mine sits 5.2 km WSW \u2014 directly upwind of the plume coordinate under the day's WSW wind \u2014 and the plume is observed ENE of the mine, precisely matching the wind direction. Coppabella has a dense detection record: the 86-detection archive for this area includes 15 GHGSat point-source detections (600\u20133,200 kg/hr) clustered within 0.3\u20131.9 km of the mine's OSM boundary, Carbon Mapper and IMEO detections explicitly classified as 'coal', and four prior TROPOMI detections at 17,000\u201321,000 kg/hr. The mine reports 791,000 tonnes CO\u2082-equivalent in annual methane emissions under Australia's National Greenhouse and Energy Reporting scheme, and the Global Energy Monitor wiki associates multiple Carbon Mapper methane plumes directly with this facility.",
+  "run_at": "2026-07-07",
+  "source_kind": "mine",
+  "source_label": "Coppabella Coal Mine, Bowen Basin surface mine",
+  "source_name": "Coppabella Coal Mine"
+ },
+ "tan20250102t105724c00s4001-A": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://www.theguardian.com/commentisfree/2024/apr/09/methane-pollution-organic-waste-landfills",
+   "https://phys.org/news/2025-12-satellites-tackle-landfill-methane-leaks.html"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": null,
+  "paragraph": "A municipal solid waste landfill near Z\u00e9ralda, Algeria, is the most consistent source for this plume. Fourteen satellite detections from Carbon Mapper and UN IMEO/EMIT spanning October 2023 to January 2026 \u2014 all classified as 'waste' sector and clustered within roughly 300 metres \u2014 reveal a persistent, high-emitting source with rates reaching 30,900 kg/hr. No oil and gas infrastructure or coal mines exist within the search radius, and the emission rates are characteristic of a large landfill rather than a wastewater plant or agricultural source. The facility is not explicitly tagged in OpenStreetMap and its official name could not be confirmed through web research, but the evidence pattern \u2014 multi-sensor persistence, waste-sector classification, location in a known Algiers waste-shed, and rate magnitude \u2014 points decisively to a major landfill, likely the CET (Centre d'Enfouissement Technique) serving western Algiers.",
+  "run_at": "2026-07-07",
+  "source_kind": "landfill",
+  "source_label": "Large landfill near Z\u00e9ralda, western Algiers",
+  "source_name": null
+ },
+ "tan20251016t113246c82s4001-A": {
+  "attributed_id": "OGIM:123630",
+  "confidence": "high",
+  "evidence": [
+   "https://reporterre.net/Chasseurs-de-methane-ils-cartographient-cette-gigantesque-menace-invisible-a-l-oeil-nu",
+   "https://www.elengy.com/services/donnees-operationnelles/programme-travaux-maintenance",
+   "https://www.aria.developpement-durable.gouv.fr/accident/64627/",
+   "https://www.elengy.com/implantations/terminal-methanier-fos-tonkin",
+   "https://www.gem.wiki/Fos_Tonkin_LNG_Terminal"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Elengy (ENGIE subsidiary)",
+  "paragraph": "The Fos Tonkin LNG terminal is the likely source of this 988 kg/hr methane plume. The Carbon Mapper Tanager detection on 16 October 2025 is located just 66 metres SSE of the terminal \u2014 directly downwind of the facility under NNW winds. French environmental outlet Reporterre specifically identified this same October 2025 Carbon Mapper detection as 'une \u00e9norme fuite sur le terminal m\u00e9thanier de Fos-Tonkin.' The detection coincides with a documented strike at the terminal (17 September to 30 November 2025) during which Elengy publicly declared modified emissions. A second Tanager detection nine days earlier (281 kg/hr on 7 October) suggests a persistent emission source active throughout this period.",
+  "run_at": "2026-07-07",
+  "source_kind": "facility",
+  "source_label": "Fos Tonkin LNG terminal, Fos-sur-Mer",
+  "source_name": "Fos Tonkin LNG Terminal (Terminal m\u00e9thanier de Fos Tonkin)"
+ },
+ "tan20260101t053820c53s4001-B": {
+  "attributed_id": "OSM:way/1018360448",
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/way/1018360448",
+   "https://doi.org/10.1007/978-981-15-0532-4_15",
+   "https://doi.org/10.3844/ajessp.2019.167.179",
+   "https://doi.org/10.3844/ajessp.2018.234.245",
+   "https://en.wikipedia.org/wiki/Matuail"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Dhaka South City Corporation",
+  "paragraph": "Matuail Landfill is the likely source of this 599 kg/hr methane plume. The detection is just 55 metres from the landfill centroid, well within Carbon Mapper's tens-to-hundreds-of-metres precision, and the plume is classified as waste-sector. Eight high-resolution satellite detections (Tanager, EMIT, EnMAP) from 2023 to 2026 cluster within 350 metres of the landfill, with rates of 539\u20133,713 kg/hr \u2014 a persistent pattern consistent with a large municipal landfill lacking gas capture. Wind on the detection day was from the WNW at 1.4 m/s, and a same-day Tanager detection 330 metres ESE of the landfill confirms the downwind drift. No oil and gas infrastructure or coal mines exist nearby, and the only other mapped features within 2 km are a PVC pipe factory, an industrial area, and a water pumping station \u2014 none capable of sustained methane emissions at this scale. Published research has specifically quantified greenhouse gas emissions from Matuail Landfill, confirming it as a major and persistent methane source in Dhaka.",
+  "run_at": "2026-07-07",
+  "source_kind": "landfill",
+  "source_label": "Matuail Landfill, Dhaka's main municipal solid waste site",
+  "source_name": "Matuail Landfill"
+ },
+ "tan20260121t184851c40s4001-B": {
+  "attributed_id": "OGIM:108916",
+  "confidence": "high",
+  "evidence": [],
+  "model": "deepseek-v4-pro",
+  "operator": "Targa Pipeline MC WestTex LLC",
+  "paragraph": "The Midkiff gas processing plant (operated by Targa Pipeline MC WestTex LLC) is the likely source. The plume was detected by Carbon Mapper's Tanager satellite at 6,585 kg/hr on 21 January 2026, with surface winds from the north-northwest placing the source at the upwind end of the plume mask \u2014 directly over the Midkiff Plant complex. The plant, a 230 MMCFD gas gathering and processing facility, has been detected emitting methane persistently across 133 satellite observations from 2019 through 2025 by multiple sensors including the Global Airborne Observatory, AVIRIS-NG, AVIRIS-3, GHGSat, and Tanager, with rates ranging from ~100 to over 2,700 kg/hr. The tight clustering of aircraft-detected plumes (tens-of-metres accuracy) at 31.643\u201331.645\u00b0N, 101.765\u2013101.767\u00b0W falls within the plant's industrial footprint mapped as 'Atlas Pipeline Midkiff Plant' in OpenStreetMap.",
+  "run_at": "2026-07-07",
+  "source_kind": "facility",
+  "source_label": "Targa Midkiff gas processing plant",
+  "source_name": "Midkiff Plant"
+ }
+}

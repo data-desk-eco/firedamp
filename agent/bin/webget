@@ -1,0 +1,6 @@
+#!/bin/sh
+# fetch a url as readable text: jina reader first, raw html fallback, capped
+[ -z "$1" ] && { echo "usage: webget <url>"; exit 1; }
+out=$(curl -sm 30 "https://r.jina.ai/$1")
+case "$out" in ""|*'"code":4'*|*'"code":5'*) out=$(curl -sLm 30 -A "Mozilla/5.0" "$1");; esac
+printf '%s' "$out" | head -c 16000

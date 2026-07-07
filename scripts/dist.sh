@@ -10,6 +10,7 @@ mkdir -p dist/data
 cp web/index.html web/style.css web/*.js dist/
 cp -r web/vendor dist/vendor
 cp web/data/plumes.bin dist/data/
+cp web/data/attributions.json dist/data/ 2>/dev/null || echo "{}" > dist/data/attributions.json
 
 # bust the entry points in index.html and the es-module import graph
 sed -i.bak -E "s#(app\.js|style\.css)#\1?v=$V#g" dist/index.html

@@ -21,6 +21,13 @@ const DEBUG_AI = new URLSearchParams(location.search).has('debug');
 
 let analysisRequestId = 0;
 
+// bulk agent-produced attributions, one static json for the whole dataset
+let attribDb = null;
+async function staticAttribution(id) {
+    attribDb ??= fetch('data/attributions.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+    return (await attribDb)[id] || null;
+}
+
 // invalidate any in-flight pipeline/stream (called when the panel closes)
 export function cancelAnalysis() {
     analysisRequestId++;
@@ -466,9 +473,14 @@ function renderAnalysisHTML(text) {
     const p = parseAnalysis(text);
     if (!p) return `<p class="enrich-para">${escapeHtml(text)}</p>`;
     const labelHtml = sourceLabelHtml(p.source_label || '', p.attributed_id);
+    const evidence = Array.isArray(p.evidence) && p.evidence.length
+        ? `<div class="enrich-evidence">${p.evidence.map((u, i) =>
+            `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" title="${escapeHtml(u)}">[${i + 1}]</a>`).join(' ')}</div>`
+        : '';
     return `<div class="enrich-report">
-        <div class="enrich-source">${labelHtml}</div>
+        <div class="enrich-source">${labelHtml}${p.confidence ? ` <span class="enrich-conf">${escapeHtml(p.confidence)}</span>` : ''}</div>
         ${p.paragraph ? `<p class="enrich-para">${escapeHtml(p.paragraph)}</p>` : ''}
+        ${evidence}
     </div>`;
 }
 
@@ -623,6 +635,18 @@ export function runPlumeAnalysis(feature, { force = false } = {}) {
     (async () => {
         const el = targetEl();
         if (!el) return;
+
+        // static agentic attributions (agent/run.py → data/attributions.json)
+        // take precedence over the on-demand worker path; ↻ forces a live run.
+        if (!force) {
+            const rec = await staticAttribution(plumeId);
+            if (analysisRequestId !== id) return;
+            if (rec) {
+                el.innerHTML = renderAnalysisHTML(JSON.stringify(rec));
+                fetchWind(lat, lon, p.dt).then(w => { if (analysisRequestId === id) renderWind(w); });
+                return;
+            }
+        }
 
         // fast path: if the Worker already has a cached analysis for this
         // plume, use it directly and skip Overpass / Nominatim / Open-Meteo

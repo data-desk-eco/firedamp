@@ -56,6 +56,22 @@ The design philosophy is **one clean artifact + the model's own judgement**, not
 - GHGSat: spec ~50 m, **widened empirically to 150 m** (repeat detections over the Jankowice mine vent shaft scatter ~130 m; the old 160 m frame cropped the true source out of the KEY) → ~0.9 km frame.
 - SRON/TROPOMI: pixel ~5.5×7 km; source ≈2 km (isolated) to 10 km+ (cluttered), almost always **upwind**. Frame is ~11 km, **shifted upwind** by the daily-mean wind so the search area fills it; ~11 km search radius. The ⊕ is the centre of a search area, not the source.
 
+## Agentic attribution (`agent/`)
+
+Bulk, offline attribution that supersedes the one-shot vision path for any plume it has covered: `agent/run.py` loops through plumes and runs a full research agent per plume — pi headless driving DeepSeek (`deepseek-v4-pro`, needs `DEEPSEEK_API_KEY`) with bash + web tools, no imagery. Results accumulate in `web/data/attributions.json` (committed to git; dist.sh copies it), which the frontend consults before falling back to the Worker path (`↻` still forces a live Worker run).
+
+Per plume the driver assembles `context.json` from local data via `data/context.duckdb` (`make attr-db`, ~1 GB, rebuild after refreshing sources): OGIM v2.7 point layers + the containing O&G field, the OSM extract (`data/osm/*.csv`, wide radii keep named/high-signal features only), Global Coal Mine Tracker mines, the full 4-source detection history within 10–30 km (repeat detections are the strongest single signal), Open-Meteo daily-mean wind and a Nominatim place (both cached in `data/cache/`). Search radius scales with sensor uncertainty like the frontend `SENSORS` table, but wider (1.5–15 km).
+
+The agent brief is `agent/task.md`: hypothesise from local evidence → research candidates on the web (`agent/bin/websearch` = DDG lite; `agent/bin/webget` = Jina reader with raw fallback; local-language searches encouraged) → cross-check against detection history → decide honestly, writing `result.json` with the Worker-compatible schema plus `source_name`, `operator`, `confidence`, `evidence` URLs. The driver validates `attributed_id` against the context (invented ids are nulled) before merging.
+
+```
+make attr-db                     # build data/context.duckdb
+uv run agent/run.py <ids...>     # attribute specific plumes
+uv run agent/run.py --top 50 --src sron -j 4
+```
+
+Already-attributed plumes are skipped unless `-f`. Full transcripts land in `agent/runs/<id>/log.json` (gitignored) — review them when iterating on the brief. ~5 min and ~1¢ per plume.
+
 ## Worker (`worker/`)
 
 Cloudflare Worker `firedamp-api`. See `worker/README` for setup and endpoints. Common ops:

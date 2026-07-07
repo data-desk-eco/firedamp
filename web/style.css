@@ -730,3 +730,21 @@ h4.legend-section {
     margin: 0;
 }
 .enrich-para:empty { display: none; }
+
+.enrich-conf {
+    font-size: var(--font-xs, 11px);
+    color: var(--text-faint);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.enrich-evidence {
+    margin-top: 6px;
+    font-size: var(--font-xs, 11px);
+}
+.enrich-evidence a {
+    color: var(--text-faint);
+    text-decoration: none;
+    margin-right: 4px;
+}
+.enrich-evidence a:hover { color: var(--text-primary); }

@@ -1,4 +1,4 @@
-.PHONY: data ogim ogim-upload rebuild serve vendor worker-dev worker-deploy worker-schema worker-tail clean clean-all help
+.PHONY: attr attr-db data ogim ogim-upload rebuild serve vendor worker-dev worker-deploy worker-schema worker-tail clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
@@ -68,3 +68,10 @@ help:
 	@echo "make worker-tail   Tail Worker logs"
 	@echo "make clean         Remove generated data files"
 	@echo "make clean-all     Remove all generated files including vendor"
+
+# ── agentic attribution (agent/) ─────────────────────────────────
+attr-db:
+	uv run agent/run.py --init-db
+
+attr:
+	uv run agent/run.py --top 20 -j 4
