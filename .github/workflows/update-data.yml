@@ -11,6 +11,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: pages
@@ -91,3 +92,13 @@ jobs:
       - id: deployment
         if: steps.diff.outputs.changed == 'true'
         uses: actions/deploy-pages@v5
+
+      # data staleness must not go unnoticed: file an issue on failure
+      # (skipped if one is already open, so persistent breakage = one issue)
+      - name: Alert on failure
+        if: failure()
+        run: |
+          gh issue list --search 'update-data failing in:title' --state open --json number --jq '.[0].number' | grep -q . || \
+            gh issue create --title 'update-data failing' --body "failed run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+        env:
+          GH_TOKEN: ${{ github.token }}

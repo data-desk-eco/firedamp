@@ -1,8 +1,26 @@
+import time
+
 import httpx
 from pathlib import Path
 
 BASE_URL = "https://api.carbonmapper.org/api/v1/catalog/plume-csv"
 PAGE_SIZE = 50000
+
+
+# the full csv is a ~44 MB chunked response streamed over minutes; transient
+# mid-body disconnects happen, so retry with backoff. the response is fully
+# buffered inside client.get, so a retry never duplicates written rows.
+def get(client, url, tries=4):
+    for i in range(tries):
+        try:
+            resp = client.get(url)
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPError as e:
+            if i == tries - 1:
+                raise
+            print(f"  retrying after {e!r}")
+            time.sleep(5 * 2**i)
 
 
 def main():
@@ -18,8 +36,7 @@ def main():
         while True:
             url = f"{BASE_URL}?gas=CH4&limit={PAGE_SIZE}&offset={offset}"
             print(f"  Fetching offset={offset}...")
-            resp = client.get(url)
-            resp.raise_for_status()
+            resp = get(client, url)
 
             lines = resp.text.strip().split("\n")
             if len(lines) <= 1:
