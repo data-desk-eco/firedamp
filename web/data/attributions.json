@@ -562,15 +562,15 @@
   "source_name": "Matuail Landfill"
  },
  "tan20260121t184851c40s4001-B": {
-  "attributed_id": "OGIM:108916",
-  "confidence": "high",
+  "attributed_id": "OGIM:5889300",
+  "confidence": "low",
   "evidence": [],
   "model": "deepseek-v4-pro",
-  "operator": "Targa Pipeline MC WestTex LLC",
-  "paragraph": "The Midkiff gas processing plant (operated by Targa Pipeline MC WestTex LLC) is the likely source. The plume was detected by Carbon Mapper's Tanager satellite at 6,585 kg/hr on 21 January 2026, with surface winds from the north-northwest placing the source at the upwind end of the plume mask \u2014 directly over the Midkiff Plant complex. The plant, a 230 MMCFD gas gathering and processing facility, has been detected emitting methane persistently across 133 satellite observations from 2019 through 2025 by multiple sensors including the Global Airborne Observatory, AVIRIS-NG, AVIRIS-3, GHGSat, and Tanager, with rates ranging from ~100 to over 2,700 kg/hr. The tight clustering of aircraft-detected plumes (tens-of-metres accuracy) at 31.643\u201331.645\u00b0N, 101.765\u2013101.767\u00b0W falls within the plant's industrial footprint mapped as 'Atlas Pipeline Midkiff Plant' in OpenStreetMap.",
-  "run_at": "2026-07-07",
+  "operator": "Pioneer Natural Resources USA, Inc.",
+  "paragraph": "A well pad or associated production infrastructure on the Spraberry Driver Unit lease is the likely source of this 6,585 kg/hr methane plume detected by Carbon Mapper's Tanager satellite on 21 January 2026. The Carbon Mapper analysts traced the plume origin to coordinates (31.6373, -101.7632) in Reagan County, Texas, deep within the Permian Basin's Spraberry Trend. The nearest catalogued infrastructure is the plugged well SPRABERRY DRIVER UNIT - 591 (OGIM:5889300) just 150 metres southwest, operated by Pioneer Natural Resources, though the exact emitting equipment at the coordinate \u2014 likely a tank battery, separator, or unlisted well \u2014 is not identified in the available inventories. The emission rate is consistent with a major malfunction, blowdown, or unlit flare at a production pad, and the detection appears isolated at this specific location among 133 prior satellite detections clustered further north around the Midkiff Gas Plant.",
+  "run_at": "2026-07-08",
   "source_kind": "facility",
-  "source_label": "Targa Midkiff gas processing plant",
-  "source_name": "Midkiff Plant"
+  "source_label": "Spraberry Driver Unit well pad, Pioneer Natural Resources",
+  "source_name": "Spraberry Driver Unit"
  }
 }

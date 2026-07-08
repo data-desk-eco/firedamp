@@ -104,9 +104,9 @@ def radius(p):
 
 
 SENSOR_NOTE = {
-    "cm": "carbon mapper hyperspectral: reported coordinate is usually within a few hundred metres of the source (tens of metres for aircraft). source_record.plume_bounds is the [w,s,e,n] bounding box of the imaged plume mask — the mask stretches downwind from the source, so the source sits at the upwind end.",
-    "ghgsat": "ghgsat: nominal ~50 m accuracy but repeat detections scatter up to ~150 m.",
-    "imeo": "un imeo/mars analyst-vetted detection, mixed sensors: source usually within ~1 km — unless the satellite is tropomi, in which case treat as a km-scale search area with the source usually upwind.",
+    "cm": "carbon mapper hyperspectral: the reported coordinate is carbon mapper's own assessed source ORIGIN (traced back along the plume mask by their analysts), not a plume centroid — the source is AT the coordinate within geolocation error (tens of metres aircraft, a few hundred metres satellite). never relocate it upwind yourself. source_record.plume_bounds is the [w,s,e,n] bounding box of the imaged mask and shows drift extent only.",
+    "ghgsat": "ghgsat: the reported coordinate is the assessed source location (nominal ~50 m accuracy, repeat detections scatter up to ~150 m) — never relocate it upwind.",
+    "imeo": "un imeo/mars analyst-vetted detection, mixed sensors: for high-resolution satellites the coordinate is the assessed source origin, good to well under ~1 km — unless the satellite is tropomi, in which case treat as a km-scale search area with the source usually upwind.",
     "sron": "sron tropomi: 5.5×7 km pixels; the source is typically 2-10 km away, almost always UPWIND of the reported coordinate. treat this as a search area, not a location.",
 }
 
