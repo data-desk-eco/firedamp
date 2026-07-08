@@ -566,11 +566,11 @@
   "confidence": "medium",
   "evidence": [],
   "model": "deepseek-v4-pro",
-  "operator": "ExxonMobil (formerly Pioneer Natural Resources USA, Inc.)",
-  "paragraph": "An oil or gas well at an unmapped location in the Spraberry Driver Unit is the likely source of this 6,585 kg/hr methane plume detected by Carbon Mapper's Tanager satellite on 21 January 2026. The plume source origin, traced by Carbon Mapper analysts, sits at 31.6373\u00b0N, 101.7632\u00b0W \u2014 the maximum concentration pixel lies just 31 metres from this point and the plume extends 3.5 km southward, consistent with the northerly wind (356\u00b0 at 5.5 m/s) measured at the time. The coordinate falls within a densely drilled section of the Spraberry Trend where Pioneer Natural Resources (acquired by ExxonMobil in May 2024) operates numerous wells under the Spraberry Driver Unit; the closest inventoried active well is 210 metres north (SPRABERRY DRIVER UNIT - 1021D, an injection/disposal well), though Carbon Mapper's satellite geolocation places the source at the detection coordinate itself. No prior detection exists at this exact location among the 133 satellite overpasses recorded within 10 km since 2019, while persistent clusters at the nearby Midkiff gas plant (~1 km NNW) and a second well pad (~2 km SW) suggest those are separate, ongoing sources; the combination of a novel location and an exceptionally high emission rate points to an intermittent event such as a well blowout, workover release, or equipment failure.",
+  "operator": "Pioneer Natural Resources USA, Inc.",
+  "paragraph": "An unmapped well pad or gathering facility on Pioneer Natural Resources' Spraberry Driver Unit lease is the likely source of this 6,585 kg/hr methane plume detected by Carbon Mapper's Tanager satellite on 21 January 2026. Carbon Mapper analysts traced the plume origin to 31.6373\u00b0N, 101.7632\u00b0W, and analysis of the plume mask confirms the source sits at the northern edge of the methane column, with the plume extending southward consistent with the 5.5 m/s northerly wind at the time of detection. No mapped infrastructure exists at this coordinate in either the OGIM inventory or OpenStreetMap, though the nearest recorded wells \u2014 the plugged Spraberry Driver Unit 591 (170 m southwest) and the active injection well 1021D (212 m north) \u2014 are both on the same Pioneer-operated lease. The emission rate of roughly 8.3 million cubic feet per day is consistent with a major venting or blowdown event. The location lies just 170 metres southeast of the Targa Midkiff Plant property boundary, a 230 MMCFD gas processing facility whose equipment 1.1 km to the north-northwest has generated over 30 satellite methane detections since 2019, but this specific coordinate has no prior detections in the archive, indicating a distinct, intermittent source on the Pioneer lease.",
   "run_at": "2026-07-08",
-  "source_kind": "well",
-  "source_label": "Unmapped well pad, Spraberry Driver Unit, Texas",
+  "source_kind": "facility",
+  "source_label": "Unmapped well pad on Pioneer Spraberry Driver Unit",
   "source_name": null
  }
 }

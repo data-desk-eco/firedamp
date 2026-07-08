@@ -24,6 +24,7 @@ for _l in (ROOT / ".env").read_text().splitlines() if (ROOT / ".env").exists() e
     _k, _, _v = _l.partition("=")
     os.environ.setdefault(_k.strip(), _v.strip())
 DB = ROOT / "data/context.duckdb"
+GASLIGHT = ROOT / "data/gaslight.duckdb"  # make gaslight
 OUT = ROOT / "web/data/attributions.json"
 RUNS = ROOT / "agent/runs"
 CACHE = ROOT / "data/cache"
@@ -270,6 +271,37 @@ def fetch_mapstand(lat, lon, km):
     return sorted(out, key=lambda r: r.get("dist_km", 0))[:60] or None
 
 
+# permian-basin regulatory + flare-observation evidence from the sibling
+# gaslight project's shareable db (rrc/nm-ocd records, viirs + sentinel-2
+# flare sites, operator-reported flaring volumes per lease)
+PERMIAN = (30, 33.5, -104.5, -100)  # lat/lat/lon/lon, gaslight's export bbox
+
+
+def permian_ctx(con, lat, lon, km):
+    if not (GASLIGHT.exists() and PERMIAN[0] <= lat <= PERMIAN[1] and PERMIAN[2] <= lon <= PERMIAN[3]):
+        return None
+    ll = {"latcol": "latitude", "loncol": "longitude"}
+    blk = {
+        "wells_tx": near(con, "gl.wells_tx", lat, lon, km, limit=40, **ll),
+        "wells_nm": near(con, "gl.wells_nm", lat, lon, km, limit=40, **ll),
+        "flare_permits": near(con, "gl.permits", lat, lon, km, limit=20, **ll),
+        "gas_plants": near(con, "gl.facilities", lat, lon, max(km, 5), limit=10, **ll),
+        "flares_vnf": near(con, "gl.vnf_sites", lat, lon, max(km, 2), limit=15),
+        "flares_s2": near(con, "(select h3, lat, lon, n_dates, persistence, first_date, last_date, "
+                          "max_b12, corroborated, nearest_source from gl.s2_detections)",
+                          lat, lon, max(km, 2), limit=15),
+        "nm_flare_vent_reports": near(con, "gl.nm_notifications", lat, lon, km,
+                                      where="incident_type ilike '%flar%' or incident_type ilike '%vent%'",
+                                      limit=15, **ll),
+    }
+    blk = {k: v for k, v in blk.items() if v}
+    return {"note": "permian basin regulatory + flare data (gaslight db). tx wells carry per-lease "
+            "operator-REPORTED flaring volumes (2021+, rrc pdq); flare_permits are swr-32 permitted "
+            "flare/vent points; flares_vnf/flares_s2 are satellite-OBSERVED flares (viirs nightfire / "
+            "sentinel-2) — a methane plume at a flare site whose ir detections have stopped, or with "
+            "none on the day, suggests an unlit or venting flare.", **blk} if blk else None
+
+
 # carbon mapper's catalog serves per-plume rasters via signed urls: the
 # georeferenced plume retrieval + concentration tifs and rgb overlays,
 # downloaded next to context.json for the agent to analyse
@@ -340,6 +372,7 @@ def assemble(con, p, d):
         "ogim": near(con, "ogim", lat, lon, km, latcol="LATITUDE", loncol="LONGITUDE"),
         "osm": osm_live or near(con, "osm", lat, lon, km, where=osm_where, limit=80),
         "mapstand": fetch_mapstand(lat, lon, km),
+        "permian": permian_ctx(con, lat, lon, km),
         "coal_mines": near(con, "coal", lat, lon, max(km, 20), limit=15, loncol="lng"),
     }
 
@@ -405,6 +438,8 @@ def main():
         return init_db()
     con = duckdb.connect(str(DB), read_only=True)
     con.sql("load spatial")
+    if GASLIGHT.exists():
+        con.sql(f"attach '{GASLIGHT}' as gl (read_only)")
     db = json.loads(OUT.read_text()) if OUT.exists() else {}
     if a.top:
         w = f"src = '{a.src}'" if a.src else "true"
