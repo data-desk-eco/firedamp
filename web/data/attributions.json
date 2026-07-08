@@ -1,4 +1,53 @@
 {
+ "0025a62a-84a8-49ba-a85e-4223ff05c364": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/way/284302750",
+   "https://ru.wikipedia.org/wiki/\u0411\u0435\u0439\u043d\u0435\u0443",
+   "https://en.wikipedia.org/wiki/Central_Asia\u2013Center_gas_pipeline_system",
+   "https://www.openstreetmap.org/way/291491982"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Intergas Central Asia / QazaqGaz (formerly KazTransGas)",
+  "paragraph": "The Beyneu Compressor Station on the Beineu\u2013Bozoi\u2013Shymkent gas pipeline is the most likely source of this 559 t/hr TROPOMI methane plume detected on 8 October 2024. The station sits 16 km SSE (upwind) of the detection point \u2014 wind that day was from the SSE at 6.4 m/s, placing the plume directly downwind of the compressor station with only a 5\u00b0 bearing deviation. The same location has been detected emitting methane persistently by at least four satellite instruments (EMIT, Carbon Mapper/ISS, GHGSat, and TROPOMI) across more than 30 separate overpasses between August 2022 and April 2026, at rates typically ranging from 300 to over 20,000 kg/hr, confirming a chronic, multi-year emission source. The compressor station, commissioned in 2015 as the starting point of the Beineu\u2013Bozoi\u2013Shymkent trunkline, lies within a dense cluster of gas pipeline substations and industrial infrastructure south of Beyneu town, with no alternative large sources (landfills, coal mines) present in the search area.",
+  "plume_id": "0025a62a-84a8-49ba-a85e-4223ff05c364",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Beyneu gas compressor station, Beineu\u2013Bozoi\u2013Shymkent pipeline",
+  "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u0411\u0435\u0439\u043d\u0435\u0443 (Beyneu Compressor Station)"
+ },
+ "1206309-3324": {
+  "attributed_id": "OSM:node/10967286625",
+  "confidence": "medium",
+  "evidence": [
+   "https://www.openstreetmap.org/node/10967286625",
+   "https://www.openstreetmap.org/way/1180911282"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "COG Operating LLC",
+  "paragraph": "An unnamed industrial works facility mapped as oil and gas infrastructure within a large industrial landuse area is the likely source of the 847 kg/hr methane plume detected by GHGSat-C2 on 19 February 2022. The plume sits just 200 m from a mapped 'man_made=works' node and within an industrial compound containing a chimney and numerous storage tanks. Wind at the detection hour was from the north at 0.8 m/s, consistent with the source lying slightly upwind (56 m north) of the detection coordinate. The area has a dense detection record \u2014 199 satellite observations from multiple sensors between 2019 and 2025 \u2014 with a tight cluster of repeat detections centred on the same facility complex, confirming a persistent emission source. The surrounding wells in the Wetherbee, Keg Shell, and Potato Baby lease areas are operated by COG Operating LLC, making it the most probable operator of the unnamed facility.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Unnamed oil and gas works, Delaware Basin, Texas",
+  "source_name": null
+ },
+ "12585": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://en.wikipedia.org/wiki/Nord_Stream_pipelines_sabotage",
+   "https://doi.org/10.1038/d41586-022-03111-x",
+   "https://abcnews.go.com/International/wireStory/record-methane-leak-flows-damaged-baltic-sea-pipelines-90683117"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Nord Stream 2 AG",
+  "paragraph": "The methane plume detected by GHGSat-C1 on 30 September 2022 is most consistent with the sabotaged Nord Stream 2 pipeline (Pipe A) in the Danish exclusive economic zone south of Bornholm. The detection coordinate (54.8762\u00b0N, 15.4100\u00b0E) matches the documented DANGER AREA 1 exclusion zone (54.8767\u00b0N, 15.4100\u00b0E) established by Danish maritime authorities after the 26 September 2022 explosions \u2014 an offset of only ~55 metres, well within GHGSat's accuracy. Three GHGSat satellites (C1, C2, C4) imaged plumes at this site on the same day, consistent with the intense post-sabotage monitoring campaign. The measured emission rate of ~84 tonnes per hour aligns with a high-pressure transmission pipeline rupture; the four Nord Stream leaks together released an estimated 150,000 tonnes of methane. Wind from the SSW at 6.2 m/s is consistent with the plume geometry, with the southernmost detection upwind of the two northern detections.",
+  "run_at": "2026-07-08",
+  "source_kind": "pipeline",
+  "source_label": "Sabotaged Nord Stream 2 pipeline in Baltic Sea",
+  "source_name": "Nord Stream 2"
+ },
  "14373": {
   "attributed_id": "OSM:way/527023432",
   "confidence": "high",
@@ -16,6 +65,33 @@
   "source_kind": "mine",
   "source_label": "Ventilation shaft Szyb III Poniatowski, KWK ROW mine",
   "source_name": "Szyb III Poniatowski KWK ROW Ruch Jankowice"
+ },
+ "1792403-20715": {
+  "attributed_id": "OGIM:147288",
+  "confidence": "high",
+  "evidence": [
+   "https://en.wikipedia.org/wiki/Ku-Maloob-Zaap",
+   "https://www.offshore-technology.com/projects/kumaloobzaap/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "PEMEX (Petr\u00f3leos Mexicanos)",
+  "paragraph": "The KU H production platform (KHPB) and associated well cluster in PEMEX's Ku-Maloob-Zaap offshore oil field is the likely source. The GHGSat detection at 62 t/hr on 2023-11-20 is positioned 0.24 km northwest of the KU H platform complex, aligned near-perfectly with the wind from the southeast (134\u00b0) at 7.7 m/s at the detection hour \u2014 consistent with plume drift from the platform to the detection point. This location has been detected 164 times by multiple satellites (GHGSat, IMEO/Landsat, IMEO/Sentinel-2, IMEO/EMIT) between 2022 and 2026, with four GHGSat overpasses in a single week in November 2023 recording rates from 13,000 to 62,000 kg/hr, indicating a persistent, massive methane source from routine offshore production operations such as gas venting or incomplete flaring. The Ku-Maloob-Zaap complex is Mexico's largest oil field, operated by PEMEX, producing substantial volumes of associated natural gas.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "KU H production platform, Ku-Maloob-Zaap offshore oil field",
+  "source_name": "KU H Producci\u00f3n KHPB, Ku-Maloob-Zaap Field"
+ },
+ "24575": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [],
+  "model": "deepseek-v4-pro",
+  "operator": "Vadodara Municipal Corporation",
+  "paragraph": "A municipal solid waste landfill or dump site is the most consistent source for the 2,707 kg/hr methane plume detected by GHGSat-C8 on 15 January 2024 in southern Vadodara, Gujarat. The location has been detected 43 times by GHGSat between February 2022 and February 2024, with emission rates ranging from 114 to 2,707 kg/hr \u2014 a level of persistence and variability characteristic of landfill methane. The GHGSat detections cluster in two spots roughly 400 metres apart, with a clear temporal shift from the northern cluster (all detections in early 2022) to the southern cluster (dominant from late 2022 through early 2024), a pattern consistent with waste placement moving between cells of a landfill operation. The site sits on the southern outskirts of Vadodara near the Vadodara Bypass (NH 48), where municipal waste infrastructure is typically sited, and no oil and gas facilities, coal mines, or mapped industrial sources are present in the vicinity. The specific facility name could not be confirmed \u2014 the location is unmapped in both the OGIM inventory and OpenStreetMap \u2014 but the emission pattern and local context are most consistent with a municipal solid waste disposal site operated by or serving the Vadodara Municipal Corporation.",
+  "run_at": "2026-07-08",
+  "source_kind": "landfill",
+  "source_label": "Municipal solid waste landfill, southern Vadodara",
+  "source_name": null
  },
  "25efba54-83e0-40fe-b972-b9860d1d0a80": {
   "attributed_id": "OSM:way/368996867",
@@ -35,6 +111,55 @@
   "source_label": "KWK Jas-Mos coal mine ventilation (under liquidation)",
   "source_name": "Kopalnia W\u0119gla Kamiennego \u201eJas-Mos\u201d"
  },
+ "27421a7d-113c-41a0-9363-b10869eb13a8": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://en.wikipedia.org/wiki/Hassi_Messaoud_oil_field",
+   "https://www.openstreetmap.org/way/695838035",
+   "https://www.openstreetmap.org/node/12387993712"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Sonatrach",
+  "paragraph": "The methane plume detected by TROPOMI on 8 November 2025 is most consistent with aggregated emissions from the Hassi Messaoud oil field, Algeria's largest oil field operated by Sonatrach, producing approximately 350,000 barrels per day. The detection sits over a dense cluster of more than 80 petroleum wells mapped in OpenStreetMap within a few kilometres, with surface winds from the south-west that day pointing to sources upwind of the TROPOMI pixel centre. Satellite archives contain 199 methane detections within 30 km since 2023, including a tightly clustered series of high-resolution observations (Carbon Mapper Tanager, Sentinel-2, PRISMA, EMIT, EnMAP, Landsat) concentrated at a point 1.5 km NNW that confirm a persistent chronic source \u2014 likely an industrial oil facility (OSM way/695838035) and adjacent well pads \u2014 though at rates of 0.1\u20134 t/hr, far below the TROPOMI estimate of roughly 650 t/hr. The TROPOMI rate, with its large 7 \u00d7 5.5 km pixel, likely integrates methane from multiple well pads, pipelines, and processing infrastructure across this mature supergiant field, though the coarse resolution precludes attribution to a single facility.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Hassi Messaoud oil field infrastructure, Sonatrach",
+  "source_name": "Hassi Messaoud Oil Field"
+ },
+ "344d38d9-7256-4dcc-96a8-6fde8f3f3956": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://en.wikipedia.org/wiki/Gadap_Town",
+   "https://en.wikipedia.org/wiki/Sindh_Solid_Waste_Management_Board",
+   "https://www.unep.org/imeo"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Sindh Solid Waste Management Board",
+  "paragraph": "The Gadap Town landfill complex on the outskirts of Karachi is the most consistent explanation for this methane plume. Detected by TROPOMI on 8 November 2025, the plume's rate of approximately 984 tonnes per hour (\u00b1505 t/hr) is characteristic of a megacity landfill \u2014 Karachi generates over 16,000 tonnes of municipal waste daily, most of which is disposed at the Jam Chakro and Gond Pass landfill sites in Gadap Town. The UN IMEO/MARS analyst classified the detection as 'waste' sector, and the WNW wind places the source upwind of the detection coordinate, consistent with the Gadap Town landfill area. With 199 TROPOMI detections recorded across the area between 2023 and 2025 \u2014 at rates consistently between 46,000 and 181,000 kg/hr \u2014 the site ranks among the most persistently observed methane hotspots in the global satellite record, strongly indicative of a large, active landfill with sustained anaerobic decomposition. The TROPOMI sensor's ~7 km footprint precludes pinpointing a single cell within the complex.",
+  "run_at": "2026-07-08",
+  "source_kind": "landfill",
+  "source_label": "Gadap Town landfill complex, Karachi",
+  "source_name": "Gadap Town landfill complex (Jam Chakro / Gond Pass)"
+ },
+ "3f4e3b75-7949-4dcb-b72c-3f505f1d341d": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://www.gem.wiki/Shondoni_Coal_Mine",
+   "https://www.openstreetmap.org/way/1102913380",
+   "https://www.openstreetmap.org/node/10093252999",
+   "https://www.sasol.com/sites/default/files/2023-09/Sasol%2020-F%20for%20the%20year%20ended%2030%20June%202023_0.pdf"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Sasol Mining (Pty) Ltd",
+  "paragraph": "The Shondoni Coal Mine, an underground operation in Sasol's Secunda complex, is the most likely source of this 19,000 kg/hr TROPOMI methane plume detected on 22 May 2024. The mine sits approximately 20 km northeast of the plume coordinate, and with surface winds from the NNE that day, its emissions would drift roughly toward the detection location \u2014 the 28\u00b0 crosswind offset is within TROPOMI's km-scale uncertainty at this distance. Higher-resolution instruments confirm a persistent methane source at this mine: an EMIT detection (1,269 kg/hr) and multiple EnMAP detections (600\u2013865 kg/hr) cluster 4\u20135 km south of Shondoni, consistent with a ventilation shaft, while a Carbon Mapper Tanager detection on 23 June 2025 placed a 1,372 kg/hr plume just 2 km from the mine coordinates. The mine produces 5.6 million tonnes of coal annually from underground operations at 155 m depth, and ventilation air methane from such a large underground mine can readily account for the observed emission rate. The broader area has 77 satellite methane detections between 2023 and 2025, underscoring the Highveld coalfield as one of the world's most persistent methane hotspot regions.",
+  "run_at": "2026-07-08",
+  "source_kind": "mine",
+  "source_label": "Shondoni underground coal mine, Sasol Secunda complex",
+  "source_name": "Shondoni Coal Mine"
+ },
  "GAO20220627t163654p0000-A": {
   "attributed_id": null,
   "confidence": "medium",
@@ -47,6 +172,129 @@
   "run_at": "2026-07-07",
   "source_kind": "facility",
   "source_label": "Unmapped oil and gas infrastructure in the Bakken",
+  "source_name": null
+ },
+ "GAO20240430t174249p0000-D": {
+  "attributed_id": "OGIM:4309784",
+  "confidence": "high",
+  "evidence": [
+   "https://data.carbonmapper.org/",
+   "https://www.openstreetmap.org/?mlat=32.0026&mlon=-103.8269",
+   "https://www.planet.com/pulse/carbon-mapper-data-from-the-tanager-1-satellite-reveals-methane-and-carbon-dioxide-super-emitter-activity-around-the-world/",
+   "https://saltcreekmidstream.com/operations",
+   "https://carbonmapper.org/our-data/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Civitas Permian Operating, LLC",
+  "paragraph": "The 297 kg/hr methane plume detected by the Global Airborne Observatory on 30 April 2024 is most consistent with emissions from an oil and gas tank battery at the Nailed It Federal Com well pad in Eddy County, New Mexico, operated by Civitas Permian Operating, LLC. The aircraft detection coordinate sits directly atop four storage tanks mapped in OpenStreetMap \u2014 just 10 metres away \u2014 and the plume's south-to-north orientation matches the southerly wind recorded at the time, confirming the tanks as the upwind source. This location has been detected emitting methane repeatedly: 17 Carbon Mapper aircraft and satellite overpasses between August 2023 and October 2024 measured rates ranging from 70 to 576 kg/hr, indicating a persistent, unmitigated source. The broader lease includes multiple active gas wells operated by Civitas Permian and a compressor station operated by Salt Creek Midstream 210 metres to the southwest, but the plume coordinate pinpoints the tank battery as the primary emission point.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Oil tank battery at Nailed It Federal Com",
+  "source_name": "Nailed It Federal Com well pad / tank battery"
+ },
+ "a74ee5ec-094d-433f-bd5e-ca644aca86ac": {
+  "attributed_id": "OSM:node/5820568665",
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/node/5820568665",
+   "https://en.wikipedia.org/wiki/Pazanan_oil_field",
+   "https://www.openstreetmap.org/way/673443008"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "National Iranian South Oil Company (NISOC)",
+  "paragraph": "A gas flare at the Pazanan oil and gas field is the likely source of the 1,827 kg/hr methane plume detected on 15 September 2024. The detection coordinate sits just 20 metres north-northwest of a mapped flare stack (OSM node 5820568665) connected to a gas pipeline network, and light southerly winds (0.9 m/s) would carry emissions northward directly over the detection point. Seven additional satellite detections at the same location between June 2023 and November 2025 \u2014 recorded by EnMAP, EMIT, Sentinel-2, Landsat-8, and Carbon Mapper's Tanager \u2014 confirm a persistent, high-rate methane source, with rates ranging from 808 to 6,101 kg/hr. The Pazanan field, operated by the National Iranian South Oil Company, is a supergiant retrograde gas condensate reservoir producing 750 million cubic feet of gas per day, placing a flare stack of this scale well within the observed emission range. The repeated nature of the detections suggests chronic underperformance of the flare \u2014 either frequent periods of being unlit, low combustion efficiency, or routine venting of uncombusted gas.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Gas flare at Pazanan oil and gas field",
+  "source_name": "Pazanan oil and gas field flare stack"
+ },
+ "a8f5f746-8b65-4f40-bdae-8b86edebf668": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [],
+  "model": "deepseek-v4-pro",
+  "operator": null,
+  "paragraph": "No methane source capable of producing an 851,000 kg/hr plume could be identified within the 5 km search radius of this GOES detection in Canyon County, Idaho. The detection coordinate (43.74, \u2212116.60) lies in a rural residential area along Ember Road north of Middleton, with wind from the northwest placing any potential source in an area of scattered homes, farms, and open fields. No oil and gas infrastructure, landfills, coal mines, or industrial facilities appear in the OGIM, OSM, or coal mine databases within 5 km, and the nearest mapped features \u2014 a small Republic Services waste-disposal node and Intermountain Gas Company distribution markers \u2014 sit 4.2\u20134.5 km downwind in the opposite direction from where wind would place a source. The extremely high emission rate, absence of repeat detections, and lack of any plausible local source raise the possibility of a detection artifact from the GOES sensor, which is not purpose-built for methane quantification.",
+  "run_at": "2026-07-08",
+  "source_kind": "none",
+  "source_label": "no identifiable source within search radius",
+  "source_name": null
+ },
+ "ang20170616t210522-H": {
+  "attributed_id": "OSM:way/131195886",
+  "confidence": "medium",
+  "evidence": [
+   "https://www.openstreetmap.org/way/131195886",
+   "https://www.nature.com/articles/s41586-019-1720-3"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": null,
+  "paragraph": "A dairy manure management system (likely an anaerobic lagoon) is the most likely source of this methane plume, detected by Carbon Mapper's AVIRIS-NG aircraft on 16 June 2017. The plume was measured at 264 \u00b1 55 kg/hr at 36.1594, \u2212119.2829 in Tulare County \u2014 the leading dairy county in the United States. The detection provider classified the source as Livestock (IPCC 4B), and the nearest mapped infrastructure is a 248-acre confined animal agriculture operation (OSM way 131195886) located 0.6 km NNE, well-aligned with the NNE-to-SSW wind recorded at the time. The site has been repeatedly detected by AVIRIS-NG and the Global Airborne Observatory across 2016\u20132024, with rates ranging from 35 to 452 kg/hr \u2014 a persistent pattern consistent with ongoing manure management emissions. No active oil and gas infrastructure or coal mines exist within the search radius.",
+  "run_at": "2026-07-08",
+  "source_kind": "other",
+  "source_label": "Dairy manure management operation near Avenue 204, Tulare County",
+  "source_name": null
+ },
+ "ang20180922t205612-Q": {
+  "attributed_id": "OGIM:2991193",
+  "confidence": "high",
+  "evidence": [
+   "https://capitalandmain.com/sporadic-monitoring-of-emissions-in-california-oil-country-adds-to-air-pollution-concerns",
+   "https://www.nature.com/articles/s41586-019-1720-3",
+   "https://www.shalexp.com/california/kern-county/welport/965065",
+   "https://www.infrasure.ai/plant/54447-welport-lease-project",
+   "https://carbonmapper.org/data-dispatch-methane-emissions-from-leaking-idle-oil-wells/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Sentinel Peak Resources California LLC",
+  "paragraph": "The 696 kg/hr methane plume detected by AVIRIS-NG on 2018-09-22 is most consistent with emissions from the Sentinel Peak Resources Welport well pad in the Cymric Oil Field near McKittrick, Kern County. The reported source coordinate sits just 28 metres downwind (SW) of the Welport 81 and Welport 80 cyclic steam wells, with wind from the northeast at 5 m/s at the time of detection \u2014 placing the source directly at this well pad. This location has registered 199 methane detections across eight years (2017\u20132025) from multiple airborne sensors, with rates ranging from 38 to over 1,800 kg/hr, confirming a persistent, high-emitting oil and gas source. A 2019 California Air Resources Board audit identified 287 methane leaks on Sentinel Peak Resources equipment statewide, and the company's steam generators in the Cymric field have received 14 violation notices for leaking since 2017, according to San Joaquin Valley air district records.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Sentinel Peak Resources Welport 81 cyclic steam well pad",
+  "source_name": "Welport 81 (Welport well pad, Cymric Oil Field)"
+ },
+ "ang20200825t203650-A": {
+  "attributed_id": "OGIM:3006763",
+  "confidence": "high",
+  "evidence": [
+   "https://data.carbonmapper.org/",
+   "https://www.openstreetmap.org/way/175660657",
+   "https://www.openstreetmap.org/way/922989474"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "California Resources Elk Hills, LLC",
+  "paragraph": "An active oil and gas well pad in California's Elk Hills field is the likely source of this 92 kg/hr methane plume. The AVIRIS-NG airborne sensor pinpointed the plume, and the detection-hour wind from the NNE places the source at the NNE end of the imaged plume mask \u2014 within 40 metres of wells 52W-35R and 42N-35R, both operated by California Resources Elk Hills, LLC. This location has been detected 13 times by aircraft between 2017 and 2020, with emission rates ranging from 47 to 522 kg/hr, confirming a persistent methane source at this well pad. All detections in the cluster are classified as oil and gas sector emissions.",
+  "run_at": "2026-07-08",
+  "source_kind": "well",
+  "source_label": "Elk Hills oil field well pad, wells 52W-35R and 42N-35R",
+  "source_name": "52W-35R / 42N-35R well pad"
+ },
+ "cfe180de-3067-4caf-a033-4a5a9bfc7ff2": {
+  "attributed_id": "OSM:way/291484834",
+  "confidence": "medium",
+  "evidence": [
+   "https://en.wikipedia.org/wiki/Central_Asia%E2%80%93Center_gas_pipeline_system",
+   "https://www.openstreetmap.org/way/291484834",
+   "https://en.wikipedia.org/wiki/KazTransGas"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "KazTransGas (subsidiary of KazMunayGas), Gazprom-controlled CAC system",
+  "paragraph": "The Beyneu (Oporanya) compressor station is the most likely source of this 265-tonne-per-hour methane plume. The station sits 3.4 km southwest of the TROPOMI detection centroid \u2014 well within the sensor's 5.5\u00d77 km pixel footprint \u2014 at the strategic junction of the eastern and western branches of the Central Asia\u2013Center gas pipeline system, one of the world's largest gas transmission corridors. A subsequent TROPOMI detection in October 2025 placed a 23-tonne-per-hour plume directly at the compressor station (within 140 metres), confirming the facility as a persistent and highly variable methane emitter. The daily-mean wind was from the south-southeast, and while a 3.4 km offset with an 86-degree bearing discrepancy from the ideal upwind direction suggests some uncertainty in plume transport or centroid placement, no other mapped infrastructure of comparable scale exists within the search radius that could plausibly generate an emission of this magnitude.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Beyneu compressor station, CAC gas pipeline system",
+  "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u041e\u043f\u043e\u0440\u043d\u0430\u044f (Oporanya / Beyneu Compressor Station)"
+ },
+ "emi20230814t100819p07019-A": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [],
+  "model": "deepseek-v4-pro",
+  "operator": null,
+  "paragraph": "An offshore oil and gas platform in the Kazakh sector of the Caspian Sea, approximately 45.334\u00b0N 52.373\u00b0E, is the likely source of this 44 t/hr methane plume detected by Carbon Mapper on 14 August 2023. The location lies about 2\u20133 km west of the Buzachi Peninsula in the Mangystau Region, with SSE winds at the time of detection consistent with the plume extending NNW across the sea surface. This site is a persistent super-emitter: 21 satellite detections from four instruments (EMIT, PRISMA, EnMAP, and TROPOMI) were recorded between June and October 2023, with emission rates reaching as high as 210 t/hr. The precise-sensor detections (EMIT, PRISMA, EnMAP) all converge within 210 metres of the same offshore point, while TROPOMI detections scatter across the surrounding area as expected for its coarser resolution. The facility is not captured in the OGIM v2.7 inventory or OpenStreetMap, consistent with the poor coverage of offshore Caspian infrastructure in these databases; the specific platform or field name could not be confirmed through available searches.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "offshore oil and gas platform, Kazakh Caspian Sea",
   "source_name": null
  },
  "emi20240217t052731p04010-A": {
@@ -67,6 +315,40 @@
   "source_label": "Sihe Coal Mine ventilation shaft, Qinshui Basin, Shanxi",
   "source_name": "Sihe Coal Mine (Jinneng Holding Equipment Manufacturing Group)"
  },
+ "emi20240409t074435p05007-A": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/way/312419487",
+   "https://ru.wikipedia.org/wiki/\u042e\u0436\u043d\u044b\u0439_\u043a\u043e\u0440\u0438\u0434\u043e\u0440",
+   "https://invest.gazprom.ru/about/projects/koridor/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Gazprom",
+  "paragraph": "A methane leak from the Southern Corridor (\u042e\u0436\u043d\u044b\u0439 \u041a\u043e\u0440\u0438\u0434\u043e\u0440) gas pipeline is the likely source of this plume. The plume, detected by Carbon Mapper/EMIT on 9 April 2024 at 48.8 t/hr, was located just 160 metres west of the pipeline \u2014 consistent with easterly winds (from 83\u00b0) pushing the plume downwind of the source. The Southern Corridor is a major Gazprom trunkline carrying high-pressure natural gas across southern Russia; a leak or maintenance venting from this pipeline, or from an associated valve station, would be capable of producing the very large emission rate observed. No other oil and gas infrastructure, coal mines, or landfills are mapped within the 3 km search radius, and the pipeline is the only plausible source matching the rate and sector classification.",
+  "run_at": "2026-07-08",
+  "source_kind": "pipeline",
+  "source_label": "Southern Corridor gas pipeline near Alekseyevskoye, Krasnodar Krai",
+  "source_name": "Southern Corridor Gas Pipeline (\u042e\u0436\u043d\u044b\u0439 \u041a\u043e\u0440\u0438\u0434\u043e\u0440), section KS Shakhtinskaya \u2013 KS Korenovskaya"
+ },
+ "emi20240608t122634p08012-A": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://www.theguardian.com/world/2023/may/09/mind-boggling-methane-emissions-from-turkmenistan-revealed",
+   "https://en.wikipedia.org/wiki/T%C3%BCrkmennebit",
+   "https://en.wikipedia.org/wiki/Hazar,_Turkmenistan",
+   "https://en.wikipedia.org/wiki/Economy_of_Turkmenistan",
+   "https://pubs.acs.org/doi/10.1021/acs.est.1c04873"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "T\u00fcrkmennebit",
+  "paragraph": "Venting from oil and gas infrastructure in the Goturdepe field is the likely source of this 55-tonne-per-hour methane plume. The Carbon Mapper detection sits within a cluster of 29 other satellite detections\u2014from IMEO, GHGSat, TROPOMI, and additional Carbon Mapper overpasses\u2014all converging within 200 metres of the same coordinates on the Cheleken Peninsula between 2021 and 2025, at rates ranging from 3,000 to 40,000 kg/hr. WNW winds at the time of detection place the source upwind, consistent with the Goturdepe field operated by Turkmenistan's state oil company T\u00fcrkmennebit. Independent research and a 2023 Guardian investigation identified this western Caspian coast as one of the world's largest methane hotspots, with the majority of super-emitter events traced to extinguished flare stacks venting unburned gas.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Goturdepe oil field, western Turkmenistan",
+  "source_name": "Goturdepe oil field"
+ },
  "f2fd0ea9-3f92-486d-9062-5bf880c737db": {
   "attributed_id": null,
   "confidence": "high",
@@ -82,6 +364,117 @@
   "source_kind": "pipeline",
   "source_label": "Natural gas pipeline venting during Feb 14 sabotage",
   "source_name": "Iran Gas Trunkline (IGAT), Asaluyeh\u2013Caspian segment"
+ },
+ "sron_20230916_37.09N_111.97E|SRON_Weekly_Methane_Plumes_2023_wk38_v20230925.csv": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://www.gem.wiki/Jiexiu_Zuozegou_Coal_Mine",
+   "https://www.gem.wiki/Jiexiu_Xinyugou_Coal_Mine",
+   "https://www.gem.wiki/Jiexiu_Delong_Coal_Mine",
+   "https://www.gem.wiki/Jiexiu_Chongguang_power_station"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Shanxi Luxin Energy Group",
+  "paragraph": "Coal mining operations in the Jiexiu area of Shanxi province are the likely source of this 61,000 kg/hr methane plume detected by TROPOMI on 16 September 2023. The detection sits in one of China's most intensely coal-mined regions: 103 other satellite methane detections exist within 30 km, nearly all classified as coal-related. A cluster of five EMIT detections 2.7 km away at the Yi'an industrial rail hub, all tagged as coal by IMEO, confirms a persistent coal-methane source at that location. The very light SSE wind (0.3 m/s) means the plume remained close to its source, and TROPOMI's coarse 5.5\u00d77 km footprint likely integrates emissions from multiple coal-related sources \u2014 mine ventilation, coal processing, and storage \u2014 associated with the Shanxi Jiexiu Xinyugou mining operations of Shanxi Luxin Energy Group.",
+  "run_at": "2026-07-08",
+  "source_kind": "mine",
+  "source_label": "Coal mine methane, Jiexiu Xinyugou complex, Yi'an",
+  "source_name": null
+ },
+ "sron_20231020_37.67N_61.38E|SRON_Weekly_Methane_Plumes_2023_wk42_v20231023.csv": {
+  "attributed_id": null,
+  "confidence": "medium",
+  "evidence": [
+   "https://www.openstreetmap.org/api/0.6/way/292481601",
+   "https://en.wikipedia.org/wiki/Central_Asia%E2%80%93Center_gas_pipeline_system",
+   "https://en.wikipedia.org/wiki/Dauletabad_gas_field",
+   "https://pubs.acs.org/doi/10.1021/acs.est.1c04873"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "T\u00fcrkmengaz",
+  "paragraph": "The 483-tonne-per-hour methane plume detected by TROPOMI on 20 October 2023 over the Mary Region of Turkmenistan is most consistent with a major emission from gas infrastructure along the Central Asia\u2013Center (CAC) pipeline corridor. The detection lies directly on the 1,422 mm CAC trunk pipeline, which transports gas from the Dauletabad and Shatlyk fields north toward Russia, and the NNW wind direction places the source upwind along this same pipeline. With 91 TROPOMI detections recorded within 30 km between 2023 and 2026\u2014among the most persistent and intense methane hotspots ever observed from space\u2014the area hosts chronic large-scale venting likely from compressor stations, processing facilities, or unlit flares operated by the state gas company T\u00fcrkmengaz. No specific named facility could be identified from available mapping data, as Turkmenistan's gas infrastructure is sparsely documented in public inventories.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Central Asia\u2013Center gas pipeline system, Mary Region, Turkmenistan",
+  "source_name": null
+ },
+ "sron_20240917_51.72N_56.24E|SRON_Weekly_Methane_Plumes_2024_wk38_v20240923.csv": {
+  "attributed_id": "OSM:way/229469250",
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/way/229469250",
+   "https://www.openstreetmap.org/way/318299648"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "\u041e\u041e\u041e \u00ab\u0413\u0430\u0437\u043f\u0440\u043e\u043c \u0442\u0440\u0430\u043d\u0441\u0433\u0430\u0437 \u0415\u043a\u0430\u0442\u0435\u0440\u0438\u043d\u0431\u0443\u0440\u0433\u00bb",
+  "paragraph": "The \u041a\u0421 \u0421\u0430\u0440\u0430\u043a\u0442\u0430\u0448 (KS Saraktash) gas compressor station, operated by Gazprom Transgaz Ekaterinburg on the Dombarovka\u2013Orenburg trunk pipeline, is the likely source of this 440-tonne-per-hour methane plume. The station sits 4.8 km east (bearing 80\u00b0) of the TROPOMI detection, closely aligned with the ENE wind direction that would carry emissions toward the observed plume location. A prior GHGSat-C4 detection on 6 December 2022 measured a 1,833 kg/hr plume just 0.7 km from the compressor station, confirming it as a known methane emitter. The emission rate \u2014 equivalent to roughly 3.9 million tonnes per year if sustained \u2014 is consistent with a major operational blowdown or emergency venting event at a large gas trunkline compressor station, where pressurised gas is rapidly released to atmosphere during emergency shutdowns or maintenance.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Gazprom compressor station KS Saraktash",
+  "source_name": "\u041a\u0421 \u0421\u0430\u0440\u0430\u043a\u0442\u0430\u0448"
+ },
+ "sron_20241008_45.47N_55.09E|SRON_Weekly_Methane_Plumes_2024_wk41_v20241014.csv": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/way/284302750",
+   "https://ru.wikipedia.org/wiki/\u0413\u0430\u0437\u043e\u043f\u0440\u043e\u0432\u043e\u0434_\u0411\u0435\u0439\u043d\u0435\u0443_\u2014_\u0411\u043e\u0437\u043e\u0439_\u2014_\u0428\u044b\u043c\u043a\u0435\u043d\u0442",
+   "https://en.wikipedia.org/wiki/KazTransGas"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "KazTransGas",
+  "paragraph": "A gas compressor station at the western terminus of the Beyneu\u2013Bozoy\u2013Shymkent trunk gas pipeline in western Kazakhstan is the likely source of this massive methane plume. The plume was detected by TROPOMI on 8 October 2024 at an estimated rate of 559 tonnes per hour, with surface winds blowing from the SSE \u2014 aligning the detection almost directly downwind of the compressor station, 16 km to the SSE. Satellite archives reveal that this facility has been one of the most persistently detected methane sources in Central Asia: over 40 detections by EMIT, Carbon Mapper, GHGSat, and TROPOMI between 2022 and 2026 pinpoint the same compressor station, with typical rates of 1\u201320 tonnes per hour. The exceptionally high TROPOMI rate on this date suggests a major operational blowdown or emergency venting event at the station, which is operated by KazTransGas and forms part of the Kazakhstan\u2013China gas export corridor.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Beyneu compressor station on Beyneu\u2013Bozoy\u2013Shymkent gas pipeline",
+  "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u0411\u0435\u0439\u043d\u0435\u0443"
+ },
+ "sron_20241014_35.52N_112.69E|SRON_Weekly_Methane_Plumes_2024_wk42_v20241021.csv": {
+  "attributed_id": null,
+  "confidence": "high",
+  "evidence": [
+   "https://www.gem.wiki/Sihe_No.2_Coal_Mine",
+   "https://data.carbonmapper.org/",
+   "https://methanedata.unep.org/",
+   "https://globalenergymonitor.org/projects/global-methane-emitters-tracker/"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Jinneng Holding Equipment Manufacturing Group",
+  "paragraph": "The Sihe No.2 Coal Mine in Zezhou County, Shanxi, is the likely source of this 57,000 kg/hr TROPOMI methane plume detected on 14 October 2024. A dense cluster of 27 high-resolution satellite detections (EMIT, Tanager, PRISMA, EnMAP, and Carbon Mapper ISS) spanning 2023\u20132026 pinpoints the emission origin at 35.543\u201335.546\u00b0N, 112.630\u2013112.631\u00b0E \u2014 a location that Global Energy Monitor's methane emitters tracker explicitly attributes to this mine. On the same day as the TROPOMI detection, Carbon Mapper's ISS instrument measured 2,263 kg/hr and EMIT measured 8,339 kg/hr at this precise location. The mine is classified as 'gassy' (\u9ad8\u74e6\u65af), operates underground with a 3 Mt/yr capacity across a 45.5 km\u00b2 concession, and its persistent multi-year detection pattern across seven satellite instruments is characteristic of coal mine ventilation emissions.",
+  "run_at": "2026-07-08",
+  "source_kind": "mine",
+  "source_label": "Sihe No.2 Coal Mine ventilation shaft, Zezhou County",
+  "source_name": "Sihe No.2 Coal Mine (\u5bfa\u6cb3\u7164\u77ff\u4e8c\u53f7\u4e95)"
+ },
+ "sron_20250911_62.92N_75.21E|SRON_Weekly_Methane_Plumes_2025_wk37_v20250915.csv": {
+  "attributed_id": null,
+  "confidence": "low",
+  "evidence": [],
+  "model": "deepseek-v4-pro",
+  "operator": "Surgutneftegas",
+  "paragraph": "Oil and gas operations in the Pogramichnoye field are the likely source of this 542 t/hr methane plume, detected by TROPOMI on 11 September 2025. The plume sits squarely within the Surgutneftegas-operated field, where over 80 industrial well pads are mapped, and the IMEO processing pipeline independently flagged the same plume as oil-and-gas-related. A northerly wind (4.3 m/s) placed the source upwind of the detection coordinate, consistent with emissions from the dense cluster of well pads to the north. However, TROPOMI's 5.5\u00d77 km pixel size prevents attribution to a specific well pad or facility, and the single-day detection \u2014 with no repeat in the satellite record \u2014 suggests a transient event such as venting, flaring, or a brief blowout rather than a persistent leak.",
+  "run_at": "2026-07-08",
+  "source_kind": "facility",
+  "source_label": "Oil and gas operations, Pogramichnoye field",
+  "source_name": "Pogramichnoye oil and gas condensate field"
+ },
+ "sron_20251125_35.42N_51.32E|SRON_Weekly_Methane_Plumes_2025_wk48_v20251201.csv": {
+  "attributed_id": "OSM:way/640959613",
+  "confidence": "high",
+  "evidence": [
+   "https://www.openstreetmap.org/way/640959613",
+   "https://www.openstreetmap.org/way/429922880",
+   "https://scholar.google.com/scholar?q=Aradkouh+landfill+methane+Tehran (LANDGEM model study identifying Aradkouh as a major methane source)",
+   "https://scholar.google.com/scholar?q=%22Aradkouh%22+waste+management+Tehran (Tehran Waste Management Organization operations, ~10,000 t/day capacity)"
+  ],
+  "model": "deepseek-v4-pro",
+  "operator": "Tehran Waste Management Organization (\u0633\u0627\u0632\u0645\u0627\u0646 \u0645\u062f\u06cc\u0631\u06cc\u062a \u067e\u0633\u0645\u0627\u0646\u062f \u0634\u0647\u0631\u062f\u0627\u0631\u06cc \u062a\u0647\u0631\u0627\u0646)",
+  "paragraph": "The Aradkouh landfill complex south of Tehran is the likely source of the 27,000 kg/hr methane plume detected by TROPOMI on 25 November 2025. The landfill, which receives roughly 10,000 tonnes of Tehran's waste daily, sits approximately 5 km north-northeast of the plume coordinate \u2014 consistent with the light northwesterly wind (0.1 m/s from 319\u00b0) that day. The attribution is strongly supported by an extraordinary detection history: 142 satellite observations within 30 km, including dozens of high-precision Carbon Mapper and EMIT detections (2023\u20132026) pinpointing the landfill at ~35.456\u00b0N, 51.332\u00b0E with rates of 1,600\u20138,500 kg/hr, all tagged as 'waste' by analysts. Academic studies identify Aradkouh as a major methane emitter and note that it lacks a gas capture system, allowing methane from decomposing organic waste to vent freely.",
+  "run_at": "2026-07-07",
+  "source_kind": "landfill",
+  "source_label": "Aradkouh landfill, Tehran's main waste disposal site",
+  "source_name": "\u0645\u062d\u0644 \u062f\u0641\u0646 \u0632\u0628\u0627\u0644\u0647\u200c\u0647\u0627\u06cc \u062a\u0647\u0631\u0627\u0646 (Aradkouh Waste Processing and Disposal Complex)"
  },
  "sron_20260527_41.43N_88.33W|SRON_Weekly_Methane_Plumes_2026_wk22_v20260601.csv": {
   "attributed_id": "OGIM:108649",

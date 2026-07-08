@@ -249,15 +249,28 @@ def run_one(con, p):
            "--system-prompt", "you are a rigorous methane source-attribution researcher. follow the task exactly.",
            f"@{ROOT}/agent/task.md", "@context.json"]
     t = time.time()
-    with open(d / "log.json", "w") as log:
+    res = None
+    for attempt in (1, 2):  # transient api stream errors can kill a whole run
+        (d / "result.json").unlink(missing_ok=True)
+        with open(d / "log.json", "w") as log:
+            # own process group so a wedged pi (and its tool children) dies with the timeout
+            proc = subprocess.Popen(cmd, cwd=d, env=env, stdout=log, stderr=subprocess.STDOUT,
+                                    start_new_session=True)
+            try:
+                proc.wait(timeout=900)
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid, 9)
+                proc.wait()
+                print(f"  {pid}: timeout (attempt {attempt})", file=sys.stderr)
+        # drop streaming-delta events: they dwarf the log without adding information
+        slim = [l for l in open(d / "log.json") if '_update"' not in l[:40]]
+        (d / "log.json").write_text("".join(slim))
         try:
-            subprocess.run(cmd, cwd=d, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=900)
-        except subprocess.TimeoutExpired:
-            print(f"  {pid}: timeout", file=sys.stderr)
-    try:
-        res = json.loads((d / "result.json").read_text())
-    except Exception as e:
-        print(f"  {pid}: no result ({e})", file=sys.stderr)
+            res = json.loads((d / "result.json").read_text())
+            break
+        except Exception as e:
+            print(f"  {pid}: no result ({e}), attempt {attempt}", file=sys.stderr)
+    if res is None:
         return pid, None
     aid = res.get("attributed_id")
     if aid and str(aid).split(":", 1)[-1] not in (d / "context.json").read_text():
