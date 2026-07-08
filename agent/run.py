@@ -4,8 +4,9 @@
 # dependencies = ["duckdb", "httpx", "pandas"]
 # ///
 # agentic plume attribution: assemble per-plume evidence from local data
-# (ogim, osm, coal, plume archive) + wind/place, run a pi/deepseek agent with
-# web research tools, collect result.json into web/data/attributions.json.
+# (ogim, coal, plume archive) + live apis (overpass, mapstand, carbon mapper
+# rasters, wind, place), run a pi/deepseek agent with web research tools,
+# collect result.json into web/data/attributions.json.
 #
 #   agent/run.py --init-db          build data/context.duckdb (one-time, ~min)
 #   agent/run.py <plume-id>...      attribute specific plumes
@@ -19,6 +20,9 @@ from pathlib import Path
 import duckdb, httpx
 
 ROOT = Path(__file__).resolve().parent.parent
+for _l in (ROOT / ".env").read_text().splitlines() if (ROOT / ".env").exists() else []:
+    _k, _, _v = _l.partition("=")
+    os.environ.setdefault(_k.strip(), _v.strip())
 DB = ROOT / "data/context.duckdb"
 OUT = ROOT / "web/data/attributions.json"
 RUNS = ROOT / "agent/runs"
@@ -121,6 +125,16 @@ def compass(deg):
     return "N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW".split()[round(deg / 22.5) % 16]
 
 
+def hav(lat, lon, rlat, rlon):
+    return 6371 * math.acos(min(1, math.sin(math.radians(lat)) * math.sin(math.radians(rlat))
+        + math.cos(math.radians(lat)) * math.cos(math.radians(rlat)) * math.cos(math.radians(lon - rlon))))
+
+
+def at(lat, lon, rlat, rlon):
+    return {"dist_km": round(hav(lat, lon, rlat, rlon), 2),
+            "bearing": compass(bearing(lat, lon, rlat, rlon))}
+
+
 def near(con, table, lat, lon, km, where="true", limit=60, latcol="lat", loncol="lon"):
     dlat, dlon = km / 111, km / (111 * max(0.1, math.cos(math.radians(lat))))
     rows = con.sql(f"""select * from {table}
@@ -129,12 +143,9 @@ def near(con, table, lat, lon, km, where="true", limit=60, latcol="lat", loncol=
     out = []
     for r in rows:
         rlat, rlon = r.pop(latcol), r.pop(loncol)
-        d = 6371 * math.acos(min(1, math.sin(math.radians(lat)) * math.sin(math.radians(rlat))
-            + math.cos(math.radians(lat)) * math.cos(math.radians(rlat)) * math.cos(math.radians(lon - rlon))))
-        if d > km:
+        if hav(lat, lon, rlat, rlon) > km:
             continue
-        out.append({"dist_km": round(d, 2), "bearing": compass(bearing(lat, lon, rlat, rlon)),
-                    "lat": round(rlat, 5), "lon": round(rlon, 5),
+        out.append({**at(lat, lon, rlat, rlon), "lat": round(rlat, 5), "lon": round(rlon, 5),
                     **{k: v for k, v in r.items() if v is not None and v == v and v != ""}})
     return sorted(out, key=lambda r: r["dist_km"])[:limit]
 
@@ -201,12 +212,105 @@ OSM_SIGNAL = ("'landfill','quarry','mineshaft','adit','spoil_heap','tailings_pon
               "'waste_disposal','gas','oil','coal','biogas','lng'")
 
 
-def assemble(con, p):
+# live overpass export of the surrounding area: current data with full tags,
+# preferred over the local extract when reachable. raw response is saved next
+# to context.json for the agent to mine
+def fetch_osm_live(lat, lon, km, d):
+    m = int(km * 1000)
+    sel = "".join(f"nwr(around:{m},{lat},{lon})[{t}];" for t in (
+        "man_made", '"landuse"~"^(industrial|landfill|quarry|farmyard)$"',
+        '"power"~"^(plant|substation|generator)$"', "pipeline", "industrial", "waste"))
+    els = None
+    for host in ("https://overpass-api.de", "https://overpass.kumi.systems"):
+        try:
+            r = httpx.post(f"{host}/api/interpreter",  # 406s on python's default ua
+                           data={"data": f"[out:json][timeout:90];({sel});out tags center;"},
+                           headers={"User-Agent": "firedamp-attribution"}, timeout=120)
+            r.raise_for_status()
+            els = r.json()["elements"]
+            break
+        except Exception as e:
+            print(f"  warn: overpass {host} failed: {e}", file=sys.stderr)
+    if els is None:
+        return None
+    (d / "osm.json").write_text(r.text)
+    sig = set(OSM_SIGNAL.replace("'", "").split(","))
+    out = [{**at(lat, lon, c["lat"], c["lon"]), "id": f"{e['type']}/{e['id']}", **t}
+           for e in els for c in [e.get("center") or e] for t in [e.get("tags") or {}]
+           if km <= 3 or "name" in t or sig & set(t.values())]
+    return sorted(out, key=lambda r: r["dist_km"])[:80] or None
+
+
+# mapstand's geoserver is wms-only, so a GetFeatureInfo with a full-canvas
+# pixel buffer serves as the area query (full attributes + geometry back)
+MS_LAYERS = ",".join("mps_mapping_" + l for l in
+    "wellheader platform terminal floatingfacility pipeline licencearea accumulation basin".split()) + ",refineries_installed"
+MS_DROP = ("attribution", "mps_created_time", "mps_datasource_tags", "updt", "insrt",
+           "current_licence_area_join_time", "mps_uuid")
+
+
+def fetch_mapstand(lat, lon, km):
+    key = os.environ.get("MAPSTAND_API_KEY")
+    if not key:
+        return None
+    dlat, dlon = km / 111, km / (111 * max(0.1, math.cos(math.radians(lat))))
+    d = cached_get(f"mps_{lat:.3f}_{lon:.3f}_{km}.json",
+        "https://app.mapstand.com/geoserver/ows/mps?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo"
+        f"&LAYERS={MS_LAYERS}&QUERY_LAYERS={MS_LAYERS}&INFO_FORMAT=application/json&FEATURE_COUNT=100"
+        f"&FORMAT=image/png&SRS=EPSG:4326&WIDTH=101&HEIGHT=101&X=50&Y=50&BUFFER=50"
+        f"&BBOX={lon - dlon},{lat - dlat},{lon + dlon},{lat + dlat}&apikey={key}")
+    out = []
+    for f in (d or {}).get("features", []):
+        g = f.get("geometry") or {}
+        rec = {"layer": f["id"].rsplit(".", 1)[0].removeprefix("mps_mapping_"),
+               **{k: v for k, v in f["properties"].items() if v not in (None, "") and k not in MS_DROP}}
+        if g.get("type") == "Point":
+            rec = {**at(lat, lon, g["coordinates"][1], g["coordinates"][0]), **rec}
+        out.append(rec)
+    return sorted(out, key=lambda r: r.get("dist_km", 0))[:60] or None
+
+
+# carbon mapper's catalog serves per-plume rasters via signed urls: the
+# georeferenced plume retrieval + concentration tifs and rgb overlays,
+# downloaded next to context.json for the agent to analyse
+# dropped keys duplicate the plume record/extras or are catalog plumbing
+CM_META_DROP = ("id", "plume_id", "scene_id", "geometry_json", "collection", "mission_phase",
+                "status", "hide_emission", "processing_software", "publication_sources",
+                "published_at", "modified", "emission_auto", "emission_uncertainty_auto",
+                "wind_speed_avg_auto", "wind_direction_avg_auto")
+
+
+def fetch_cm_artifacts(pid, d):
+    try:
+        it = httpx.get(f"https://api.carbonmapper.org/api/v1/catalog/plumes/annotated?plume_names={pid}",
+                       timeout=30).json()["items"][0]
+    except Exception as e:
+        print(f"  warn: cm catalog failed: {e}", file=sys.stderr)
+        return None, []
+    files = []
+    for k in ("plume_tif", "con_tif", "plume_png", "plume_rgb_png", "rgb_png"):
+        url = it.pop(k, None)
+        f = d / (k + (".tif" if k.endswith("tif") else ".png"))
+        try:
+            if url and not f.exists():
+                f.write_bytes(httpx.get(url, timeout=60, follow_redirects=True).content)
+            if f.exists():
+                files.append(f.name)
+        except Exception as e:
+            print(f"  warn: cm {k} failed: {e}", file=sys.stderr)
+    return {k: v for k, v in it.items() if v not in (None, "", []) and k not in CM_META_DROP}, files
+
+
+def assemble(con, p, d):
     lat, lon, km = p["lat"], p["lon"], radius(p)
     rate, unc = p.pop("rate"), p.pop("unc")
     ex = con.sql("select * from extras where id = ?", params=[p["id"]]).df().to_dict("records")
     rec = {k: v for k, v in (ex[0] if ex else {}).items()
            if k != "id" and v is not None and v == v and v != ""}
+    files = []
+    if p["src"] == "cm":
+        meta, files = fetch_cm_artifacts(p["id"], d)
+        rec = rec | (meta or {})
     osm_where = "true" if km <= 3 else f"name is not null or v in ({OSM_SIGNAL})"
     place = cached_get(f"place_{lat:.3f}_{lon:.3f}.json",
         f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&zoom=10&accept-language=en") or {}
@@ -214,10 +318,17 @@ def assemble(con, p):
     hist = [h for h in near(con, "plumes", lat, lon, hist_km, limit=200) if h.get("id") != p["id"]]
     field = con.sql(f"""select "name", operator from ogim_fields
         where st_contains(geom, st_point({lon}, {lat}))""").fetchall()
+    osm_live = fetch_osm_live(lat, lon, km, d)
+    if osm_live:
+        files.append("osm.json")
     return {
         "plume": {**p, "rate_kg_hr": rate, "uncertainty_kg_hr": unc,
                   "sensor_note": SENSOR_NOTE.get(p["src"], ""), "search_radius_km": km,
                   "source_record": rec or None},
+        "files": {"note": "alongside context.json in your working directory: osm.json = raw "
+                  "overpass export of the area; plume_tif/con_tif = georeferenced plume rasters "
+                  "(analyse with `uv run --with rasterio python`); *_png = plume/rgb overlays",
+                  "list": files} if files else None,
         "place": place.get("display_name"),
         "wind": fetch_wind(lat, lon, p["dt"], rec.get("ts")),
         "og_field": [" · ".join(filter(None, f)) for f in field] or None,
@@ -227,7 +338,8 @@ def assemble(con, p):
             "detections": sorted(hist, key=lambda h: h["dist_km"])[:40],
         },
         "ogim": near(con, "ogim", lat, lon, km, latcol="LATITUDE", loncol="LONGITUDE"),
-        "osm": near(con, "osm", lat, lon, km, where=osm_where, limit=80),
+        "osm": osm_live or near(con, "osm", lat, lon, km, where=osm_where, limit=80),
+        "mapstand": fetch_mapstand(lat, lon, km),
         "coal_mines": near(con, "coal", lat, lon, max(km, 20), limit=15, loncol="lng"),
     }
 
@@ -239,7 +351,7 @@ def run_one(con, p):
     pid = p["id"]
     d = RUNS / pid.replace("/", "_").replace("|", "_")
     d.mkdir(parents=True, exist_ok=True)
-    ctx = assemble(con, dict(p))
+    ctx = assemble(con, dict(p), d)
     (d / "context.json").write_text(json.dumps(ctx, indent=1, default=str))
     if os.environ.get("DRY"):
         return pid, None

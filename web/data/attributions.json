@@ -562,15 +562,15 @@
   "source_name": "Matuail Landfill"
  },
  "tan20260121t184851c40s4001-B": {
-  "attributed_id": "OGIM:5889300",
-  "confidence": "low",
+  "attributed_id": null,
+  "confidence": "medium",
   "evidence": [],
   "model": "deepseek-v4-pro",
-  "operator": "Pioneer Natural Resources USA, Inc.",
-  "paragraph": "A well pad or associated production infrastructure on the Spraberry Driver Unit lease is the likely source of this 6,585 kg/hr methane plume detected by Carbon Mapper's Tanager satellite on 21 January 2026. The Carbon Mapper analysts traced the plume origin to coordinates (31.6373, -101.7632) in Reagan County, Texas, deep within the Permian Basin's Spraberry Trend. The nearest catalogued infrastructure is the plugged well SPRABERRY DRIVER UNIT - 591 (OGIM:5889300) just 150 metres southwest, operated by Pioneer Natural Resources, though the exact emitting equipment at the coordinate \u2014 likely a tank battery, separator, or unlisted well \u2014 is not identified in the available inventories. The emission rate is consistent with a major malfunction, blowdown, or unlit flare at a production pad, and the detection appears isolated at this specific location among 133 prior satellite detections clustered further north around the Midkiff Gas Plant.",
+  "operator": "ExxonMobil (formerly Pioneer Natural Resources USA, Inc.)",
+  "paragraph": "An oil or gas well at an unmapped location in the Spraberry Driver Unit is the likely source of this 6,585 kg/hr methane plume detected by Carbon Mapper's Tanager satellite on 21 January 2026. The plume source origin, traced by Carbon Mapper analysts, sits at 31.6373\u00b0N, 101.7632\u00b0W \u2014 the maximum concentration pixel lies just 31 metres from this point and the plume extends 3.5 km southward, consistent with the northerly wind (356\u00b0 at 5.5 m/s) measured at the time. The coordinate falls within a densely drilled section of the Spraberry Trend where Pioneer Natural Resources (acquired by ExxonMobil in May 2024) operates numerous wells under the Spraberry Driver Unit; the closest inventoried active well is 210 metres north (SPRABERRY DRIVER UNIT - 1021D, an injection/disposal well), though Carbon Mapper's satellite geolocation places the source at the detection coordinate itself. No prior detection exists at this exact location among the 133 satellite overpasses recorded within 10 km since 2019, while persistent clusters at the nearby Midkiff gas plant (~1 km NNW) and a second well pad (~2 km SW) suggest those are separate, ongoing sources; the combination of a novel location and an exceptionally high emission rate points to an intermittent event such as a well blowout, workover release, or equipment failure.",
   "run_at": "2026-07-08",
-  "source_kind": "facility",
-  "source_label": "Spraberry Driver Unit well pad, Pioneer Natural Resources",
-  "source_name": "Spraberry Driver Unit"
+  "source_kind": "well",
+  "source_label": "Unmapped well pad, Spraberry Driver Unit, Texas",
+  "source_name": null
  }
 }

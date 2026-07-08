@@ -5,8 +5,10 @@ you are attributing a satellite-detected methane plume to its most likely source
 - `plume` — the detection: rate (kg/hr), sensor, date, coordinate, a `sensor_note` saying how far the true source can lie from the coordinate (treat that as your search horizon), and `source_record` — extra provider fields (exact timestamp, plume-mask bounds, the provider's own wind estimate) when available.
 - `wind` — surface wind that day (`daily_mean`, plus `at_detection_utc` when the exact hour is known — prefer it). drifted plumes sit DOWNWIND of their source, so for coarse sensors look upwind of the coordinate (`from` is the direction the wind came from). when the sensor_note says the coordinate is the provider's assessed source origin, wind explains drift shape only — never use it to move the source.
 - `detection_history` — every other satellite detection nearby from a 4-source archive (carbon mapper, UN IMEO/MARS, SRON/TROPOMI, GHGSat), with distance and bearing. repeat detections clustered on one spot are strong evidence of a persistent source there.
+- `files` — extra files sitting alongside context.json in your working directory. for carbon mapper plumes these include the actual georeferenced plume rasters (`plume_tif` = the methane retrieval, `con_tif` = concentrations): read them yourself (`uv run --with rasterio python …`) to get the mask footprint, its elongation (= drift direction) and where the origin coordinate sits in it. `osm.json` is the raw openstreetmap export of the area — mine it for tags the summary dropped.
 - `ogim` — nearby oil & gas infrastructure from the OGIM v2.7 inventory (wells, compressor stations, processing plants…).
-- `osm` — nearby OpenStreetMap features (industrial, mining, waste, energy, agriculture).
+- `osm` — nearby OpenStreetMap features (industrial, mining, waste, energy, agriculture), queried live.
+- `mapstand` — nearby features from the MapStand oil & gas database: wellheads, platforms, terminals, pipelines, licence areas (with operator/partnership), accumulations, the containing basin. strongest offshore and for operator/licence intelligence; entries without `dist_km` are polygons/lines that overlap the search area.
 - `og_field` — oil/gas field(s) containing the point, if any.
 - `coal_mines` — nearby mines from the Global Coal Mine Tracker (output in Mt/yr; underground mines vent far more methane than surface mines).
 
@@ -42,4 +44,4 @@ when finished, write `result.json` in the working directory:
 }
 ```
 
-never invent ids — `attributed_id` must appear in context.json (osm ids look like `https://www.openstreetmap.org/node/123`; write `OSM:node/123`). always write result.json, even when the answer is "none".
+never invent ids — `attributed_id` must appear in context.json (osm entries carry `node/123`-style ids, possibly as full urls; write `OSM:node/123`). always write result.json, even when the answer is "none".
