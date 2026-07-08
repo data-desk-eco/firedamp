@@ -142,7 +142,7 @@ export function addPlumeLayers(plumes, attributed = new Set()) {
 
 // ── filters ──
 
-const filters = { sec: 'all', year: 'all', rate: 'all' };
+const filters = { attr: 'all', year: 'all', rate: 'all' };
 
 export function setFilter(key, value) {
     filters[key] = value;
@@ -153,8 +153,8 @@ export function setFilter(key, value) {
 
 function buildFilter(src) {
     const f = ['all', ['==', ['get', 'src'], src]];
-    if (filters.sec !== 'all') {
-        f.push(['==', ['get', 'sec'], filters.sec]);
+    if (filters.attr === 'yes') {
+        f.push(['==', ['get', 'attr'], 1]);
     }
     if (filters.year === '30d') {
         const cutoff = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);

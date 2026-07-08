@@ -38,7 +38,7 @@ document.querySelectorAll('.source-btn').forEach(btn => {
 });
 
 // sector / year / rate filter button groups
-for (const key of ['sec', 'year', 'rate']) {
+for (const key of ['attr', 'year', 'rate']) {
     const btns = document.querySelectorAll(`[data-${key}]`);
     btns.forEach(btn => btn.addEventListener('click', () => {
         btns.forEach(b => b.classList.remove('active'));
