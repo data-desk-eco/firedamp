@@ -2,10 +2,9 @@ firedamp
 ========
 
 Methane plume aggregator. Maps satellite-detected methane plumes
-alongside O&G infrastructure from the OGIM database, and offers a
-per-plume AI source attribution (Qwen3-VL via OpenRouter, grounded on
-OGIM, OpenStreetMap, place name, wind, and an annotated Esri imagery
-snapshot).
+alongside O&G infrastructure from the OGIM database, and shows a
+per-plume source attribution produced offline by a research agent
+(see agent/) and served from a static dataset.
 
 Live: https://research.datadesk.eco/firedamp/
 
@@ -26,11 +25,10 @@ Repo layout
       plumes.js        binary parser, plume layers, filters
       ogim.js          OGIM layers, toggle, proximity queries
       detail.js        detail panel, permalinks, interactions
-      analysis.js      AI attribution pipeline + Worker client
+      analysis.js      static attribution lookup/render + wind stat
       util.js          geometry + formatting helpers
       style.css
       index.html
-      dataset.html     AI-attribution browser (not currently linked)
       vendor/          MapLibre, PMTiles, Inter font
     scripts/         Python ETL (uv-managed)
       fetch_carbon_mapper.py
@@ -41,12 +39,11 @@ Repo layout
       dist.sh          assembles the Pages artifact (cache-busted)
       serve.py         dev server with HTTP Range for PMTiles
       vendor.sh
-    worker/          Cloudflare Worker `firedamp-api` (see worker/README)
+    agent/           offline per-plume attribution agent -> attributions.json
     data/            input CSVs and intermediates (gitignored)
     .github/workflows/
       deploy.yml          Pages on push to main
       update-data.yml     plume refresh every 6 h
-      export-analyses.yml daily D1 snapshot to latest-data release
 
 
 Setup
@@ -66,25 +63,19 @@ Pipelines
     make rebuild       full pipeline: data + ogim + upload
 
 
-AI source attribution
----------------------
-Detail panels include a model-generated source attribution. Requests
-flow through the Cloudflare Worker in `worker/`, which holds the
-OpenRouter key as a server secret and caches every response in a D1
-database. See worker/README for setup. The browser hits the Worker via
-the URL in `<meta name="firedamp-api">` in web/index.html.
-
-A separate browser at /dataset.html lists every cached analysis (live
-in the source tree but not linked from the main UI yet — re-enable by
-uncommenting the subtitle link in index.html and restoring the cp lines
-in the two deploy workflows).
+Source attribution
+------------------
+Detail panels show a per-plume source attribution served entirely from
+web/data/attributions.json, produced offline by the research agent in
+agent/ (pi headless + DeepSeek, per-plume local evidence + web search).
+Plumes carrying an attribution render as filled discs on the map. There
+is no live in-browser LLM pipeline. See agent/task.md and CLAUDE.md.
 
 
 URL scheme
 ----------
     Map position     #map=<zoom>/<lat>/<lon>
     Plume permalink  #plume=<id>
-    Local Worker     ?api=local   (when running `make worker-dev`)
 
 
 Deployment

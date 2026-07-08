@@ -6,7 +6,6 @@ __pycache__/
 /data/
 web/data/ogim.pmtiles
 web/data/plumes.bin
-worker/.wrangler/
 agent/runs/
 
 .playwright-mcp/

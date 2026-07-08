@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # assemble the pages artifact in dist/, cache-busting js/css with the git sha.
 # used by deploy.yml and update-data.yml: bash scripts/dist.sh "$GITHUB_SHA"
-# dataset.html is intentionally not deployed yet (kept in source).
 set -euo pipefail
 
 V="${1:-dev}"; V="${V:0:8}"
