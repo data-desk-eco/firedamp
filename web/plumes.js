@@ -91,7 +91,9 @@ const radiusExpr = [
     Math.log(10001), 12
 ];
 
-export function addPlumeLayers(plumes) {
+// plumes carrying a bulk agentic attribution are drawn filled (semi-transparent
+// in the source colour, which is also the stroke colour); the rest stay hollow.
+export function addPlumeLayers(plumes, attributed = new Set()) {
     map.addSource('plumes', {
         type: 'geojson',
         data: {
@@ -99,7 +101,7 @@ export function addPlumeLayers(plumes) {
             features: plumes.map(p => ({
                 type: 'Feature',
                 geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
-                properties: p
+                properties: attributed.has(p.id) ? { ...p, attr: 1 } : p
             }))
         }
     });
@@ -114,7 +116,7 @@ export function addPlumeLayers(plumes) {
             paint: {
                 'circle-radius': radiusExpr,
                 'circle-color': SRC_COLORS[src],
-                'circle-opacity': 0,
+                'circle-opacity': ['case', ['==', ['get', 'attr'], 1], 0.3, 0],
                 'circle-stroke-color': SRC_COLORS[src],
                 'circle-stroke-width': 1.5,
                 'circle-stroke-opacity': 0.75

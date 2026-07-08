@@ -4,10 +4,15 @@ import { map } from './map.js';
 import { parsePlumes, addPlumeLayers, setFilter } from './plumes.js';
 import { addOGIMLayers, toggleOGIM, updateOgimToggleEnabled } from './ogim.js';
 import { setupInteractions, restorePermalink, refreshNearby } from './detail.js';
+import { loadAttributions } from './analysis.js';
 
 map.on('load', async () => {
-    const buf = await fetch('data/plumes.bin').then(r => r.arrayBuffer());
+    const [buf, attribs] = await Promise.all([
+        fetch('data/plumes.bin').then(r => r.arrayBuffer()),
+        loadAttributions(),
+    ]);
     const plumes = parsePlumes(buf);
+    const attributed = new Set(Object.keys(attribs));
 
     // reveal the ghgsat toggle/legend only when local-only ghgsat data is present
     if (plumes.some(p => p.src === 'ghgsat'))
@@ -16,7 +21,7 @@ map.on('load', async () => {
     // OGIM layers (hidden by default, rendered below plumes)
     await addOGIMLayers();
 
-    addPlumeLayers(plumes);
+    addPlumeLayers(plumes, attributed);
     setupInteractions();
     restorePermalink(plumes);
 });

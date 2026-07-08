@@ -125,7 +125,6 @@ export function showDetail(feature, fromPermalink) {
         <div class="enrich-section">
             <div class="enrich-section-label">
                 <span>Analysis</span>
-                <button class="enrich-regenerate" onclick="regenerateAnalysis()" title="Regenerate (skip cache)">↻</button>
             </div>
             <div id="enrich-results" class="enrich-loading">Loading…</div>
         </div>
@@ -164,7 +163,6 @@ function overlapStep(delta) {
 window.closeDetail = closeDetail;
 window.overlapNext = () => overlapStep(1);
 window.overlapPrev = () => overlapStep(-1);
-window.regenerateAnalysis = () => { if (selectedFeature) runPlumeAnalysis(selectedFeature, { force: true }); };
 
 // ── map interactions ──
 
