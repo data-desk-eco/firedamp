@@ -93,7 +93,6 @@ ES modules, no build step. Key files:
 
 - `#map=<zoom>/<lat>/<lon>` — MapLibre-managed.
 - `#plume=<id>` — plume permalink (position derived from data).
-- `?api=local` — point AI requests at `http://localhost:8787` (wrangler dev).
 
 ### Overlap navigation
 
@@ -111,6 +110,7 @@ make serve         # dev server on :8000 (HTTP Range for PMTiles)
 - **Pages**: push to `main` runs `deploy.yml`. Pulls `plumes.bin` from the `latest-data` Release, copies `web/*` into `dist/`, cache-busts JS/CSS with the git SHA, and deploys.
 - **Plumes refresh**: `update-data.yml` runs every 6h (00:00/06:00/12:00/18:00 UTC), rebuilds `plumes.bin`, uploads to the Release, and redeploys Pages. Carbon Mapper publishes in sub-daily batches so it's polled often; SRON (weekly) and IMEO (irregular) don't gain much from the higher cadence but ride along.
 - **AI dataset snapshot**: `export-analyses.yml` runs daily (06:30 UTC), dumps `/api/analyses` to `analyses.json{,.gz}` in the same Release as a durability backup.
+- **Private deploy**: `make deploy-private` — builds `plumes.bin` locally (pulling in the local-only, gitignored `data/ghgsat.csv`) and pushes the site to Cloudflare Pages project `firedamp-private` (`https://firedamp-private.pages.dev`), which sits behind Cloudflare Access (Zero Trust app "Firedamp private", "Data Desk" policy = the three datadesk.eco emails, covering prod + `*.pages.dev` previews). This is the **only** deploy that ever contains GHGSat: the target refuses to upload unless the Access gate is answering in front of the site, and the leaked CSV never touches GitHub. Manual snapshot — the public site refreshes every 6h, the private one only when re-run. The Worker's `/api/analyses` dump excludes `plume_src = 'ghgsat'` so private-site analyses stay out of the public dataset browser and daily snapshot.
 - **OGIM tiles**: `make ogim-upload` pushes to GCS manually (rarely re-run).
 - **Worker**: `make worker-deploy` (separate from Pages).
 

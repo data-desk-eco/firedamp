@@ -265,10 +265,12 @@ async function listAnalyses(req, env, origin) {
     const url = new URL(req.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '200', 10) || 200, 1000);
     const since = parseInt(url.searchParams.get('since') || '0', 10) || 0;
+    // ghgsat rows come from the access-gated private deploy; keep them out of
+    // the public dump (dataset browser + daily release snapshot).
     const stmt = env.DB.prepare(
         `SELECT plume_id, model, source_label, lat, lon, plume_date, plume_rate, plume_src, response, created_at
          FROM analyses
-         WHERE created_at > ?
+         WHERE created_at > ? AND coalesce(plume_src, '') != 'ghgsat'
          ORDER BY created_at DESC LIMIT ?`
     ).bind(since, limit);
     const r = await stmt.all();

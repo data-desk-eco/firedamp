@@ -1,4 +1,4 @@
-.PHONY: attr attr-db data ogim ogim-upload rebuild serve vendor worker-dev worker-deploy worker-schema worker-tail clean clean-all help
+.PHONY: attr attr-db data ogim ogim-upload rebuild deploy-private serve vendor worker-dev worker-deploy worker-schema worker-tail clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
@@ -24,6 +24,14 @@ ogim-upload: web/data/ogim.pmtiles
 # ── Full rebuild ─────────────────────────────────────────────────
 rebuild: data ogim ogim-upload
 	@echo "Full rebuild complete"
+
+# ── Datadesk-only deploy (Cloudflare Pages behind Access) ────────
+# ships the locally-built plumes.bin — including local-only ghgsat — so it
+# refuses to deploy unless the access gate is answering in front of the site
+deploy-private: data
+	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }
+	bash scripts/dist.sh $$(git rev-parse HEAD)
+	npx wrangler pages deploy dist --project-name firedamp-private --branch main
 
 # ── Frontend ─────────────────────────────────────────────────────
 vendor: web/vendor/.ok
@@ -60,6 +68,7 @@ help:
 	@echo "make ogim          Build OGIM PMTiles from GeoPackage"
 	@echo "make ogim-upload   Upload OGIM PMTiles to GCS"
 	@echo "make rebuild       Full pipeline: data + ogim + upload"
+	@echo "make deploy-private Deploy datadesk-only site (incl. GHGSat) to CF Pages"
 	@echo "make vendor        Download vendored JS/CSS/fonts"
 	@echo "make serve         Dev server on :8000"
 	@echo "make worker-dev    wrangler dev for the firedamp-api Worker"
