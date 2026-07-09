@@ -44,8 +44,10 @@ serve: vendor
 	uv run scripts/serve.py
 
 # ── Cleanup ──────────────────────────────────────────────────────
+# only the refetchable csvs: ghgsat.csv (local-only) and gcmt_coal.csv
+# (manual download) are irreplaceable
 clean:
-	rm -f data/*.ok data/*.csv web/data/plumes.bin
+	rm -f data/*.ok data/carbon_mapper.csv data/imeo_plumes.csv data/sron_all.csv web/data/plumes.bin
 
 clean-all: clean
 	rm -rf web/vendor data/sron data/OGIM_v2.7.gpkg web/data/ogim.pmtiles
@@ -60,6 +62,9 @@ help:
 	@echo "make serve         Dev server on :8000"
 	@echo "make clean         Remove generated data files"
 	@echo "make clean-all     Remove all generated files including vendor"
+	@echo "make attr-db       Build data/context.duckdb for the attribution agent"
+	@echo "make attr          Attribute the 20 most recent unattributed plumes"
+	@echo "make gaslight      Fetch the gaslight permian db"
 
 # ── agentic attribution (agent/) ─────────────────────────────────
 attr-db:
@@ -73,4 +78,4 @@ gaslight:
 	@echo "Fetched data/gaslight.duckdb"
 
 attr:
-	uv run agent/run.py --top 20 -j 4
+	uv run agent/run.py --recent 20 -j 16

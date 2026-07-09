@@ -35,11 +35,12 @@ Repo layout
       fetch_sron.py
       fetch_imeo.py
       build.py         aggregates everything into web/data/plumes.bin
+      build_attr.py    attributions.parquet -> web/data/attributions.bin
       build_ogim.sh    OGIM GeoPackage -> PMTiles (slow, ~30 min)
       dist.sh          assembles the Pages artifact (cache-busted)
       serve.py         dev server with HTTP Range for PMTiles
       vendor.sh
-    agent/           offline per-plume attribution agent -> attributions.json
+    agent/           offline per-plume attribution agent -> attributions.parquet
     data/            input CSVs and intermediates (gitignored)
     .github/workflows/
       deploy.yml          Pages on push to main
@@ -65,11 +66,13 @@ Pipelines
 
 Source attribution
 ------------------
-Detail panels show a per-plume source attribution served entirely from
-web/data/attributions.json, produced offline by the research agent in
-agent/ (pi headless + DeepSeek, per-plume local evidence + web search).
-Plumes carrying an attribution render as filled discs on the map. There
-is no live in-browser LLM pipeline. See agent/task.md and CLAUDE.md.
+Detail panels show a per-plume source attribution, produced offline by
+the research agent in agent/ (pi headless + DeepSeek, per-plume local
+evidence + web search). web/data/attributions.parquet is the committed
+source of truth; the site ships a compact FDA1 binary derived from it
+at deploy time (scripts/build_attr.py). Plumes carrying an attribution
+render as filled discs on the map. There is no live in-browser LLM
+pipeline. See agent/task.md and CLAUDE.md.
 
 
 URL scheme
