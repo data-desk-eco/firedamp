@@ -365,7 +365,7 @@
   "source_label": "Natural gas pipeline venting during Feb 14 sabotage",
   "source_name": "Iran Gas Trunkline (IGAT), Asaluyeh\u2013Caspian segment"
  },
- "sron_20230916_37.09N_111.97E|SRON_Weekly_Methane_Plumes_2023_wk38_v20230925.csv": {
+ "sron_20230916_37.09N_111.97E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -382,7 +382,7 @@
   "source_label": "Coal mine methane, Jiexiu Xinyugou complex, Yi'an",
   "source_name": null
  },
- "sron_20231020_37.67N_61.38E|SRON_Weekly_Methane_Plumes_2023_wk42_v20231023.csv": {
+ "sron_20231020_37.67N_61.38E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -399,7 +399,7 @@
   "source_label": "Central Asia\u2013Center gas pipeline system, Mary Region, Turkmenistan",
   "source_name": null
  },
- "sron_20240917_51.72N_56.24E|SRON_Weekly_Methane_Plumes_2024_wk38_v20240923.csv": {
+ "sron_20240917_51.72N_56.24E": {
   "attributed_id": "OSM:way/229469250",
   "confidence": "high",
   "evidence": [
@@ -414,7 +414,7 @@
   "source_label": "Gazprom compressor station KS Saraktash",
   "source_name": "\u041a\u0421 \u0421\u0430\u0440\u0430\u043a\u0442\u0430\u0448"
  },
- "sron_20241008_45.47N_55.09E|SRON_Weekly_Methane_Plumes_2024_wk41_v20241014.csv": {
+ "sron_20241008_45.47N_55.09E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -430,7 +430,7 @@
   "source_label": "Beyneu compressor station on Beyneu\u2013Bozoy\u2013Shymkent gas pipeline",
   "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u0411\u0435\u0439\u043d\u0435\u0443"
  },
- "sron_20241014_35.52N_112.69E|SRON_Weekly_Methane_Plumes_2024_wk42_v20241021.csv": {
+ "sron_20241014_35.52N_112.69E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -447,7 +447,7 @@
   "source_label": "Sihe No.2 Coal Mine ventilation shaft, Zezhou County",
   "source_name": "Sihe No.2 Coal Mine (\u5bfa\u6cb3\u7164\u77ff\u4e8c\u53f7\u4e95)"
  },
- "sron_20250911_62.92N_75.21E|SRON_Weekly_Methane_Plumes_2025_wk37_v20250915.csv": {
+ "sron_20250911_62.92N_75.21E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -459,7 +459,7 @@
   "source_label": "Oil and gas operations, Pogramichnoye field",
   "source_name": "Pogramichnoye oil and gas condensate field"
  },
- "sron_20251125_35.42N_51.32E|SRON_Weekly_Methane_Plumes_2025_wk48_v20251201.csv": {
+ "sron_20251125_35.42N_51.32E": {
   "attributed_id": "OSM:way/640959613",
   "confidence": "high",
   "evidence": [
@@ -476,7 +476,7 @@
   "source_label": "Aradkouh landfill, Tehran's main waste disposal site",
   "source_name": "\u0645\u062d\u0644 \u062f\u0641\u0646 \u0632\u0628\u0627\u0644\u0647\u200c\u0647\u0627\u06cc \u062a\u0647\u0631\u0627\u0646 (Aradkouh Waste Processing and Disposal Complex)"
  },
- "sron_20260527_41.43N_88.33W|SRON_Weekly_Methane_Plumes_2026_wk22_v20260601.csv": {
+ "sron_20260527_41.43N_88.33W": {
   "attributed_id": "OGIM:108649",
   "confidence": "medium",
   "evidence": [
@@ -494,7 +494,7 @@
   "source_label": "Aux Sable gas processing plant, Morris Illinois",
   "source_name": "Aux Sable Liquid Products"
  },
- "sron_20260530_21.82S_148.47E|SRON_Weekly_Methane_Plumes_2026_wk22_v20260601.csv": {
+ "sron_20260530_21.82S_148.47E": {
   "attributed_id": "OSM:way/293259137",
   "confidence": "high",
   "evidence": [
@@ -510,7 +510,7 @@
   "source_label": "Coppabella Coal Mine, Bowen Basin surface mine",
   "source_name": "Coppabella Coal Mine"
  },
- "sron_20260607_23.68S_46.60W|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260607_23.68S_46.60W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -522,7 +522,7 @@
   "source_label": "Unidentified methane source in Diadema industrial district",
   "source_name": null
  },
- "sron_20260607_37.35N_61.93E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260607_37.35N_61.93E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -540,7 +540,7 @@
   "source_label": "Gas processing infrastructure at the Galkynysh gas field",
   "source_name": "Galkynysh Gas Field gas treatment plants"
  },
- "sron_20260607_41.18N_69.08E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260607_41.18N_69.08E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -552,7 +552,7 @@
   "source_label": "Gas infrastructure in Yangiyul District, Uzbekistan",
   "source_name": null
  },
- "sron_20260607_54.88N_86.57E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260607_54.88N_86.57E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -567,7 +567,7 @@
   "source_label": "Coal mine methane in the Kuznetsk Basin",
   "source_name": null
  },
- "sron_20260608_31.14N_49.36E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260608_31.14N_49.36E": {
   "attributed_id": "OSM:way/309193826",
   "confidence": "medium",
   "evidence": [
@@ -583,7 +583,7 @@
   "source_label": "Marun 3 oil and gas processing facility, Khuzestan",
   "source_name": "Marun 3 Oil & Gas Exploitation Company (\u0634\u0631\u06a9\u062a \u0628\u0647\u0631\u0647 \u0628\u0631\u062f\u0627\u0631\u06cc \u0646\u0641\u062a \u0648 \u06af\u0627\u0632 \u0645\u0627\u0631\u0648\u0646 \u06f3)"
  },
- "sron_20260608_38.51N_54.79E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260608_38.51N_54.79E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -601,7 +601,7 @@
   "source_label": "Bugda\u00fdly oil field, western Turkmenistan",
   "source_name": "Bugda\u00fdly Oil Field"
  },
- "sron_20260608_39.45N_53.72E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260608_39.45N_53.72E": {
   "attributed_id": "OSM:node/2996966335",
   "confidence": "medium",
   "evidence": [
@@ -617,7 +617,7 @@
   "source_label": "Goturdepe Oil Field production infrastructure, western Turkmenistan",
   "source_name": "Goturdepe Oil Field"
  },
- "sron_20260609_36.55N_61.67E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260609_36.55N_61.67E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -633,7 +633,7 @@
   "source_label": "Dovletabat-Donmez gas field infrastructure, Mary Region, Turkmenistan",
   "source_name": null
  },
- "sron_20260609_36.75N_9.93E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260609_36.75N_9.93E": {
   "attributed_id": "OSM:way/144835570",
   "confidence": "high",
   "evidence": [
@@ -647,7 +647,7 @@
   "source_label": "Borj Chakir landfill (Greater Tunis)",
   "source_name": "Borj Chakir Landfill"
  },
- "sron_20260609_38.29N_53.83E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260609_38.29N_53.83E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -663,7 +663,7 @@
   "source_label": "Offshore oil and gas infrastructure in Caspian Sea",
   "source_name": null
  },
- "sron_20260609_39.51N_53.21E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260609_39.51N_53.21E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [],
@@ -675,7 +675,7 @@
   "source_label": "Dragon Oil offshore platforms, Cheleken field, Caspian Sea",
   "source_name": "Dragon Oil Cheleken Contract Area offshore production platforms (Lam/Zhdanov fields)"
  },
- "sron_20260610_23.01N_72.63E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260610_23.01N_72.63E": {
   "attributed_id": "OSM:way/321136517",
   "confidence": "high",
   "evidence": [
@@ -690,7 +690,7 @@
   "source_label": "Pirana municipal landfill, Ahmedabad",
   "source_name": "Municipal Landfill"
  },
- "sron_20260611_31.18N_48.73E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260611_31.18N_48.73E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -702,7 +702,7 @@
   "source_label": "Namavaran oil field infrastructure, Khuzestan",
   "source_name": null
  },
- "sron_20260611_37.46N_60.65E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260611_37.46N_60.65E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -718,7 +718,7 @@
   "source_label": "Turkmenistan gas pipeline infrastructure northeast of Tejen",
   "source_name": null
  },
- "sron_20260611_37.74N_53.83E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260611_37.74N_53.83E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -730,7 +730,7 @@
   "source_label": "Oil and gas infrastructure, TM Block 23, Turkmenistan",
   "source_name": null
  },
- "sron_20260611_58.08N_106.35E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260611_58.08N_106.35E": {
   "attributed_id": "OSM:way/238824320",
   "confidence": "high",
   "evidence": [
@@ -747,7 +747,7 @@
   "source_label": "Yarakta oil and gas field processing complex",
   "source_name": "Yarakta Oil and Gas Condensate Field (\u042f\u0440\u0430\u043a\u0442\u0438\u043d\u0441\u043a\u043e\u0435 \u041d\u0413\u041a\u041c)"
  },
- "sron_20260612_30.84N_49.63E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260612_30.84N_49.63E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -763,7 +763,7 @@
   "source_label": "Agha Jari oil field gas infrastructure, NW Khuzestan",
   "source_name": null
  },
- "sron_20260612_37.68N_61.51E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260612_37.68N_61.51E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -775,7 +775,7 @@
   "source_label": "Turkmengaz gas production in Amu Darya basin",
   "source_name": null
  },
- "sron_20260612_37.99N_53.79E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260612_37.99N_53.79E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -791,7 +791,7 @@
   "source_label": "Offshore platforms, TM Block 23, Caspian Sea",
   "source_name": null
  },
- "sron_20260612_38.57N_54.28E|SRON_Weekly_Methane_Plumes_2026_wk24_v20260615.csv": {
+ "sron_20260612_38.57N_54.28E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -807,7 +807,7 @@
   "source_label": "Korpeje oil and gas field infrastructure",
   "source_name": "Korpeje oil and gas field"
  },
- "sron_20260613_39.38N_53.97E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260613_39.38N_53.97E": {
   "attributed_id": "OSM:node/5595641524",
   "confidence": "high",
   "evidence": [
@@ -824,7 +824,7 @@
   "source_label": "Barsagelmez oil and gas field, northern sector",
   "source_name": "Barsagelmez oil and gas field"
  },
- "sron_20260613_62.51N_66.06E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260613_62.51N_66.06E": {
   "attributed_id": "OSM:relation/18903471",
   "confidence": "medium",
   "evidence": [
@@ -838,7 +838,7 @@
   "source_label": "Oktyabrskaya compressor station, Gazprom Transgaz Yugorsk",
   "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u00ab\u041e\u043a\u0442\u044f\u0431\u0440\u044c\u0441\u043a\u0430\u044f\u00bb (\u041a\u0426 1-8)"
  },
- "sron_20260613_67.45N_63.92E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260613_67.45N_63.92E": {
   "attributed_id": "OSM:node/8080828904",
   "confidence": "medium",
   "evidence": [
@@ -856,7 +856,7 @@
   "source_label": "Coal mine ventilation, Vorkuta basin, Russia",
   "source_name": "Zapolyarnaya and Vorkutinskaya coal mines (ventilation shafts)"
  },
- "sron_20260613_67.49N_64.04E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260613_67.49N_64.04E": {
   "attributed_id": "OSM:way/866927658",
   "confidence": "high",
   "evidence": [
@@ -872,7 +872,7 @@
   "source_label": "Vorkutinskaya underground coal mine ventilation",
   "source_name": "\u0428\u0430\u0445\u0442\u0430 \u00ab\u0412\u043e\u0440\u043a\u0443\u0442\u0438\u043d\u0441\u043a\u0430\u044f\u00bb (Vorkutinskaya Coal Mine)"
  },
- "sron_20260614_38.26N_53.97E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260614_38.26N_53.97E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -887,7 +887,7 @@
   "source_label": "Gas infrastructure in Turkmenistan's Korpedzhe (Korpeje) gas field",
   "source_name": null
  },
- "sron_20260614_38.68N_54.30E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260614_38.68N_54.30E": {
   "attributed_id": "OSM:node/12571261803",
   "confidence": "high",
   "evidence": [
@@ -903,7 +903,7 @@
   "source_label": "Ekizak oil field flare and infrastructure, western Turkmenistan",
   "source_name": "Ekizak oil and gas field"
  },
- "sron_20260614_39.43N_53.53E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260614_39.43N_53.53E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -915,7 +915,7 @@
   "source_label": "Koturdepe oil and gas field, Turkmenistan",
   "source_name": "Koturdepe (Goturdepe) Oil and Gas Field"
  },
- "sron_20260614_64.06N_68.81E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260614_64.06N_68.81E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -927,7 +927,7 @@
   "source_label": "Unmapped gas infrastructure in West Siberian Basin",
   "source_name": null
  },
- "sron_20260614_67.59N_84.08E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260614_67.59N_84.08E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -939,7 +939,7 @@
   "source_label": "Oil and gas operations in the Vankor cluster",
   "source_name": "Vankor oil and gas cluster (eastern license area)"
  },
- "sron_20260615_39.29N_62.56E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260615_39.29N_62.56E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -954,7 +954,7 @@
   "source_label": "Bagaja gas field production, Amu-Darya Basin, Turkmenistan",
   "source_name": null
  },
- "sron_20260615_39.94N_63.05E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260615_39.94N_63.05E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -969,7 +969,7 @@
   "source_label": "Unmapped gas infrastructure in the Amu-Darya Basin",
   "source_name": null
  },
- "sron_20260615_62.72N_64.24E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260615_62.72N_64.24E": {
   "attributed_id": "OSM:way/582809976",
   "confidence": "medium",
   "evidence": [
@@ -985,7 +985,7 @@
   "source_label": "KS Punga compressor station and Punginskoye underground gas storage",
   "source_name": "KS Punga / Punginskoye Underground Gas Storage (\u041f\u0443\u043d\u0433\u0438\u043d\u0441\u043a\u043e\u0435 \u041f\u0425\u0413)"
  },
- "sron_20260615_64.26N_68.80E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260615_64.26N_68.80E": {
   "attributed_id": "OSM:relation/18752595",
   "confidence": "medium",
   "evidence": [
@@ -1002,7 +1002,7 @@
   "source_label": "Sorumska compressor station, Gazprom Transgaz Yugorsk",
   "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u00ab\u0421\u043e\u0440\u0443\u043c\u0441\u043a\u0430\u044f\u00bb (Sorumska Compressor Station)"
  },
- "sron_20260615_64.77N_72.39E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260615_64.77N_72.39E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1014,7 +1014,7 @@
   "source_label": "Unidentified gas infrastructure, Nadymsky Rayon",
   "source_name": null
  },
- "sron_20260616_32.22N_103.56W|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260616_32.22N_103.56W": {
   "attributed_id": "OSM:way/1167293565",
   "confidence": "medium",
   "evidence": [
@@ -1029,7 +1029,7 @@
   "source_label": "Dense oil and gas well pads, Delaware Basin",
   "source_name": null
  },
- "sron_20260616_45.64S_68.51W|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260616_45.64S_68.51W": {
   "attributed_id": "OGIM:6583539",
   "confidence": "medium",
   "evidence": [],
@@ -1041,7 +1041,7 @@
   "source_label": "Cerro Drag\u00f3n oil field, Rio Chico production area",
   "source_name": "Cerro Drag\u00f3n \u2013 Rio Chico oil production complex (R\u00cdO CHICO 01 tank battery and surrounding wells)"
  },
- "sron_20260616_60.56N_74.06E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260616_60.56N_74.06E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1058,7 +1058,7 @@
   "source_label": "Ugutskoye oil field well clusters, Rosneft",
   "source_name": "Ugutskoye oil field (\u0426\u0414\u041d\u0413-18)"
  },
- "sron_20260617_23.68S_46.59W|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_23.68S_46.59W": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -1074,7 +1074,7 @@
   "source_label": "Aterro Sanit\u00e1rio de Santo Andr\u00e9 landfill",
   "source_name": "Aterro Sanit\u00e1rio de Santo Andr\u00e9"
  },
- "sron_20260617_31.09N_49.75E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_31.09N_49.75E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1091,7 +1091,7 @@
   "source_label": "Karanj oil field operations, Khuzestan",
   "source_name": "Karanj Oil Field"
  },
- "sron_20260617_31.64N_102.08W|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_31.64N_102.08W": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1103,7 +1103,7 @@
   "source_label": "Oil & gas infrastructure on OVINTIV Davidson lease, Upton County",
   "source_name": null
  },
- "sron_20260617_33.33N_7.32W|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_33.33N_7.32W": {
   "attributed_id": "OSM:way/1362368751",
   "confidence": "medium",
   "evidence": [
@@ -1117,7 +1117,7 @@
   "source_label": "D\u00e9charge de M\u00e9diouna landfill, Casablanca",
   "source_name": "D\u00e9charge de M\u00e9diouna"
  },
- "sron_20260617_37.74N_53.99E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_37.74N_53.99E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1133,7 +1133,7 @@
   "source_label": "Korpeje gas field infrastructure, western Turkmenistan",
   "source_name": null
  },
- "sron_20260617_39.46N_53.77E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_39.46N_53.77E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -1151,7 +1151,7 @@
   "source_label": "Goturdepe oil field infrastructure, Turkmenistan",
   "source_name": null
  },
- "sron_20260617_39.56N_54.22E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_39.56N_54.22E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1169,7 +1169,7 @@
   "source_label": "Nebitdag oil and gas field, northwest Balkanabat",
   "source_name": null
  },
- "sron_20260617_54.00N_87.37E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_54.00N_87.37E": {
   "attributed_id": "OSM:way/72865433",
   "confidence": "medium",
   "evidence": [
@@ -1185,7 +1185,7 @@
   "source_label": "Yerunakovskaya coal mining complex, Kuznetsk Basin",
   "source_name": "Yerunakovskaya-8 Coal Mine"
  },
- "sron_20260617_54.58N_83.46E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_54.58N_83.46E": {
   "attributed_id": "OSM:way/581959479",
   "confidence": "high",
   "evidence": [
@@ -1202,7 +1202,7 @@
   "source_label": "Vostochny coal mine, Siberian Anthracite complex, Novosibirsk",
   "source_name": "Vostochny Coal Mine (\u0412\u043e\u0441\u0442\u043e\u0447\u043d\u044b\u0439 \u0443\u0447\u0430\u0441\u0442\u043e\u043a \u041a\u043e\u043b\u044b\u0432\u0430\u043d\u0441\u043a\u043e\u0433\u043e \u0440\u0430\u0437\u0440\u0435\u0437\u0430)"
  },
- "sron_20260617_55.51N_81.90E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_55.51N_81.90E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [
@@ -1216,7 +1216,7 @@
   "source_label": "Unidentified source in Baraba Lowland wetlands",
   "source_name": null
  },
- "sron_20260617_64.29N_69.15E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260617_64.29N_69.15E": {
   "attributed_id": "OSM:relation/5650612",
   "confidence": "medium",
   "evidence": [
@@ -1233,7 +1233,7 @@
   "source_label": "Sorumska gas compressor station, Gazprom Transgaz Yugorsk",
   "source_name": "\u041a\u043e\u043c\u043f\u0440\u0435\u0441\u0441\u043e\u0440\u043d\u0430\u044f \u0441\u0442\u0430\u043d\u0446\u0438\u044f \u00ab\u0421\u043e\u0440\u0443\u043c\u0441\u043a\u0430\u044f\u00bb (Sorumska Compressor Station, KC 5-7)"
  },
- "sron_20260618_25.52N_99.73W|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260618_25.52N_99.73W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1245,7 +1245,7 @@
   "source_label": "Unmapped landfill or gas infrastructure near Pueblo Nuevo",
   "source_name": null
  },
- "sron_20260618_37.76N_53.84E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260618_37.76N_53.84E": {
   "attributed_id": "OSM:node/9383757860",
   "confidence": "medium",
   "evidence": [],
@@ -1257,7 +1257,7 @@
   "source_label": "TM Block 23 onshore gas facility, Caspian coast",
   "source_name": null
  },
- "sron_20260618_65.21N_78.40E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260618_65.21N_78.40E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1269,7 +1269,7 @@
   "source_label": "East Tarkosalinskoye oil and gas field",
   "source_name": "Vostochno-Tarkosalinskoe field"
  },
- "sron_20260618_65.63N_79.09E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260618_65.63N_79.09E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1283,7 +1283,7 @@
   "source_label": "Beregovoye gas field operations, West Siberia",
   "source_name": "Beregovoye Field"
  },
- "sron_20260619_37.79N_53.96E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260619_37.79N_53.96E": {
   "attributed_id": "OSM:node/9383757860",
   "confidence": "high",
   "evidence": [
@@ -1300,7 +1300,7 @@
   "source_label": "Keimir gas field processing and storage facility, Turkmenistan",
   "source_name": "Keimir Gas Field Facility"
  },
- "sron_20260619_39.04N_53.88E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260619_39.04N_53.88E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1318,7 +1318,7 @@
   "source_label": "Western Turkmenistan oil and gas field venting",
   "source_name": null
  },
- "sron_20260619_44.96N_8.55E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260619_44.96N_8.55E": {
   "attributed_id": "OSM:way/1222613247",
   "confidence": "medium",
   "evidence": [
@@ -1335,7 +1335,7 @@
   "source_label": "Discarica ARAL (Castelceriolo landfill)",
   "source_name": "Discarica ARAL"
  },
- "sron_20260619_61.02N_76.77E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260619_61.02N_76.77E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1347,7 +1347,7 @@
   "source_label": "Samotlor oil field infrastructure, western Siberia",
   "source_name": "Samotlor oil field"
  },
- "sron_20260620_37.00N_62.10E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260620_37.00N_62.10E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1363,7 +1363,7 @@
   "source_label": "Galkynysh gas field infrastructure, southern Mary Province",
   "source_name": "Galkynysh Gas Field (South Yolotan)"
  },
- "sron_20260620_37.93N_54.31E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260620_37.93N_54.31E": {
   "attributed_id": "OSM:way/304473960",
   "confidence": "medium",
   "evidence": [
@@ -1379,7 +1379,7 @@
   "source_label": "Korpeje\u2013Kordkuy gas pipeline facility, western Turkmenistan",
   "source_name": null
  },
- "sron_20260620_54.03N_85.44E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260620_54.03N_85.44E": {
   "attributed_id": "OSM:way/757793322",
   "confidence": "low",
   "evidence": [],
@@ -1391,7 +1391,7 @@
   "source_label": "Gold mining quarry northeast of Tyagun station",
   "source_name": "\u041a\u0430\u0440\u044c\u0435\u0440 \u0437\u043e\u043b\u043e\u0442\u043e\u0434\u043e\u0431\u044b\u0447\u0438"
  },
- "sron_20260620_54.11N_87.38E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260620_54.11N_87.38E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1407,7 +1407,7 @@
   "source_label": "Yerunakovskaya-8 underground coal mine ventilation",
   "source_name": "Yerunakovskaya-8 Coal Mine"
  },
- "sron_20260620_54.16N_82.79E|SRON_Weekly_Methane_Plumes_2026_wk25_v20260622.csv": {
+ "sron_20260620_54.16N_82.79E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1419,7 +1419,7 @@
   "source_label": "Unmapped waste disposal site near Verkh-Miltyushinsky Selsoviet",
   "source_name": null
  },
- "sron_20260621_22.83S_47.18W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_22.83S_47.18W": {
   "attributed_id": "OSM:way/625335308",
   "confidence": "high",
   "evidence": [
@@ -1434,7 +1434,7 @@
   "source_label": "ESTRE Paul\u00ednia Landfill",
   "source_name": "Paul\u00ednia Landfill (ESTRE Paul\u00ednia Landfill Gas Project)"
  },
- "sron_20260621_23.36S_46.76W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_23.36S_46.76W": {
   "attributed_id": "OSM:relation/20200532",
   "confidence": "high",
   "evidence": [
@@ -1451,7 +1451,7 @@
   "source_label": "Caieiras sanitary landfill (Essencis)",
   "source_name": "Aterro Sanit\u00e1rio de Caieiras"
  },
- "sron_20260621_31.25N_103.22W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_31.25N_103.22W": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1463,7 +1463,7 @@
   "source_label": "VTX Energy Giraffe 18 well pad area, Reeves County",
   "source_name": "Giraffe 18 / Giraffe 4/5"
  },
- "sron_20260621_33.55N_7.45W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_33.55N_7.45W": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -1481,7 +1481,7 @@
   "source_label": "D\u00e9charge de M\u00e9diouna (Casablanca's main landfill)",
   "source_name": "D\u00e9charge de M\u00e9diouna"
  },
- "sron_20260621_36.69N_9.93E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_36.69N_9.93E": {
   "attributed_id": "OSM:way/144835570",
   "confidence": "high",
   "evidence": [
@@ -1495,7 +1495,7 @@
   "source_label": "Borj Chakir controlled landfill, Tunis",
   "source_name": "Borj Chakir Controlled Landfill (D\u00e9charge Contr\u00f4l\u00e9e de Borj Chakir)"
  },
- "sron_20260621_50.72N_74.81E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_50.72N_74.81E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1507,7 +1507,7 @@
   "source_label": "Unidentified source in remote Kazakh steppe",
   "source_name": null
  },
- "sron_20260621_54.10N_86.98E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_54.10N_86.98E": {
   "attributed_id": "OSM:way/355114740",
   "confidence": "high",
   "evidence": [
@@ -1525,7 +1525,7 @@
   "source_label": "Kyrgayskaya underground coal mine ventilation",
   "source_name": "Kyrgayskaya Coal Mine (\u0448\u0430\u0445\u0442\u0430 \u041a\u044b\u0440\u0433\u0430\u0439\u0441\u043a\u0430\u044f)"
  },
- "sron_20260621_54.55N_86.17E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260621_54.55N_86.17E": {
   "attributed_id": "OSM:way/182705508",
   "confidence": "medium",
   "evidence": [
@@ -1541,7 +1541,7 @@
   "source_label": "Coal mine ventilation drift, Kuzbass coal basin",
   "source_name": "Unnamed ventilation drift (\u0412\u0435\u043d\u0442\u0438\u043b\u044f\u0446\u0438\u043e\u043d\u043d\u044b\u0439 \u0448\u0442\u0440\u0435\u043a) of the Leninsk-Kuznetsky mining complex"
  },
- "sron_20260622_33.36N_7.46W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_33.36N_7.46W": {
   "attributed_id": "OSM:way/1362368751",
   "confidence": "high",
   "evidence": [
@@ -1556,7 +1556,7 @@
   "source_label": "D\u00e9charge de M\u00e9diouna landfill, Morocco",
   "source_name": "D\u00e9charge de M\u00e9diouna"
  },
- "sron_20260622_33.93N_71.56E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_33.93N_71.56E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1568,7 +1568,7 @@
   "source_label": "Unmapped landfill on Peshawar's eastern outskirts",
   "source_name": null
  },
- "sron_20260622_35.32N_40.47E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_35.32N_40.47E": {
   "attributed_id": "OSM:way/461564459",
   "confidence": "high",
   "evidence": [
@@ -1584,7 +1584,7 @@
   "source_label": "Jafra oil field infrastructure, Deir ez-Zor, Syria",
   "source_name": "Jafra oil field"
  },
- "sron_20260622_36.86N_42.09E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_36.86N_42.09E": {
   "attributed_id": "OSM:way/371951542",
   "confidence": "medium",
   "evidence": [
@@ -1601,7 +1601,7 @@
   "source_label": "Sweidiyeh gas plant and refinery, Soueidieh oil field",
   "source_name": "Sweidiyeh Power Station and adjacent refinery"
  },
- "sron_20260622_40.94N_59.50E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_40.94N_59.50E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1613,7 +1613,7 @@
   "source_label": "no specific source identified",
   "source_name": null
  },
- "sron_20260622_57.64N_83.89E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_57.64N_83.89E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [
@@ -1630,7 +1630,7 @@
   "source_label": "unidentified gas infrastructure in West Siberian taiga",
   "source_name": null
  },
- "sron_20260622_65.98N_74.18E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260622_65.98N_74.18E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1642,7 +1642,7 @@
   "source_label": "Medvezhye gas field compressor station venting",
   "source_name": "DKS-3 booster compressor station (\u0414\u041a\u0421-3), Medvezhye field"
  },
- "sron_20260623_10.21N_71.32W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260623_10.21N_71.32W": {
   "attributed_id": "OGIM:109118",
   "confidence": "medium",
   "evidence": [
@@ -1660,7 +1660,7 @@
   "source_label": "Lagunillas oil field gas collection infrastructure",
   "source_name": "Lagunillas Field gas collection and processing complex"
  },
- "sron_20260623_33.51N_101.97W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260623_33.51N_101.97W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1672,7 +1672,7 @@
   "source_label": "Unattributed large methane plume southwest of Lubbock",
   "source_name": null
  },
- "sron_20260623_41.22N_68.94E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260623_41.22N_68.94E": {
   "attributed_id": "OSM:way/1167684027",
   "confidence": "medium",
   "evidence": [
@@ -1686,7 +1686,7 @@
   "source_label": "Waste landfill south of Keles border area",
   "source_name": "\u041f\u043e\u043b\u0438\u0433\u043e\u043d \u043e\u0442\u0445\u043e\u0434\u043e\u0432 (Waste landfill)"
  },
- "sron_20260623_52.10N_74.41E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260623_52.10N_74.41E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1701,7 +1701,7 @@
   "source_label": "Ekibastuz coal basin, likely Bogatyr open-pit mine",
   "source_name": "Bogatyr Coal Mine (Ekibastuz coal basin)"
  },
- "sron_20260623_60.45N_120.23E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260623_60.45N_120.23E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [
@@ -1717,7 +1717,7 @@
   "source_label": "Gas well or infrastructure in Tuymaada-Neftegaz licence area",
   "source_name": null
  },
- "sron_20260624_32.62S_151.04E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260624_32.62S_151.04E": {
   "attributed_id": "OSM:way/196251691",
   "confidence": "high",
   "evidence": [
@@ -1733,7 +1733,7 @@
   "source_label": "Mount Thorley Warkworth coal mine",
   "source_name": "Mount Thorley Warkworth Coal Mine"
  },
- "sron_20260624_37.49N_61.83E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260624_37.49N_61.83E": {
   "attributed_id": "OSM:way/630670743",
   "confidence": "medium",
   "evidence": [
@@ -1749,7 +1749,7 @@
   "source_label": "Mary State Power Station gas-fired complex",
   "source_name": "Mary Power Station (Mary GRES)"
  },
- "sron_20260624_42.18N_60.33E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260624_42.18N_60.33E": {
   "attributed_id": "OSM:way/687181353",
   "confidence": "medium",
   "evidence": [
@@ -1766,7 +1766,7 @@
   "source_label": "Gazli-Nukus gas pipeline system, Karakalpakstan",
   "source_name": "\u041c\u0413 \u0413\u0430\u0437\u043b\u0438-\u041d\u0443\u043a\u0443\u0441 (Gazli-Nukus gas trunkline)"
  },
- "sron_20260624_43.72N_1.46E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260624_43.72N_1.46E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [
@@ -1781,7 +1781,7 @@
   "source_label": "Unnamed landfill near Gragnague, east of Toulouse",
   "source_name": null
  },
- "sron_20260624_54.12N_87.34E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260624_54.12N_87.34E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -1797,7 +1797,7 @@
   "source_label": "Yerunakovskaya-8 underground coal mine, Kuzbass",
   "source_name": "Yerunakovskaya-8 Coal Mine (\u0415\u0440\u0443\u043d\u0430\u043a\u043e\u0432\u0441\u043a\u0430\u044f-VIII \u0448\u0430\u0445\u0442\u0430)"
  },
- "sron_20260624_63.96N_122.44E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260624_63.96N_122.44E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1813,7 +1813,7 @@
   "source_label": "Srednevilyuyskoye gas-condensate field infrastructure",
   "source_name": "Srednevilyuyskoye gas-condensate field"
  },
- "sron_20260625_50.21N_18.76E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260625_50.21N_18.76E": {
   "attributed_id": "OSM:node/6788538013",
   "confidence": "high",
   "evidence": [
@@ -1830,7 +1830,7 @@
   "source_label": "KWK Budryk coal mine ventilation shaft V",
   "source_name": "Kopalnia W\u0119gla Kamiennego \u201eBudryk\u201d \u2014 Szyb V (wentylacyjny)"
  },
- "sron_20260625_67.76N_82.24E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260625_67.76N_82.24E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1842,7 +1842,7 @@
   "source_label": "unknown source in remote West Siberian tundra",
   "source_name": null
  },
- "sron_20260625_67.87N_81.43E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260625_67.87N_81.43E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -1854,7 +1854,7 @@
   "source_label": "Gas infrastructure in LUKOIL's SLKH 13249 NE licence",
   "source_name": null
  },
- "sron_20260626_35.48S_59.12W|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260626_35.48S_59.12W": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1866,7 +1866,7 @@
   "source_label": "Unnamed landfill or waste dump near Carlos Beguerie, Buenos Aires",
   "source_name": null
  },
- "sron_20260626_38.36N_66.18E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260626_38.36N_66.18E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -1881,7 +1881,7 @@
   "source_label": "Tandyrcha gas field production infrastructure, South-West Gissar",
   "source_name": "Tandyrcha Gas Field"
  },
- "sron_20260626_41.35N_69.08E|SRON_Weekly_Methane_Plumes_2026_wk26_v20260629.csv": {
+ "sron_20260626_41.35N_69.08E": {
   "attributed_id": "OSM:way/847237036",
   "confidence": "medium",
   "evidence": [
@@ -1896,7 +1896,7 @@
   "source_label": "Chiqindi poligoni landfill, Tashkent",
   "source_name": "Chiqindi poligoni"
  },
- "sron_20260627_31.12N_49.39E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260627_31.12N_49.39E": {
   "attributed_id": "OSM:way/309193826",
   "confidence": "high",
   "evidence": [
@@ -1910,7 +1910,7 @@
   "source_label": "Marun oil field production infrastructure, Marun 3 area",
   "source_name": "\u0634\u0631\u06a9\u062a \u0628\u0647\u0631\u0647 \u0628\u0631\u062f\u0627\u0631\u06cc \u0646\u0641\u062a \u0648 \u06af\u0627\u0632 \u0645\u0627\u0631\u0648\u0646 \u06f3 (Marun Oil and Gas Exploitation Company 3)"
  },
- "sron_20260627_33.95N_113.32E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260627_33.95N_113.32E": {
   "attributed_id": "OSM:way/1356716905",
   "confidence": "medium",
   "evidence": [
@@ -1926,7 +1926,7 @@
   "source_label": "Tian'an No.13 underground coal mine, Pingdingshan coalfield",
   "source_name": "Tian'an No.13 Coal Mine (\u5e73\u7164\u96c6\u56e2\u5341\u4e09\u77ff)"
  },
- "sron_20260627_34.01N_71.56E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260627_34.01N_71.56E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -1938,7 +1938,7 @@
   "source_label": "waste disposal site in eastern Peshawar",
   "source_name": null
  },
- "sron_20260627_50.30N_18.46E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260627_50.30N_18.46E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [
@@ -1954,7 +1954,7 @@
   "source_label": "KWK Knur\u00f3w-Szczyg\u0142owice coal mine ventilation shafts",
   "source_name": "KWK Knur\u00f3w-Szczyg\u0142owice Coal Mine (Ruch Szczyg\u0142owice)"
  },
- "sron_20260628_37.16N_5.89W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260628_37.16N_5.89W": {
   "attributed_id": "OSM:way/303555381",
   "confidence": "high",
   "evidence": [
@@ -1972,7 +1972,7 @@
   "source_label": "Montemarta-C\u00f3nica landfill, Alcal\u00e1 de Guada\u00edra, Seville",
   "source_name": "Centro de Tratamiento de Residuos Montemarta - C\u00f3nica"
  },
- "sron_20260628_44.37N_26.68E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260628_44.37N_26.68E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [
@@ -1986,7 +1986,7 @@
   "source_label": "Unidentified \u2014 no clear source upwind of detection",
   "source_name": null
  },
- "sron_20260629_35.39N_51.17E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260629_35.39N_51.17E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -2002,7 +2002,7 @@
   "source_label": "Aradkouh landfill complex south of Tehran",
   "source_name": "Aradkouh Waste Processing and Disposal Complex (\u0645\u062c\u062a\u0645\u0639 \u067e\u0631\u062f\u0627\u0632\u0634 \u0648 \u062f\u0641\u0639 \u0632\u0628\u0627\u0644\u0647 \u0622\u0631\u0627\u062f\u06a9\u0648\u0647)"
  },
- "sron_20260629_37.13N_120.70W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260629_37.13N_120.70W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -2014,7 +2014,7 @@
   "source_label": "Unidentified source in rural Merced County",
   "source_name": null
  },
- "sron_20260629_39.40N_53.79E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260629_39.40N_53.79E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -2031,7 +2031,7 @@
   "source_label": "Barsagelmez oil and gas field, western Turkmenistan",
   "source_name": null
  },
- "sron_20260629_63.74N_67.03E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260629_63.74N_67.03E": {
   "attributed_id": "OSM:way/1360628326",
   "confidence": "medium",
   "evidence": [],
@@ -2043,7 +2043,7 @@
   "source_label": "Gazprom gas transmission pipeline venting near Kazym",
   "source_name": null
  },
- "sron_20260630_30.53N_101.26W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_30.53N_101.26W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -2055,7 +2055,7 @@
   "source_label": "Montgomery gas field well cluster, Crockett County",
   "source_name": null
  },
- "sron_20260630_34.81S_58.75W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_34.81S_58.75W": {
   "attributed_id": "OSM:way/1285683382",
   "confidence": "high",
   "evidence": [
@@ -2071,7 +2071,7 @@
   "source_label": "CEAMSE Gonz\u00e1lez Cat\u00e1n landfill, Buenos Aires",
   "source_name": "Complejo Ambiental Gonz\u00e1lez Cat\u00e1n (CEAMSE)"
  },
- "sron_20260630_36.42N_112.91E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_36.42N_112.91E": {
   "attributed_id": "OSM:way/1118849714",
   "confidence": "medium",
   "evidence": [
@@ -2086,7 +2086,7 @@
   "source_label": "Coal mine ventilation shaft near Zhangcun, Qinshui Basin",
   "source_name": null
  },
- "sron_20260630_37.80N_53.84E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_37.80N_53.84E": {
   "attributed_id": "OSM:way/1355178828",
   "confidence": "medium",
   "evidence": [
@@ -2102,7 +2102,7 @@
   "source_label": "Korpeje gas field coastal terminal, western Turkmenistan",
   "source_name": null
  },
- "sron_20260630_38.47N_54.29E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_38.47N_54.29E": {
   "attributed_id": "OSM:way/304474955",
   "confidence": "medium",
   "evidence": [
@@ -2119,7 +2119,7 @@
   "source_label": "Korpedzhe gas field infrastructure, western Turkmenistan",
   "source_name": null
  },
- "sron_20260630_38.81N_53.97E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_38.81N_53.97E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -2133,7 +2133,7 @@
   "source_label": "Offshore platforms, Block 21, Turkmenistan Caspian Sea",
   "source_name": null
  },
- "sron_20260630_39.44N_53.73E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_39.44N_53.73E": {
   "attributed_id": "OSM:node/2996966335",
   "confidence": "high",
   "evidence": [
@@ -2149,7 +2149,7 @@
   "source_label": "Goturdepe oil and gas field venting, western Turkmenistan",
   "source_name": "Goturdepe Oil Field"
  },
- "sron_20260630_47.20N_131.91E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_47.20N_131.91E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -2161,7 +2161,7 @@
   "source_label": "no identifiable point source in search area",
   "source_name": null
  },
- "sron_20260630_61.09N_46.42E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_61.09N_46.42E": {
   "attributed_id": "OSM:relation/17271088",
   "confidence": "high",
   "evidence": [
@@ -2176,7 +2176,7 @@
   "source_label": "KS-14 Privodino gas compressor station",
   "source_name": "KS-14 Privodino compressor station (\u041f\u0440\u0438\u0432\u043e\u0434\u0438\u043d\u0441\u043a\u043e\u0435 \u041b\u041f\u0423\u041c\u0413)"
  },
- "sron_20260630_62.95N_52.96E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260630_62.95N_52.96E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -2188,7 +2188,7 @@
   "source_label": "no identifiable source in remote Komi taiga",
   "source_name": null
  },
- "sron_20260701_18.97S_26.03E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260701_18.97S_26.03E": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [
@@ -2204,7 +2204,7 @@
   "source_label": "coal mine methane, likely from Hwange mining district",
   "source_name": null
  },
- "sron_20260701_32.90N_7.73W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260701_32.90N_7.73W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -2216,7 +2216,7 @@
   "source_label": "Unidentified landfill or waste site, Settat Province",
   "source_name": null
  },
- "sron_20260702_27.30N_95.32E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260702_27.30N_95.32E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -2232,7 +2232,7 @@
   "source_label": "Nahorkatiya oil field, Oil India Limited",
   "source_name": "Nahorkatiya Oil Field"
  },
- "sron_20260702_31.15N_49.15E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260702_31.15N_49.15E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [],
@@ -2244,7 +2244,7 @@
   "source_label": "Western Marun oil field, Mansureh licence area",
   "source_name": "Marun Oil Field (western sector, Mansureh licence area)"
  },
- "sron_20260702_33.72N_6.88W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260702_33.72N_6.88W": {
   "attributed_id": null,
   "confidence": "low",
   "evidence": [],
@@ -2256,7 +2256,7 @@
   "source_label": "Unmapped landfill northwest of Sidi Yahya Zaer",
   "source_name": null
  },
- "sron_20260702_36.71N_82.42W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260702_36.71N_82.42W": {
   "attributed_id": "OSM:way/799152535",
   "confidence": "low",
   "evidence": [
@@ -2271,7 +2271,7 @@
   "source_label": "Unnamed landfill near Scott County Waste Transfer Station",
   "source_name": null
  },
- "sron_20260702_65.87N_77.87E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260702_65.87N_77.87E": {
   "attributed_id": "OSM:node/12300959750",
   "confidence": "medium",
   "evidence": [
@@ -2289,7 +2289,7 @@
   "source_label": "Rospan International gas and condensate processing complex",
   "source_name": "\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043a\u043e\u043c\u043f\u043b\u0435\u043a\u0441\u043d\u043e\u0439 \u043f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043a\u0438 \u0433\u0430\u0437\u0430 \u0438 \u043a\u043e\u043d\u0434\u0435\u043d\u0441\u0430\u0442\u0430 (\u0423\u041a\u041f\u0413\u0438\u041a) \u0410\u041e \u00ab\u0420\u043e\u0441\u043f\u0430\u043d \u0418\u043d\u0442\u0435\u0440\u043d\u0435\u0448\u043d\u043b\u00bb"
  },
- "sron_20260703_34.52S_58.68W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_34.52S_58.68W": {
   "attributed_id": "OSM:way/673017156",
   "confidence": "high",
   "evidence": [
@@ -2306,7 +2306,7 @@
   "source_label": "CEAMSE Norte III landfill complex",
   "source_name": "Complejo Ambiental Norte III"
  },
- "sron_20260703_35.66N_51.16E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_35.66N_51.16E": {
   "attributed_id": "OGIM:349",
   "confidence": "medium",
   "evidence": [
@@ -2321,7 +2321,7 @@
   "source_label": "Pars Oil Refinery, Tehran province, Iran",
   "source_name": "Pars Oil Refinery (\u067e\u0627\u0644\u0627\u06cc\u0634\u06af\u0627\u0647 \u0646\u0641\u062a \u067e\u0627\u0631\u0633)"
  },
- "sron_20260703_35.74N_43.88E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_35.74N_43.88E": {
   "attributed_id": "OSM:way/1526695042",
   "confidence": "medium",
   "evidence": [
@@ -2336,7 +2336,7 @@
   "source_label": "Dawd Gurga oil gathering station, Kirkuk field",
   "source_name": "Dawd Gurga Gathering Station (\u0645\u062d\u0637\u0629 \u062a\u062c\u0645\u064a\u0639 \u062f\u0627\u0648\u062f \u0643\u0648\u0631\u0643\u0627)"
  },
- "sron_20260703_38.23N_53.89E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_38.23N_53.89E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -2353,7 +2353,7 @@
   "source_label": "TM Block 23 offshore oil and gas operations",
   "source_name": "TM Block 23 oil and gas concession"
  },
- "sron_20260703_39.16N_53.68E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_39.16N_53.68E": {
   "attributed_id": null,
   "confidence": "medium",
   "evidence": [
@@ -2369,7 +2369,7 @@
   "source_label": "Offshore oil and gas platforms, Block 21, Turkmen Caspian",
   "source_name": "Block 21 offshore production platforms"
  },
- "sron_20260703_40.40N_3.61W|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_40.40N_3.61W": {
   "attributed_id": "OSM:way/28342850",
   "confidence": "high",
   "evidence": [
@@ -2387,7 +2387,7 @@
   "source_label": "Parque Tecnol\u00f3gico de Valdeming\u00f3mez landfill complex, Madrid",
   "source_name": "Parque Tecnol\u00f3gico de Valdeming\u00f3mez"
  },
- "sron_20260703_53.86N_87.21E|SRON_Weekly_Methane_Plumes_2026_wk27_v20260706.csv": {
+ "sron_20260703_53.86N_87.21E": {
   "attributed_id": null,
   "confidence": "high",
   "evidence": [

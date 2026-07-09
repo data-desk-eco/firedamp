@@ -486,14 +486,15 @@ def main():
     if GASLIGHT.exists():
         con.sql(f"attach '{GASLIGHT}' as gl (read_only)")
     db = json.loads(OUT.read_text()) if OUT.exists() else {}
+    key = lambda i: i.split("|")[0]  # attributions are keyed by display id (sron drops the source_file suffix)
     if a.top or a.recent:
         w = f"src = '{a.src}'" if a.src else "true"
         order = "dt desc, rate desc" if a.recent else "rate desc"
         n = a.recent or a.top
         ids = [r[0] for r in con.sql(f"select id from plumes where {w} order by {order} limit {n + len(db)}").fetchall()]
-        ids = [i for i in ids if a.force or i not in db][:n]
+        ids = [i for i in ids if a.force or key(i) not in db][:n]
     else:
-        ids = [i for i in a.ids if a.force or i not in db]
+        ids = [i for i in a.ids if a.force or key(i) not in db]
     plumes = {r["id"]: r for r in con.sql("from plumes").df().to_dict("records") if r["id"] in set(ids)}
     missing = [i for i in ids if i not in plumes]
     if missing:
@@ -503,8 +504,10 @@ def main():
         for fut in as_completed([ex.submit(run_one, con, plumes[i]) for i in ids if i in plumes]):
             pid, res = fut.result()
             if res:
-                db[pid] = res
+                db[key(pid)] = res
                 OUT.write_text(json.dumps(db, indent=1, sort_keys=True))
+    import build_attr
+    build_attr.build()  # keep the served FDA1 binary in step for local dev
 
 
 if __name__ == "__main__":

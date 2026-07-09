@@ -1,20 +1,54 @@
 // Plume source attribution — served entirely from the bulk agent-produced
-// dataset (agent/run.py → data/attributions.json). there is no live
-// vision/LLM pipeline in the browser any more: attributions.json, committed to
-// git and validated at build time, is the single source of truth. wind is
-// fetched separately as an independent panel stat.
+// dataset: agent/run.py → attributions.json (git source of truth) →
+// scripts/build_attr.py → data/attributions.bin (FDA1, shipped). there is no
+// live vision/LLM pipeline in the browser any more. wind is fetched
+// separately as an independent panel stat.
 
 import { loadNearbyInfra, nearbyMarkup } from './ogim.js';
 import { escapeHtml, compass } from './util.js';
 
 let analysisRequestId = 0;
 
-// bulk agent-produced attributions, one static json for the whole dataset.
+const KIND = ['well', 'facility', 'pipeline', 'mine', 'landfill', 'other', 'none'];
+const CONF = ['high', 'medium', 'low'];
+
+// FDA1 parser — mirror of scripts/build_attr.py
+function parseAttributions(buf) {
+    const b = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder();
+    if (td.decode(b.subarray(0, 4)) !== 'FDA1') return {};
+    const n = dv.getUint32(4, true);
+    let o = 8;
+    const models = [];
+    for (let m = b[o++]; m > 0; m--) { const l = b[o++]; models.push(td.decode(b.subarray(o, o += l))); }
+    const str = () => {
+        let l = 0, s = 0, c;
+        do { c = b[o++]; l |= (c & 0x7f) << s; s += 7; } while (c & 0x80);
+        return td.decode(b.subarray(o, o += l));
+    };
+    const db = {};
+    for (let i = 0; i < n; i++) {
+        const kc = b[o], days = dv.getUint16(o + 1, true), model = models[b[o + 3]];
+        o += 4;
+        const id = str();
+        db[id] = {
+            source_label: str(), source_name: str() || null, operator: str() || null,
+            attributed_id: str() || null, paragraph: str(),
+            evidence: str().split('\x1f').filter(Boolean),
+            source_kind: KIND[kc >> 4], confidence: CONF[kc & 15], model,
+            run_at: new Date(Date.UTC(2020, 0, 1) + days * 864e5).toISOString().slice(0, 10),
+        };
+    }
+    return db;
+}
+
+// bulk agent-produced attributions, one static binary for the whole dataset.
 // loaded once and shared: the detail panel reads records by id, and app.js
 // reads the key set to give attributed plumes a filled marker.
 let attribDb = null;
 export function loadAttributions() {
-    return attribDb ??= fetch('data/attributions.json').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+    return attribDb ??= fetch('data/attributions.bin')
+        .then(async r => r.ok ? parseAttributions(await r.arrayBuffer()) : {})
+        .catch(() => ({}));
 }
 async function staticAttribution(id) {
     return (await loadAttributions())[id] || null;
