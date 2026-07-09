@@ -26,6 +26,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - uses: astral-sh/setup-uv@v7
+
       - name: Prepare dist
         run: bash scripts/dist.sh "$GITHUB_SHA"
 

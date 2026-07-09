@@ -1,12 +1,12 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["duckdb", "httpx", "pandas"]
+# dependencies = ["duckdb", "httpx", "pandas", "pyarrow"]
 # ///
 # agentic plume attribution: assemble per-plume evidence from local data
 # (ogim, coal, plume archive) + live apis (overpass, mapstand, carbon mapper
 # rasters, wind, place), run a pi/deepseek agent with web research tools,
-# collect result.json into web/data/attributions.json.
+# collect result.json into web/data/attributions.parquet.
 #
 #   agent/run.py --init-db          build data/context.duckdb (one-time, ~min)
 #   agent/run.py <plume-id>...      attribute specific plumes
@@ -26,7 +26,8 @@ for _l in (ROOT / ".env").read_text().splitlines() if (ROOT / ".env").exists() e
     os.environ.setdefault(_k.strip(), _v.strip())
 DB = ROOT / "data/context.duckdb"
 GASLIGHT = ROOT / "data/gaslight.duckdb"  # make gaslight
-OUT = ROOT / "web/data/attributions.json"
+OUT = ROOT / "web/data/attributions.parquet"
+ATTR_COLS = "source_label source_kind source_name operator attributed_id confidence paragraph evidence model run_at".split()
 RUNS = ROOT / "agent/runs"
 CACHE = ROOT / "data/cache"
 MODEL = "deepseek-v4-pro"
@@ -485,7 +486,11 @@ def main():
     con.sql("load spatial")
     if GASLIGHT.exists():
         con.sql(f"attach '{GASLIGHT}' as gl (read_only)")
-    db = json.loads(OUT.read_text()) if OUT.exists() else {}
+    import pandas
+    db = {r.pop("id"): r for r in pandas.read_parquet(OUT).to_dict("records")} if OUT.exists() else {}
+    # fixed schema: stray agent keys are dropped, evidence is a list column
+    save = lambda: pandas.DataFrame(
+        [{"id": k, **{c: v.get(c) for c in ATTR_COLS}} for k, v in sorted(db.items())]).to_parquet(OUT, index=False)
     key = lambda i: i.split("|")[0]  # attributions are keyed by display id (sron drops the source_file suffix)
     if a.top or a.recent:
         w = f"src = '{a.src}'" if a.src else "true"
@@ -505,7 +510,7 @@ def main():
             pid, res = fut.result()
             if res:
                 db[key(pid)] = res
-                OUT.write_text(json.dumps(db, indent=1, sort_keys=True))
+                save()
     import build_attr
     build_attr.build()  # keep the served FDA1 binary in step for local dev
 

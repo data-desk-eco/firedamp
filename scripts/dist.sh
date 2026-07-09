@@ -9,7 +9,7 @@ mkdir -p dist/data
 cp web/index.html web/style.css web/*.js dist/
 cp -r web/vendor dist/vendor
 cp web/data/plumes.bin dist/data/
-python3 scripts/build_attr.py   # attributions.json (git) → FDA1 binary
+uv run scripts/build_attr.py   # attributions.parquet (git) → FDA1 binary
 cp web/data/attributions.bin dist/data/
 
 # bust the entry points in index.html, the es-module import graph, and the

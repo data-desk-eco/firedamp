@@ -1,6 +1,9 @@
-#!/usr/bin/env python3
-# web/data/attributions.json → web/data/attributions.bin (FDA1).
-# stdlib only: dist.sh runs this on the bare pages runner.
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyarrow"]
+# ///
+# web/data/attributions.parquet → web/data/attributions.bin (FDA1).
 #
 # format (little-endian):
 #   'FDA1' | u32 count | u8 n_models | n × (u8 len + utf8)
@@ -11,9 +14,11 @@
 #     u8  model index
 #     7 × varint-len utf8: plume id, source_label, source_name, operator,
 #                          attributed_id, paragraph, evidence urls \x1f-joined
-import json, struct
+import struct
 from datetime import date
 from pathlib import Path
+
+import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parent.parent
 KIND = "well facility pipeline mine landfill other none".split()
@@ -31,24 +36,24 @@ def vs(s):
 
 
 def build():
-    db = json.loads((ROOT / "web/data/attributions.json").read_text())
-    models = sorted({r.get("model") or "" for r in db.values()})
-    out = bytearray(b"FDA1") + struct.pack("<I", len(db)) + bytes([len(models)])
+    rows = pq.read_table(ROOT / "web/data/attributions.parquet").to_pylist()
+    models = sorted({r.get("model") or "" for r in rows})
+    out = bytearray(b"FDA1") + struct.pack("<I", len(rows)) + bytes([len(models)])
     for m in models:
         out += bytes([len(m.encode())]) + m.encode()
-    for pid, r in sorted(db.items()):
+    for r in sorted(rows, key=lambda r: r["id"]):
         kind = KIND.index(r["source_kind"]) if r.get("source_kind") in KIND else 5
         conf = CONF.index(r["confidence"]) if r.get("confidence") in CONF else 15
         try:
-            days = (date.fromisoformat(r["run_at"]) - date(2020, 1, 1)).days
-        except (KeyError, ValueError):
+            days = (date.fromisoformat(str(r["run_at"])) - date(2020, 1, 1)).days
+        except (KeyError, TypeError, ValueError):
             days = 0
         out += bytes([kind << 4 | conf]) + struct.pack("<H", days) + bytes([models.index(r.get("model") or "")])
-        for s in (pid, r.get("source_label"), r.get("source_name"), r.get("operator"),
+        for s in (r["id"], r.get("source_label"), r.get("source_name"), r.get("operator"),
                   r.get("attributed_id"), r.get("paragraph"), "\x1f".join(r.get("evidence") or [])):
             out += vs(s)
     (ROOT / "web/data/attributions.bin").write_bytes(out)
-    print(f"attributions.bin: {len(db)} records, {len(out):,} bytes")
+    print(f"attributions.bin: {len(rows)} records, {len(out):,} bytes")
 
 
 if __name__ == "__main__":
