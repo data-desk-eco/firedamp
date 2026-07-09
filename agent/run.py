@@ -13,8 +13,9 @@
 #   agent/run.py --top N [--src s]  N largest unattributed plumes
 #   agent/run.py -j 4 ...           parallel agents
 
-import argparse, json, math, os, subprocess, sys, time
-from concurrent.futures import ThreadPoolExecutor
+import argparse, json, math, os, subprocess, sys, threading, time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import nullcontext
 from pathlib import Path
 
 import duckdb, httpx
@@ -63,9 +64,16 @@ def init_db():
     con.sql(f"""create or replace table ogim_fields as
         select NAME as "name", OPERATOR as "operator", geom
         from st_read('{ROOT}/data/OGIM_v2.7.gpkg', layer='Oil_and_Natural_Gas_Fields')""")
-    build_extras(con)
     print("coal…")
     con.sql(f"create or replace table coal as from read_csv('{ROOT}/data/gcmt_coal.csv')")
+    load_plumes(con)
+    for t in ["osm", "ogim", "coal", "plumes"]:
+        print(f"  {t}: {con.sql(f'select count(*) from {t}').fetchone()[0]:,} rows")
+
+
+# plumes + extras only: refresh after `make data` without the ~1 h osm/ogim reload
+def load_plumes(con):
+    build_extras(con)
     print("plumes…")
     import build
     rows = (build.build_cm(ROOT / "data/carbon_mapper.csv") + build.build_imeo_plumes(ROOT / "data/imeo_plumes.csv")
@@ -73,8 +81,7 @@ def init_db():
     import pandas
     df = pandas.DataFrame(rows)
     con.sql("create or replace table plumes as from df order by lat")
-    for t in ["osm", "ogim", "coal", "plumes"]:
-        print(f"  {t}: {con.sql(f'select count(*) from {t}').fetchone()[0]:,} rows")
+    print(f"  plumes: {con.sql('select count(*) from plumes').fetchone()[0]:,} rows")
 
 
 # provider-side extras the binary format drops: cm's plume-mask bounds, exact
@@ -151,19 +158,27 @@ def near(con, table, lat, lon, km, where="true", limit=60, latcol="lat", loncol=
     return sorted(out, key=lambda r: r["dist_km"])[:limit]
 
 
-def cached_get(name, url):
+# per-host concurrency caps so -j 16+ doesn't hammer rate-limited apis
+SEM = {"overpass": threading.Semaphore(2), "nominatim": threading.Semaphore(1)}
+
+
+def cached_get(name, url, sem=None):
     CACHE.mkdir(parents=True, exist_ok=True)
     f = CACHE / name
     if f.exists():
         return json.loads(f.read_text())
-    try:
-        r = httpx.get(url, headers={"User-Agent": "firedamp-attribution"}, timeout=30)
-        r.raise_for_status()
-        f.write_text(r.text)
-        return r.json()
-    except Exception as e:
-        print(f"  warn: {url.split('?')[0]} failed: {e}", file=sys.stderr)
-        return None
+    for attempt in range(3):  # burst 429/5xx are routine at high -j
+        try:
+            with sem or nullcontext():
+                r = httpx.get(url, headers={"User-Agent": "firedamp-attribution"}, timeout=30)
+            r.raise_for_status()
+            f.write_text(r.text)
+            return r.json()
+        except Exception as e:
+            if attempt == 2:
+                print(f"  warn: {url.split('?')[0]} failed: {e}", file=sys.stderr)
+                return None
+            time.sleep(5 * (attempt + 1))
 
 
 def vec_mean(pairs):
@@ -217,6 +232,8 @@ OSM_SIGNAL = ("'landfill','quarry','mineshaft','adit','spoil_heap','tailings_pon
 # preferred over the local extract when reachable. raw response is saved next
 # to context.json for the agent to mine
 def fetch_osm_live(lat, lon, km, d):
+    if os.environ.get("NO_OVERPASS"):  # both mirrors down/banning: local extract only
+        return None
     m = int(km * 1000)
     sel = "".join(f"nwr(around:{m},{lat},{lon})[{t}];" for t in (
         "man_made", '"landuse"~"^(industrial|landfill|quarry|farmyard)$"',
@@ -224,9 +241,10 @@ def fetch_osm_live(lat, lon, km, d):
     els = None
     for host in ("https://overpass-api.de", "https://overpass.kumi.systems"):
         try:
-            r = httpx.post(f"{host}/api/interpreter",  # 406s on python's default ua
-                           data={"data": f"[out:json][timeout:90];({sel});out tags center;"},
-                           headers={"User-Agent": "firedamp-attribution"}, timeout=120)
+            with SEM["overpass"]:  # fail fast: the local extract is a fine fallback
+                r = httpx.post(f"{host}/api/interpreter",  # 406s on python's default ua
+                               data={"data": f"[out:json][timeout:45];({sel});out tags center;"},
+                               headers={"User-Agent": "firedamp-attribution"}, timeout=60)
             r.raise_for_status()
             els = r.json()["elements"]
             break
@@ -345,7 +363,8 @@ def assemble(con, p, d):
         rec = rec | (meta or {})
     osm_where = "true" if km <= 3 else f"name is not null or v in ({OSM_SIGNAL})"
     place = cached_get(f"place_{lat:.3f}_{lon:.3f}.json",
-        f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&zoom=10&accept-language=en") or {}
+        f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&zoom=10&accept-language=en",
+        sem=SEM["nominatim"]) or {}
     hist_km = min(30, max(10, 2 * km))
     hist = [h for h in near(con, "plumes", lat, lon, hist_km, limit=200) if h.get("id") != p["id"]]
     field = con.sql(f"""select "name", operator from ogim_fields
@@ -379,6 +398,18 @@ def assemble(con, p, d):
 
 # ── agent runs ──
 
+# an osm id the agent found via the osm api (not in our context) is fine if
+# the feature really exists within the plume's detection-history horizon
+def osm_verify(aid, lat, lon, km):
+    try:
+        typ, oid = str(aid).removeprefix("OSM:").split("/")
+        d = cached_get(f"osmv_{typ}_{oid}.json",
+            f"https://www.openstreetmap.org/api/0.6/{typ}/{oid}" + ("/full.json" if typ != "node" else ".json"))
+        pts = [(e["lat"], e["lon"]) for e in d["elements"] if "lat" in e]
+        return any(hav(lat, lon, a, b) <= min(30, max(10, 2 * km)) for a, b in pts)
+    except Exception:
+        return False
+
 def run_one(con, p):
     con = con.cursor()  # duckdb connections are not thread-safe; cursors are per-thread
     pid = p["id"]
@@ -395,18 +426,26 @@ def run_one(con, p):
            f"@{ROOT}/agent/task.md", "@context.json"]
     t = time.time()
     res = None
-    for attempt in (1, 2):  # transient api stream errors can kill a whole run
+    for attempt in (1, 2, 3):  # transient api stream errors can kill a whole run
         (d / "result.json").unlink(missing_ok=True)
         with open(d / "log.json", "w") as log:
             # own process group so a wedged pi (and its tool children) dies with the timeout
             proc = subprocess.Popen(cmd, cwd=d, env=env, stdout=log, stderr=subprocess.STDOUT,
                                     start_new_session=True)
             try:
-                proc.wait(timeout=900)
+                proc.wait(timeout=180)
             except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, 9)
-                proc.wait()
-                print(f"  {pid}: timeout (attempt {attempt})", file=sys.stderr)
+                if (d / "log.json").stat().st_size == 0:  # wedged before first api event
+                    os.killpg(proc.pid, 9)
+                    proc.wait()
+                    print(f"  {pid}: wedged (attempt {attempt})", file=sys.stderr)
+                    continue
+                try:
+                    proc.wait(timeout=720)
+                except subprocess.TimeoutExpired:
+                    os.killpg(proc.pid, 9)
+                    proc.wait()
+                    print(f"  {pid}: timeout (attempt {attempt})", file=sys.stderr)
         # drop streaming-delta events: they dwarf the log without adding information
         slim = [l for l in open(d / "log.json") if '_update"' not in l[:40]]
         (d / "log.json").write_text("".join(slim))
@@ -418,7 +457,9 @@ def run_one(con, p):
     if res is None:
         return pid, None
     aid = res.get("attributed_id")
-    if aid and str(aid).split(":", 1)[-1] not in (d / "context.json").read_text():
+    seen = "".join((d / f).read_text() for f in ("context.json", "osm.json") if (d / f).exists())
+    if aid and str(aid).split(":", 1)[-1] not in seen and not (
+            str(aid).startswith("OSM:") and osm_verify(aid, p["lat"], p["lon"], radius(p))):
         print(f"  {pid}: attributed_id {aid} not in context — nulled", file=sys.stderr)
         res["attributed_id"] = None
     print(f"  {pid}: {res.get('source_label')} [{res.get('confidence')}] {time.time() - t:.0f}s")
@@ -429,22 +470,28 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("ids", nargs="*")
     ap.add_argument("--init-db", action="store_true")
+    ap.add_argument("--refresh-plumes", action="store_true", help="reload plumes+extras tables only (after make data)")
     ap.add_argument("--top", type=int, help="n largest unattributed plumes")
-    ap.add_argument("--src", help="filter --top by source")
+    ap.add_argument("--recent", type=int, help="n most recent unattributed plumes")
+    ap.add_argument("--src", help="filter --top/--recent by source")
     ap.add_argument("-j", type=int, default=1)
     ap.add_argument("-f", "--force", action="store_true", help="re-run even if already attributed")
     a = ap.parse_args()
     if a.init_db:
         return init_db()
+    if a.refresh_plumes:
+        return load_plumes(duckdb.connect(str(DB)))
     con = duckdb.connect(str(DB), read_only=True)
     con.sql("load spatial")
     if GASLIGHT.exists():
         con.sql(f"attach '{GASLIGHT}' as gl (read_only)")
     db = json.loads(OUT.read_text()) if OUT.exists() else {}
-    if a.top:
+    if a.top or a.recent:
         w = f"src = '{a.src}'" if a.src else "true"
-        ids = [r[0] for r in con.sql(f"select id from plumes where {w} order by rate desc limit {a.top + len(db)}").fetchall()]
-        ids = [i for i in ids if a.force or i not in db][:a.top]
+        order = "dt desc, rate desc" if a.recent else "rate desc"
+        n = a.recent or a.top
+        ids = [r[0] for r in con.sql(f"select id from plumes where {w} order by {order} limit {n + len(db)}").fetchall()]
+        ids = [i for i in ids if a.force or i not in db][:n]
     else:
         ids = [i for i in a.ids if a.force or i not in db]
     plumes = {r["id"]: r for r in con.sql("from plumes").df().to_dict("records") if r["id"] in set(ids)}
@@ -453,7 +500,8 @@ def main():
         print(f"unknown ids: {missing}", file=sys.stderr)
     print(f"attributing {len(plumes)} plumes (j={a.j})")
     with ThreadPoolExecutor(a.j) as ex:
-        for pid, res in ex.map(lambda p: run_one(con, p), [plumes[i] for i in ids if i in plumes]):
+        for fut in as_completed([ex.submit(run_one, con, plumes[i]) for i in ids if i in plumes]):
+            pid, res = fut.result()
             if res:
                 db[pid] = res
                 OUT.write_text(json.dumps(db, indent=1, sort_keys=True))
