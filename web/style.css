@@ -743,6 +743,15 @@ h4.legend-section {
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
+.enrich-badge {
+    font-size: var(--font-xs, 11px);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: help;
+}
+.enrich-verified { color: #6cbf84; }
+.enrich-disputed { color: var(--accent); }
 .enrich-evidence {
     margin-top: 6px;
     font-size: var(--font-xs, 11px);

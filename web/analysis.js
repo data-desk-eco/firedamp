@@ -1,8 +1,8 @@
 // Plume source attribution — served entirely from the bulk agent-produced
-// dataset: agent/run.py → attributions.json (git source of truth) →
-// scripts/build_attr.py → data/attributions.bin (FDA1, shipped). there is no
-// live vision/LLM pipeline in the browser any more. wind is fetched
-// separately as an independent panel stat.
+// dataset: the ch4id pipeline exports web/data/attributions.parquet (git
+// source of truth) → scripts/build_attr.py → data/attributions.bin (FDA2,
+// shipped). there is no live vision/LLM pipeline in the browser any more.
+// wind is fetched separately as an independent panel stat.
 
 import { loadNearbyInfra, nearbyMarkup } from './ogim.js';
 import { escapeHtml, compass } from './util.js';
@@ -11,11 +11,12 @@ let analysisRequestId = 0;
 
 const KIND = ['well', 'facility', 'pipeline', 'mine', 'landfill', 'other', 'none'];
 const CONF = ['high', 'medium', 'low'];
+const VERIFIED = ['confirmed', 'refuted', 'unclear'];
 
-// FDA1 parser — mirror of scripts/build_attr.py
+// FDA2 parser — mirror of scripts/build_attr.py
 function parseAttributions(buf) {
     const b = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder();
-    if (td.decode(b.subarray(0, 4)) !== 'FDA1') return {};
+    if (td.decode(b.subarray(0, 4)) !== 'FDA2') return {};
     const n = dv.getUint32(4, true);
     let o = 8;
     const models = [];
@@ -27,14 +28,17 @@ function parseAttributions(buf) {
     };
     const db = {};
     for (let i = 0; i < n; i++) {
-        const kc = b[o], days = dv.getUint16(o + 1, true), model = models[b[o + 3]];
-        o += 4;
+        const kc = b[o], days = dv.getUint16(o + 1, true), model = models[b[o + 3]], fl = b[o + 4];
+        o += 5;
+        let lat = null, lon = null;
+        if (fl & 4) { lat = dv.getFloat32(o, true); lon = dv.getFloat32(o + 4, true); o += 8; }
         const id = str();
         db[id] = {
             source_label: str(), source_name: str() || null, operator: str() || null,
             attributed_id: str() || null, paragraph: str(),
-            evidence: str().split('\x1f').filter(Boolean),
-            source_kind: KIND[kc >> 4], confidence: CONF[kc & 15], model,
+            evidence: str().split('\x1f').filter(Boolean), verify_notes: str() || null,
+            source_kind: KIND[kc >> 4], confidence: CONF[kc & 15], model, lat, lon,
+            verified: VERIFIED[fl & 3] || null,
             run_at: new Date(Date.UTC(2020, 0, 1) + days * 864e5).toISOString().slice(0, 10),
         };
     }
@@ -139,8 +143,12 @@ function renderAnalysisHTML(text) {
         ? `<div class="enrich-evidence">${p.evidence.map((u, i) =>
             `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" title="${escapeHtml(u)}">[${i + 1}]</a>`).join(' ')}</div>`
         : '';
+    // adversarial-verification badge; the verify pass's notes live in the tooltip
+    const badge = { confirmed: 'verified', refuted: 'disputed' }[p.verified];
+    const badgeHtml = badge
+        ? ` <span class="enrich-badge enrich-${badge}" title="${escapeHtml(p.verify_notes || '')}">${badge}</span>` : '';
     return `<div class="enrich-report">
-        <div class="enrich-source">${labelHtml}${p.confidence ? ` <span class="enrich-conf">${escapeHtml(p.confidence)}</span>` : ''}</div>
+        <div class="enrich-source">${labelHtml}${p.confidence ? ` <span class="enrich-conf">${escapeHtml(p.confidence)}</span>` : ''}${badgeHtml}</div>
         ${p.paragraph ? `<p class="enrich-para">${escapeHtml(p.paragraph)}</p>` : ''}
         ${evidence}
     </div>`;

@@ -67,12 +67,14 @@ Pipelines
 Source attribution
 ------------------
 Detail panels show a per-plume source attribution, produced offline by
-the research agent in agent/ (pi headless + DeepSeek, per-plume local
-evidence + web search). web/data/attributions.parquet is the committed
-source of truth; the site ships a compact FDA1 binary derived from it
-at deploy time (scripts/build_attr.py). Plumes carrying an attribution
-render as filled discs on the map. There is no live in-browser LLM
-pipeline. See agent/task.md and CLAUDE.md.
+the ch4id sibling repo's agentic pipeline (make deploy there commits a
+refreshed web/data/attributions.parquet here and pushes; the legacy
+in-repo agent/ still works). The parquet is the committed source of
+truth; the site ships a compact FDA2 binary derived from it at deploy
+time (scripts/build_attr.py), including verification status and the
+assessed source point. Plumes carrying an attribution render as filled
+discs on the map. There is no live in-browser LLM pipeline. See
+agent/task.md and CLAUDE.md.
 
 
 URL scheme
