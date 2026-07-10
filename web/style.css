@@ -132,6 +132,14 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     font-size: var(--font-sm);
 }
 .search-box::placeholder { color: var(--text-hint); }
+.search-box::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+    background: var(--text-faint);
+    -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="black" stroke-width="1.5" stroke-linecap="round"/></svg>') center / 10px no-repeat;
+}
 .search-box:focus { outline: none; border-color: var(--text-faint); }
 .search-box.miss { border-color: var(--accent); }
 
