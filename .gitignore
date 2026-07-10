@@ -8,7 +8,6 @@ web/data/ogim.pmtiles
 web/data/plumes.bin
 web/data/attributions.bin
 web/data/*.fgb
-agent/runs/
 
 .playwright-mcp/
 promptlab/

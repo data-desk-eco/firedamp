@@ -4,7 +4,7 @@ Methane plume aggregator with per-plume AI source attribution.
 
 ## Architecture
 
-Static HTML/JS/CSS frontend (MapLibre GL, no build step, no npm) on GitHub Pages, a Python ETL pipeline that produces `plumes.bin`, and an offline research agent that produces `attributions.parquet`. Attribution is served entirely from that static dataset — there is no backend service any more (the old `firedamp-api` Cloudflare Worker + D1 vision pipeline was removed).
+Static HTML/JS/CSS frontend (MapLibre GL, no build step, no npm) on GitHub Pages, a Python ETL pipeline that produces `plumes.bin`, and an offline research agent — the sibling **ch4id** repo (`~/Tools/ch4id`) — that produces `attributions.parquet`. Attribution is served entirely from that static dataset — there is no backend service any more (the old `firedamp-api` Cloudflare Worker + D1 vision pipeline was removed, and the original in-repo `agent/` pipeline moved to ch4id).
 
 - OGIM infrastructure PMTiles served from GCS (`gs://firedamp-data/`).
 - `plumes.bin` lives in the `latest-data` GitHub Release, not in git.
@@ -43,24 +43,6 @@ The detail panel serves source attribution **solely** from the bulk agentic data
 There is **no in-browser vision/LLM pipeline** any more. The old on-demand path — Overpass + Nominatim + Open-Meteo + an annotated Esri map (`captureAnnotatedMap`) sent to the Worker → OpenRouter, with a `↻` regenerate button and a D1 peek cache — was removed (git history has it). `attributions.parquet`, committed to git and refreshed by the sibling **ch4id** repo's pipeline (`make deploy` there exports, commits and pushes it; update-data.yml only touches plumes), is the single source of truth; the site ships only the derived `attributions.bin` (gitignored, rebuilt by dist.sh at deploy time), fetched with the same `?v=<sha>` cache-busting as the JS so a Pages/CDN edge never serves a stale dataset against new code.
 
 The attribution set also drives map styling: `app.js` loads it (via `loadAttributions()` in `analysis.js`), and `addPlumeLayers` gives every plume whose id is in the set a semi-transparent fill in its source colour (`circle-opacity` case on an `attr` property) so attributed plumes read as filled discs against the hollow rings of the rest.
-
-## Agentic attribution (`agent/`)
-
-The original in-repo attribution mechanism (superseded for bulk runs by the sibling ch4id pipeline, but still functional): `agent/run.py` loops through plumes and runs a full research agent per plume — pi headless driving DeepSeek (`deepseek-v4-pro`, needs `DEEPSEEK_API_KEY`) with bash + web tools — no image input (DeepSeek is text-only), but the CM plume rasters land in the run dir ready for a future multimodal model, and the agent can analyse them geospatially via python. Results accumulate in `web/data/attributions.parquet` (committed to git, keyed by display id, fixed column schema), from which the served `attributions.bin` is derived.
-
-Per plume the driver assembles `context.json` from local data via `data/context.duckdb` (`make attr-db`, ~1 GB, rebuild after refreshing sources): OGIM v2.7 point layers + the containing O&G field, Global Coal Mine Tracker mines, the full 4-source detection history within 10–30 km (repeat detections are the strongest single signal). Live APIs supply the rest (all fetched per run, so a future pipeline can attribute new plumes with no local rebuild): a live Overpass export of the area (raw response saved as `osm.json` in the run dir; falls back to the local `data/osm/*.csv` extract when Overpass is down — note Overpass 406s on python's default User-Agent), MapStand O&G features (wellheads/platforms/terminals/pipelines/licence areas/accumulations/basins via WMS `GetFeatureInfo` with a full-canvas pixel buffer — MapStand has no WFS; `MAPSTAND_API_KEY` in `.env`), Carbon Mapper's per-plume rasters for `cm` plumes (georeferenced `plume_tif`/`con_tif` + rgb/plume PNGs downloaded into the run dir for the agent to analyse — signed URLs from `/api/v1/catalog/plumes/annotated`, which also enriches `source_record` with gsd/off-nadir/sector), Open-Meteo wind and a Nominatim place (cached in `data/cache/`). Search radius scales with sensor uncertainty like the frontend `SENSORS` table, but wider (1.5–15 km). GHGSat also serves per-plume rasters (`assets` in `data/ghgsat.csv`) but they need spectra-api auth we don't have.
-
-For Permian Basin plumes a `permian` context block adds Texas RRC / New Mexico OCD regulatory data and independent flare observations from the sibling **gaslight** project's shareable DuckDB (`make gaslight` downloads it from the `db-latest` release of `data-desk-eco/gaslight`; refresh after gaslight's `make release`): wells with per-lease operator-reported flaring volumes, SWR-32 flare permits, R-3 gas plants, NM flare/vent incident reports, and VIIRS Nightfire + Sentinel-2 observed flare sites — a plume at a flare site with no coincident IR signal reads as an unlit/venting flare. The DB is attached read-only as `gl` when `data/gaslight.duckdb` exists; without it the block is simply absent.
-
-The agent brief is `agent/task.md`: hypothesise from local evidence → research candidates on the web (`agent/bin/websearch` = DDG lite; `agent/bin/webget` = Jina reader with raw fallback; local-language searches encouraged) → cross-check against detection history → decide honestly, writing `result.json` (`source_label`, `source_kind`, `attributed_id`, `paragraph`, plus `source_name`, `operator`, `confidence`, `evidence` URLs). The driver validates `attributed_id` against the context (invented ids are nulled) before merging.
-
-```
-make attr-db                     # build data/context.duckdb
-uv run agent/run.py <ids...>     # attribute specific plumes
-uv run agent/run.py --top 50 --src sron -j 4
-```
-
-Already-attributed plumes are skipped unless `-f`. Full transcripts land in `agent/runs/<id>/log.json` (gitignored) — review them when iterating on the brief. ~5 min and ~1¢ per plume.
 
 ## Frontend
 

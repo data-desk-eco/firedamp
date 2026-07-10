@@ -1,4 +1,4 @@
-.PHONY: attr attr-db gaslight data ogim ogim-upload rebuild deploy-private serve vendor clean clean-all help
+.PHONY: data ogim ogim-upload rebuild deploy-private serve vendor clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
@@ -62,20 +62,3 @@ help:
 	@echo "make serve         Dev server on :8000"
 	@echo "make clean         Remove generated data files"
 	@echo "make clean-all     Remove all generated files including vendor"
-	@echo "make attr-db       Build data/context.duckdb for the attribution agent"
-	@echo "make attr          Attribute the 20 most recent unattributed plumes"
-	@echo "make gaslight      Fetch the gaslight permian db"
-
-# ── agentic attribution (agent/) ─────────────────────────────────
-attr-db:
-	uv run agent/run.py --init-db
-
-# permian regulatory + flare-observation db from the sibling gaslight
-# project's published release (data-desk-eco/gaslight, `make release` there)
-gaslight:
-	gh release download db-latest --repo data-desk-eco/gaslight \
-		--pattern gaslight.duckdb --dir data --clobber
-	@echo "Fetched data/gaslight.duckdb"
-
-attr:
-	uv run agent/run.py --recent 20 -j 16
