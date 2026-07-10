@@ -119,6 +119,22 @@ html, body { width: 100%; height: 100%; font-family: 'Inter', -apple-system, Bli
     margin-top: 5px;
 }
 
+/* --- Search box --- */
+
+.search-box {
+    width: 100%;
+    margin-top: 12px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: var(--font-sm);
+}
+.search-box::placeholder { color: var(--text-hint); }
+.search-box:focus { outline: none; border-color: var(--text-faint); }
+.search-box.miss { border-color: var(--accent); }
+
 /* --- Source toggles --- */
 
 .source-toggles {

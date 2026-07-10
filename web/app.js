@@ -47,6 +47,22 @@ for (const key of ['attr', 'year', 'rate']) {
     }));
 }
 
+// location search: "lat, lon" zooms directly, anything else geocodes via nominatim
+const searchBox = document.getElementById('search-box');
+searchBox.addEventListener('input', () => searchBox.classList.remove('miss'));
+searchBox.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter' || !searchBox.value.trim()) return;
+    const q = searchBox.value.trim();
+    const m = q.match(/^(-?\d+(?:\.\d+)?)[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+    if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180)
+        return map.flyTo({ center: [+m[2], +m[1]], zoom: 12 });
+    const hit = (await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`)
+        .then(r => r.json()).catch(() => []))[0];
+    if (!hit) return searchBox.classList.add('miss');
+    const [s, n, w, east] = hit.boundingbox.map(Number);
+    map.fitBounds([[w, s], [east, n]], { padding: 40, maxZoom: 14 });
+});
+
 document.getElementById('ogim-toggle').addEventListener('change', e => {
     toggleOGIM(e.target.checked);
     refreshNearby();
