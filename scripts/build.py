@@ -108,6 +108,7 @@ def build_imeo_plumes(path):
                 "unc": round(unc) if unc is not None else None,
                 "sat": sat,
                 "sec": map_sector(row.get("sector")),
+                "t": dt_raw[11:19],
             })
     print(f"  IMEO: {len(plumes)} plumes")
     return plumes
@@ -154,20 +155,27 @@ def build_sron(path):
                 "rate": round(rate),
                 "unc": round(unc) if unc is not None else None,
                 "sat": "TROPOMI",
+                "t": row.get("time_UTC", "")[:8],
             })
     print(f"  SRON: {len(plumes)} plumes")
     return plumes
 
 
-# imeo and sron both publish tropomi plumes; where they overlap (same day,
-# source points within 10 km ~ 1-2 tropomi pixels) keep the imeo record
+# imeo and sron both publish tropomi plumes; where they overlap keep the imeo
+# record. two rules: same day + source points within 10 km (~1-2 tropomi
+# pixels), or identical acquisition timestamp + rate — imeo ingests sron
+# detections and may relocate the source point tens of km (e.g. upwind), so
+# exact time+rate twins are the same detection at any distance
 def dedup_sron(sron, imeo):
-    ref = {}
+    ref, exact = {}, set()
     for p in imeo:
         if p["sat"] == "TROPOMI":
             ref.setdefault(p["dt"], []).append((p["lat"], p["lon"]))
+            exact.add((p["dt"], p["t"], p["rate"]))
 
     def dup(p):
+        if (p["dt"], p["t"], p["rate"]) in exact:
+            return True
         k = cos(radians(p["lat"]))
         return any(hypot(p["lat"] - a, (p["lon"] - b) * k) * 111 < 10
                    for a, b in ref.get(p["dt"], ()))
