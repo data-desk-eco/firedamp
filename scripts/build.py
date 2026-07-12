@@ -1,7 +1,6 @@
 import csv
 import struct
 from datetime import date
-from math import cos, hypot, radians
 from pathlib import Path
 
 SAT_SHORT = {
@@ -159,24 +158,6 @@ def build_sron(path):
     return plumes
 
 
-# imeo and sron both publish tropomi plumes; where they overlap (same day,
-# source points within 10 km ~ 1-2 tropomi pixels) keep the imeo record
-def dedup_sron(sron, imeo):
-    ref = {}
-    for p in imeo:
-        if p["sat"] == "TROPOMI":
-            ref.setdefault(p["dt"], []).append((p["lat"], p["lon"]))
-
-    def dup(p):
-        k = cos(radians(p["lat"]))
-        return any(hypot(p["lat"] - a, (p["lon"] - b) * k) * 111 < 10
-                   for a, b in ref.get(p["dt"], ()))
-
-    kept = [p for p in sron if not dup(p)]
-    print(f"  SRON: dropped {len(sron) - len(kept)} duplicated by IMEO")
-    return kept
-
-
 # ghgsat: leaked, local-only. the whole data/ dir is gitignored and CI never
 # fetches this source, so it can only ever enter a locally-built plumes.bin —
 # never the published Release. rate/unc in kg/hr; error is a relative fraction.
@@ -247,7 +228,7 @@ def main():
     print("Building plumes.bin...")
     cm = build_cm(Path("data/carbon_mapper.csv"))
     imeo = build_imeo_plumes(Path("data/imeo_plumes.csv"))
-    sron = dedup_sron(build_sron(Path("data/sron_all.csv")), imeo)
+    sron = build_sron(Path("data/sron_all.csv"))
     ghgsat = build_ghgsat(Path("data/ghgsat.csv"))
 
     all_plumes = cm + imeo + sron + ghgsat
