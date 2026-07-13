@@ -74,12 +74,7 @@ mount({
                 'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
                 'text-optional': true,
             },
-            // attributed plumes read at full strength against the dimmed rest
-            paint: {
-                'icon-opacity': ['case', ['==', ['get', 'attr'], 1], 1, 0.55],
-                'text-color': dd.adjusted.white,
-                'text-opacity': ['case', ['==', ['get', 'attr'], 1], 1, 0.55],
-            },
+            paint: { 'text-color': dd.adjusted.white },
         })),
         {
             // white default-state flare with total t/hr up-and-right (dd label rule)
