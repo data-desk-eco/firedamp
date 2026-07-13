@@ -11,7 +11,7 @@ const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const FGB = `${bucket || 'data'}/features.fgb`;
 const MIN_ZOOM = 13;
 const MAX_SCAN = 4000, MAX_SHOW = 300;
-const HL = '#ffc861', DIM = 'rgba(255,255,255,0.35)';
+const HL = '#ffc861', PT = '#ffffff';
 
 // ch4id feature ids are OSM:w<id>; older attributions carry OSM:way/<id>
 export const normId = id => id.replace(/^OSM:(way|node|relation)\//, (_, t) => `OSM:${t[0]}`);
@@ -104,7 +104,7 @@ export function addSourceLayers() {
         paint: {
             'circle-radius': hlCase(6, 3.5),
             'circle-color': hlCase(HL, 'transparent'),
-            'circle-stroke-color': hlCase('rgba(0,0,0,0.8)', DIM),
+            'circle-stroke-color': hlCase('rgba(0,0,0,0.8)', PT),
             'circle-stroke-width': 1.5,
         },
     });
@@ -114,7 +114,7 @@ export function addSourceLayers() {
         const p = e.features[0].properties;
         const kind = (p.kind || '').replace(/_/g, ' ');
         const title = p.name || kind;
-        const detail = [kind, p.operator, p.status, p.fuel, p.dist != null && fmtMetres(p.dist)]
+        const detail = [kind, p.operator, p.status, p.fuel, p.detail, p.dist != null && fmtMetres(p.dist)]
             .filter(v => v && v !== title).map(escapeHtml).join(' · ');
         popup.setLngLat(e.lngLat)
             .setHTML(`<strong>${escapeHtml(title)}</strong>${p.hl ? ' ★' : ''}<br>${detail}<br><small>${escapeHtml(p.id)}</small>`)
