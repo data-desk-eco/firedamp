@@ -2,9 +2,8 @@
 
 import { map } from './map.js';
 import { parsePlumes, addPlumeLayers, setFilter } from './plumes.js';
-import { addOGIMLayers, toggleOGIM, updateOgimToggleEnabled } from './ogim.js';
 import { addSourceLayers } from './sources.js';
-import { setupInteractions, restorePermalink, refreshNearby } from './detail.js';
+import { setupInteractions, restorePermalink } from './detail.js';
 import { loadAttributions } from './analysis.js';
 
 map.on('load', async () => {
@@ -19,10 +18,8 @@ map.on('load', async () => {
     if (plumes.some(p => p.src === 'ghgsat'))
         document.querySelectorAll('[data-ghgsat]').forEach(el => { el.hidden = false; });
 
-    // OGIM layers (hidden by default, rendered below plumes)
-    await addOGIMLayers();
-
-    // per-plume candidate-source layers (empty until a plume is selected)
+    // candidate-source layers, loaded per viewport past MIN_ZOOM and per
+    // selected plume (rendered below plumes)
     addSourceLayers();
 
     addPlumeLayers(plumes, attributed);
@@ -67,11 +64,6 @@ searchBox.addEventListener('keydown', async e => {
     map.fitBounds([[w, s], [east, n]], { padding: 40, maxZoom: 14 });
 });
 
-document.getElementById('ogim-toggle').addEventListener('change', e => {
-    toggleOGIM(e.target.checked);
-    refreshNearby();
-});
-
 document.getElementById('collapse-toggle').addEventListener('click', () => {
     document.getElementById('left-panel').classList.toggle('collapsed');
 });
@@ -84,5 +76,5 @@ function updateMapCentre() {
     const c = map.getCenter();
     document.getElementById('map-centre').textContent = `${c.lat.toFixed(3)}, ${c.lng.toFixed(3)}`;
 }
-map.on('move', () => { updateMapCentre(); updateOgimToggleEnabled(); });
-map.on('load', () => { updateMapCentre(); updateOgimToggleEnabled(); });
+map.on('move', updateMapCentre);
+map.on('load', updateMapCentre);

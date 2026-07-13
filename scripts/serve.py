@@ -1,4 +1,4 @@
-"""Dev server with HTTP Range request support (needed for PMTiles)."""
+"""Dev server with HTTP Range request support (needed for FlatGeobuf range queries)."""
 
 import http.server
 import os

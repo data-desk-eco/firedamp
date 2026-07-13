@@ -1,4 +1,4 @@
-.PHONY: data ogim ogim-upload features features-upload rebuild deploy-private serve vendor clean clean-all help
+.PHONY: data features features-upload rebuild deploy-private serve vendor clean clean-all help
 
 CH4ID ?= $(HOME)/Tools/ch4id
 
@@ -12,29 +12,18 @@ data/%.ok:
 	uv run scripts/fetch_$*.py
 	@touch $@
 
-# ── OGIM infrastructure tiles ────────────────────────────────────
-ogim: web/data/ogim.pmtiles
-
-web/data/ogim.pmtiles: data/OGIM_v2.7.gpkg
-	bash scripts/build_ogim.sh
-
-# ── ch4id feature catalogue (per-plume candidate sources) ────────
+# ── ch4id feature catalogue (candidate sources) ──────────────────
 features: web/data/features.fgb
 
 web/data/features.fgb: $(CH4ID)/data/features.parquet
 	duckdb -bail -c "load spatial; copy (select id, dataset, kind, name, operator, status, fuel, geometry from '$<') to '$@' with (format gdal, driver 'FlatGeobuf')"
-
-# ── GCS upload ───────────────────────────────────────────────────
-ogim-upload: web/data/ogim.pmtiles
-	gcloud storage cp web/data/ogim.pmtiles gs://firedamp-data/ogim.pmtiles
-	@echo "Uploaded to gs://firedamp-data/ogim.pmtiles"
 
 features-upload: web/data/features.fgb
 	gcloud storage cp web/data/features.fgb gs://firedamp-data/features.fgb
 	@echo "Uploaded to gs://firedamp-data/features.fgb"
 
 # ── Full rebuild ─────────────────────────────────────────────────
-rebuild: data ogim ogim-upload
+rebuild: data features features-upload
 	@echo "Full rebuild complete"
 
 # ── Datadesk-only deploy (Cloudflare Pages behind Access) ────────
@@ -62,15 +51,13 @@ clean:
 	rm -f data/*.ok data/carbon_mapper.csv data/imeo_plumes.csv data/sron_all.csv web/data/plumes.bin
 
 clean-all: clean
-	rm -rf web/vendor data/sron data/OGIM_v2.7.gpkg web/data/ogim.pmtiles
+	rm -rf web/vendor data/sron web/data/features.fgb
 
 help:
 	@echo "make data          Fetch plume sources, build web/data/plumes.bin"
-	@echo "make ogim          Build OGIM PMTiles from GeoPackage"
-	@echo "make ogim-upload   Upload OGIM PMTiles to GCS"
 	@echo "make features      Build features.fgb from the ch4id catalogue"
 	@echo "make features-upload Upload features.fgb to GCS"
-	@echo "make rebuild       Full pipeline: data + ogim + upload"
+	@echo "make rebuild       Full pipeline: data + features + upload"
 	@echo "make deploy-private Deploy datadesk-only site (incl. GHGSat) to CF Pages"
 	@echo "make vendor        Download vendored JS/CSS/fonts"
 	@echo "make serve         Dev server on :8000"

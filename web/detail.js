@@ -2,7 +2,6 @@
 
 import { map } from './map.js';
 import { plumeLayers, SRC_LABELS } from './plumes.js';
-import { findNearbyInfra, nearbyMarkup, ogimVisible } from './ogim.js';
 import { runPlumeAnalysis, cancelAnalysis } from './analysis.js';
 
 let selectedFeature = null;
@@ -121,7 +120,7 @@ export function showDetail(feature, fromPermalink) {
             <div class="stat"><div class="stat-big">${p.sat || '—'}</div><div class="stat-unit">satellite</div></div>
             <div class="stat"><div class="stat-big">${p.dt || '—'}</div><div class="stat-unit">date</div></div>
         </div>
-        <div id="detail-nearby">${nearbyMarkup(findNearbyInfra(lon, lat))}</div>
+        <div id="detail-nearby"></div>
         <div class="enrich-section">
             <div class="enrich-section-label">
                 <span>Analysis</span>
@@ -142,15 +141,6 @@ function closeDetail() {
     setPlumeHash(null);
     setHighlight([]);
     document.getElementById('right-panel').classList.add('hidden');
-}
-
-// refresh the nearby-infrastructure section only (avoids re-running AI
-// analysis) — used when the OGIM toggle loads new tiles.
-export function refreshNearby() {
-    if (!selectedFeature) return;
-    const p = selectedFeature.properties;
-    const el = document.getElementById('detail-nearby');
-    if (el) el.innerHTML = nearbyMarkup(findNearbyInfra(Number(p.lon), Number(p.lat)));
 }
 
 function overlapStep(delta) {
@@ -209,36 +199,6 @@ export function setupInteractions() {
             center: [Number(fp.lon), Number(fp.lat)],
             zoom: Math.max(map.getZoom(), 15)
         });
-    });
-
-    // OGIM hover — use queryRenderedFeatures for reliable hit detection with overzoomed tiles
-    const ogimLayers = ['ogim-facilities', 'ogim-wells', 'ogim-pipelines'];
-    let ogimHover = false;
-    map.on('mousemove', e => {
-        if (!ogimVisible) return;
-        const layers = ogimLayers.filter(l => map.getLayer(l));
-        if (!layers.length) return;
-        const bbox = [[e.point.x - 4, e.point.y - 4], [e.point.x + 4, e.point.y + 4]];
-        const features = map.queryRenderedFeatures(bbox, { layers });
-        if (features.length > 0) {
-            map.getCanvas().style.cursor = 'pointer';
-            const f = features[0];
-            const p = f.properties;
-            const facility = f.layer.id === 'ogim-facilities';
-            const title = facility
-                ? (p.FAC_NAME || p.OPERATOR || p.CATEGORY || 'Facility')
-                : (p.FAC_TYPE || (f.layer.id === 'ogim-wells' ? 'Well' : 'Pipeline'));
-            const detail = (facility ? [p.FAC_TYPE, p.COUNTRY, p.OGIM_STATUS] : [p.OPERATOR, p.COUNTRY, p.OGIM_STATUS])
-                .filter(Boolean).join(' · ');
-            popup.setLngLat(e.lngLat)
-                .setHTML(`<strong>${title}</strong>${detail ? '<br>' + detail : ''}`)
-                .addTo(map);
-            ogimHover = true;
-        } else if (ogimHover) {
-            map.getCanvas().style.cursor = '';
-            popup.remove();
-            ogimHover = false;
-        }
     });
 
     document.addEventListener('keydown', e => {

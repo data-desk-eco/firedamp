@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>firedamp / methane plume aggregator</title>
-    <meta name="ogim-bucket" content="https://storage.googleapis.com/firedamp-data">
+    <meta name="data-bucket" content="https://storage.googleapis.com/firedamp-data">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%2322d3ee%22/%3E%3C/svg%3E">
     <link rel="stylesheet" href="vendor/fonts/inter.css">
     <link rel="stylesheet" href="vendor/maplibre-gl.css">
@@ -55,13 +55,6 @@
                     <button class="filter-btn" data-rate="20">&gt;20</button>
                 </div>
             </div>
-            <div class="separator"></div>
-            <div class="filter-group">
-                <label class="toggle-row">
-                    <span class="filter-label">OGIM infrastructure</span>
-                    <input type="checkbox" id="ogim-toggle">
-                </label>
-            </div>
         </div>
     </div>
 
@@ -84,12 +77,6 @@
             <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #ff00ff"></div></div>IMEO / MARS</div>
             <div class="legend-item"><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #ffff00"></div></div>SRON</div>
             <div class="legend-item" data-ghgsat hidden><div class="legend-src-wrap"><div class="legend-circle-fill" style="background: #ff7a00"></div></div>GHGSat</div>
-            <div class="legend-infra-section" id="legend-infra">
-                <h4 class="label-sm legend-section">Infrastructure</h4>
-                <div class="legend-item"><div class="legend-symbol"><span class="legend-symbol-x">&times;</span></div>Wells</div>
-                <div class="legend-item"><div class="legend-symbol"><div class="legend-symbol-line"></div></div>Pipelines</div>
-                <div class="legend-item"><div class="legend-symbol"><div class="legend-symbol-diamond"></div></div>Facilities</div>
-            </div>
         </div>
     </div>
 
@@ -98,7 +85,6 @@
     </svg></a>
 
     <script src="vendor/maplibre-gl.js"></script>
-    <script src="vendor/pmtiles.js"></script>
     <script src="vendor/flatgeobuf-geojson.min.js"></script>
     <script type="module" src="app.js"></script>
 </body>

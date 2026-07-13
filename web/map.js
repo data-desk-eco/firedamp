@@ -1,8 +1,4 @@
-// map instance + basemap style. the pmtiles protocol must be registered
-// before map creation.
-
-const protocol = new pmtiles.Protocol();
-maplibregl.addProtocol('pmtiles', protocol.tile);
+// map instance + basemap style
 
 const labelLayer = (id, classFilter, minzoom, sizes, color, haloWidth, extra = {}) => ({
     id,

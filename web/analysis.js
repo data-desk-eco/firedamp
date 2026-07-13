@@ -4,8 +4,7 @@
 // shipped). there is no live vision/LLM pipeline in the browser any more.
 // wind is fetched separately as an independent panel stat.
 
-import { loadNearbyInfra, nearbyMarkup } from './ogim.js';
-import { querySources, showSources, clearSources } from './sources.js';
+import { selectPlume, clearSelection, nearbyMarkup } from './sources.js';
 import { escapeHtml, compass } from './util.js';
 
 let analysisRequestId = 0;
@@ -62,7 +61,7 @@ async function staticAttribution(id) {
 // invalidate any in-flight lookup (called when the panel closes)
 export function cancelAnalysis() {
     analysisRequestId++;
-    clearSources();
+    clearSelection();
 }
 
 // ── wind (independent panel stat) ──
@@ -156,22 +155,20 @@ function renderAnalysisHTML(text) {
     </div>`;
 }
 
-// make an attributed source label link out: OGIM ids fly the map to the
-// feature, OSM ids (short w/n/r or long way/node/relation form) link to osm.
+// make an attributed source label link out: OSM ids (short w/n/r or long
+// way/node/relation form) link to osm, anything else flies to the feature.
 function sourceLabelHtml(label, ids) {
     if (!label) return '';
     const safe = escapeHtml(label);
     const id = ids?.[0];
     if (!id) return safe;
     const idSafe = escapeHtml(ids.join(' '));
-    if (id.startsWith('OGIM:'))
-        return `<a class="enrich-attrib" href="#" onclick="flyToOgim('${escapeHtml(id.slice(5))}');return false" title="${idSafe}">${safe}</a>`;
     const osm = id.match(/^OSM:(?:(w|n|r)|(way|node|relation)\/)(\d+)$/);
     if (osm) {
         const type = osm[2] || { w: 'way', n: 'node', r: 'relation' }[osm[1]];
         return `<a class="enrich-attrib" href="https://www.openstreetmap.org/${type}/${osm[3]}" target="_blank" rel="noopener" title="${idSafe}">${safe}</a>`;
     }
-    return safe;
+    return `<a class="enrich-attrib" href="#" onclick="flyToSource('${escapeHtml(id)}');return false" title="${idSafe}">${safe}</a>`;
 }
 
 // ── pipeline ──
@@ -185,14 +182,6 @@ export function runPlumeAnalysis(feature) {
 
     const targetEl = () => analysisRequestId === id ? document.getElementById('enrich-results') : null;
 
-    // OGIM nearby list is local-tile-derived (free) — populate independently.
-    (async () => {
-        const items = await loadNearbyInfra(lon, lat, { maxResults: 20, radiusKm: 2 });
-        if (analysisRequestId !== id) return;
-        const c = document.getElementById('detail-nearby');
-        if (c) c.innerHTML = nearbyMarkup(items);
-    })();
-
     // wind stat — independent of attribution.
     fetchWind(lat, lon, p.dt).then(w => { if (analysisRequestId === id) renderWind(w); });
 
@@ -200,7 +189,7 @@ export function runPlumeAnalysis(feature) {
     // nearby candidate sources from the ch4id catalogue, attributed ones
     // highlighted. coarse sensors get a wider candidate radius.
     (async () => {
-        clearSources();
+        clearSelection();
         const rec = await staticAttribution(plumeId);
         if (analysisRequestId !== id) return;
         const el = targetEl();
@@ -208,7 +197,9 @@ export function runPlumeAnalysis(feature) {
             ? renderAnalysisHTML(JSON.stringify(rec))
             : '<span class="enrich-empty">No source attribution yet.</span>';
         const radiusKm = /tropomi|viirs|goes|s3/i.test(p.sat || '') ? 10 : 3;
-        const cands = await querySources(lon, lat, radiusKm, rec);
-        if (analysisRequestId === id) showSources(cands);
+        const cands = await selectPlume(lon, lat, radiusKm, rec);
+        if (analysisRequestId !== id) return;
+        const c = document.getElementById('detail-nearby');
+        if (c) c.innerHTML = nearbyMarkup(cands.slice(0, 20));
     })();
 }

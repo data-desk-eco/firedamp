@@ -6,7 +6,7 @@ Methane plume aggregator with per-plume AI source attribution.
 
 Static HTML/JS/CSS frontend (MapLibre GL, no build step, no npm) on GitHub Pages, a Python ETL pipeline that produces `plumes.bin`, and an offline research agent — the sibling **ch4id** repo (`~/Tools/ch4id`) — that produces `attributions.parquet`. Attribution is served entirely from that static dataset — there is no backend service any more (the old `firedamp-api` Cloudflare Worker + D1 vision pipeline was removed, and the original in-repo `agent/` pipeline moved to ch4id).
 
-- OGIM infrastructure PMTiles and the ch4id feature catalogue FlatGeobuf served from GCS (`gs://firedamp-data/`).
+- The ch4id feature catalogue FlatGeobuf (`features.fgb`) served from GCS (`gs://firedamp-data/`). (The old OGIM PMTiles layer + toggle were removed 2026-07; the GCS object remains but nothing reads it.)
 - `plumes.bin` lives in the `latest-data` GitHub Release, not in git.
 
 ## Plume sources
@@ -14,20 +14,18 @@ Static HTML/JS/CSS frontend (MapLibre GL, no build step, no npm) on GitHub Pages
 - **Carbon Mapper** — satellite + aircraft hyperspectral (API → `data/carbon_mapper.csv`)
 - **IMEO / MARS** — UNEP methane plume database (Eye on Methane v2 API → `data/imeo_plumes.csv`)
 - **SRON** — TROPOMI weekly plume CSVs (FTP scrape → `data/sron/` → `data/sron_all.csv`)
-- **OGIM v2.7** — global O&G infrastructure (Zenodo GeoPackage, ~3 GB)
+- **ch4id feature catalogue** — OGIM + OSM + MapStand + GEM merged (`~/Tools/ch4id/data/features.parquet`, ~15M features)
 
 ## ETL
 
 ```
 make data             # CM + SRON + IMEO → web/data/plumes.bin
-make ogim             # OGIM GeoPackage → web/data/ogim.pmtiles
-make ogim-upload      # PMTiles → GCS
 make features         # ch4id features.parquet → web/data/features.fgb (duckdb spatial)
 make features-upload  # FlatGeobuf → GCS
-make rebuild          # data + ogim + upload
+make rebuild          # data + features + upload
 ```
 
-Requires `ogr2ogr`, `tippecanoe`, `tile-join` for OGIM. IMEO needs `IMEO_API_KEY` (request from unep-methanedata@un.org; set as a repo secret for CI). The whole `methanedata.unep.org` host is behind a Cloudflare managed challenge that fingerprints the TLS handshake, so `fetch_imeo.py` uses `curl_cffi` (Chrome JA3 impersonation) — plain httpx/requests/curl are blocked even with the key. Without a key it keeps any existing `data/imeo_plumes.csv` (manual fallback).
+IMEO needs `IMEO_API_KEY` (request from unep-methanedata@un.org; set as a repo secret for CI). The whole `methanedata.unep.org` host is behind a Cloudflare managed challenge that fingerprints the TLS handshake, so `fetch_imeo.py` uses `curl_cffi` (Chrome JA3 impersonation) — plain httpx/requests/curl are blocked even with the key. Without a key it keeps any existing `data/imeo_plumes.csv` (manual fallback).
 
 ## Binary formats
 
@@ -40,9 +38,9 @@ Requires `ogr2ogr`, `tippecanoe`, `tile-join` for OGIM. IMEO needs `IMEO_API_KEY
 
 ## Plume attribution (frontend)
 
-The detail panel serves source attribution **solely** from the bulk agentic dataset (`data/attributions.bin`, the `FDA2` binary above). `web/analysis.js` looks the plume up by id and renders `source_label` (a fly-to/osm link when the first attributed id is an `OGIM:`/`OSM:` ref), `confidence`, a verification badge (verified/disputed, verify_notes in the tooltip), `paragraph` and `evidence` links; a plume with no record shows "No source attribution yet." Daily-mean surface wind (Open-Meteo archive) is still fetched per plume as an independent panel stat, unrelated to attribution.
+The detail panel serves source attribution **solely** from the bulk agentic dataset (`data/attributions.bin`, the `FDA2` binary above). `web/analysis.js` looks the plume up by id and renders `source_label` (an osm.org link for `OSM:` refs, otherwise a fly-to-feature link), `confidence`, a verification badge (verified/disputed, verify_notes in the tooltip), `paragraph` and `evidence` links; a plume with no record shows "No source attribution yet." Daily-mean surface wind (Open-Meteo archive) is still fetched per plume as an independent panel stat, unrelated to attribution.
 
-Selecting a plume also draws its **candidate sources** on the map (`web/sources.js`): a FlatGeobuf bbox query (HTTP range requests, vendored `flatgeobuf-geojson.min.js`) against `gs://firedamp-data/features.fgb` — the full ch4id feature catalogue (OGIM + OSM + MapStand + GEM, ~15M features, `make features` / `make features-upload`) — streams every feature within 3 km (10 km for coarse sensors: TROPOMI/VIIRS/GOES/S3), rendered as dim points/lines/fills beneath the plume layers with the attributed feature(s) highlighted in amber (nearest 300 shown; attributed ids always kept, and the query rect is stretched to cover the record's assessed source point). ch4id feature ids use the short OSM form (`OSM:w<id>`); older attributions carry `OSM:way/<id>`, so `normId` normalises before matching. Layers empty on panel close via `cancelAnalysis()` → `clearSources()`.
+**Candidate sources** (`web/sources.js`) render on the map from FlatGeobuf bbox queries (HTTP range requests, vendored `flatgeobuf-geojson.min.js`) against `gs://firedamp-data/features.fgb` — the full ch4id feature catalogue (OGIM + OSM + MapStand + GEM, ~15M features, `make features` / `make features-upload`). Two query paths share one geojson source: (1) an optimistic viewport sweep on every `moveend` past zoom 13 (padded rect, so small pans don't refetch; cleared below the threshold), and (2) a per-plume radius query on selection — 3 km, 10 km for coarse sensors (TROPOMI/VIIRS/GOES/S3) — whose nearest 300 within radius feed both the map and the "Nearby sources" accordion in the detail panel, with the attributed feature(s) highlighted in amber (attributed ids always kept; the rect is stretched to cover the record's assessed source point). ch4id feature ids use the short OSM form (`OSM:w<id>`); older attributions carry `OSM:way/<id>`, so `normId` normalises before matching. Selection highlight clears on panel close via `cancelAnalysis()` → `clearSelection()`; the viewport sweep persists. This replaced the OGIM PMTiles layer/toggle and Overpass-era nearby-infra list entirely (ogim.js, pmtiles vendor and the pmtiles protocol registration are gone).
 
 There is **no in-browser vision/LLM pipeline** any more. The old on-demand path — Overpass + Nominatim + Open-Meteo + an annotated Esri map (`captureAnnotatedMap`) sent to the Worker → OpenRouter, with a `↻` regenerate button and a D1 peek cache — was removed (git history has it). `attributions.parquet`, committed to git and refreshed by the sibling **ch4id** repo's pipeline (`make deploy` there exports, commits and pushes it; update-data.yml only touches plumes), is the single source of truth; the site ships only the derived `attributions.bin` (gitignored, rebuilt by dist.sh at deploy time), fetched with the same `?v=<sha>` cache-busting as the JS so a Pages/CDN edge never serves a stale dataset against new code.
 
@@ -54,8 +52,7 @@ ES modules, no build step. Key files:
 - `web/app.js` — entry point: data load, layer assembly, UI wiring.
 - `web/map.js` — map instance + basemap style.
 - `web/plumes.js` — binary parser, plume layers, filters.
-- `web/ogim.js` — OGIM layers, toggle, proximity queries.
-- `web/sources.js` — per-plume candidate sources from the ch4id catalogue (features.fgb).
+- `web/sources.js` — candidate sources from the ch4id catalogue (features.fgb): viewport sweep + per-plume selection.
 - `web/detail.js` — detail panel, permalinks, overlap nav, interactions.
 - `web/analysis.js` — static attribution lookup/render + wind stat.
 - `web/util.js` — geometry + formatting helpers.
@@ -73,8 +70,8 @@ When multiple plumes share a location, the detail panel shows prev/next arrows t
 ## Development
 
 ```
-make vendor        # MapLibre, PMTiles, Inter font
-make serve         # dev server on :8000 (HTTP Range for PMTiles)
+make vendor        # MapLibre, FlatGeobuf, Inter font
+make serve         # dev server on :8000 (HTTP Range for FlatGeobuf)
 ```
 
 ## Deployment
@@ -82,6 +79,6 @@ make serve         # dev server on :8000 (HTTP Range for PMTiles)
 - **Pages**: push to `main` runs `deploy.yml`. Pulls `plumes.bin` from the `latest-data` Release, copies `web/*` into `dist/`, cache-busts JS/CSS with the git SHA, and deploys.
 - **Plumes refresh**: `update-data.yml` runs every 6h (00:00/06:00/12:00/18:00 UTC), rebuilds `plumes.bin`, uploads to the Release, and redeploys Pages. Carbon Mapper publishes in sub-daily batches so it's polled often; SRON (weekly) and IMEO (irregular) don't gain much from the higher cadence but ride along.
 - **Private deploy**: `make deploy-private` — builds `plumes.bin` locally (pulling in the local-only, gitignored `data/ghgsat.csv`) and pushes the site to Cloudflare Pages project `firedamp-private` (`https://firedamp-private.pages.dev`), which sits behind Cloudflare Access (Zero Trust app "Firedamp private", "Data Desk" policy = the three datadesk.eco emails, covering prod + `*.pages.dev` previews). This is the **only** deploy that ever contains GHGSat: the target refuses to upload unless the Access gate is answering in front of the site, and the leaked CSV never touches GitHub. Manual snapshot — the public site refreshes every 6h, the private one only when re-run. Uses `wrangler pages` (static hosting), not a Worker.
-- **OGIM tiles**: `make ogim-upload` pushes to GCS manually (rarely re-run).
+- **Feature catalogue**: `make features features-upload` pushes features.fgb to GCS manually (re-run when ch4id's catalogue is rebuilt).
 
 **When adding new web assets**, add them to `scripts/dist.sh` (shared by `deploy.yml` and `update-data.yml`).
