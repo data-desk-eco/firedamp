@@ -44,7 +44,7 @@ export function buildShell(config) {
     ${config.about ? `
     <div class="cg-modal" id="about-modal">
         <div class="dd-panel dd-panel-l cg-modal-content custom-scroll">
-            <h2 class="dd-intro-heading">${escapeHtml(config.title)}</h2>
+            <h2 class="dd-intro-heading">${escapeHtml(config.title)}${config.badge ? ` <span class="dd-secondary">${escapeHtml(config.badge)}</span>` : ''}</h2>
             <div class="dd-intro-body">${config.about}</div>
             <button class="dd-btn cg-enter" id="enter-btn">Enter</button>
         </div>
