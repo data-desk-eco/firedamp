@@ -4,7 +4,7 @@
 // shipped). there is no live vision/LLM pipeline in the browser any more.
 // wind is fetched separately as an independent panel stat.
 
-import { selectPlume, clearSelection, nearbyMarkup } from './sources.js';
+import { selectPlume, clearSelection } from './sources.js';
 import { escapeHtml, compass } from './util.js';
 
 let analysisRequestId = 0;
@@ -197,9 +197,6 @@ export function runPlumeAnalysis(feature) {
             ? renderAnalysisHTML(JSON.stringify(rec))
             : '<span class="enrich-empty">No source attribution yet.</span>';
         const radiusKm = /tropomi|viirs|goes|s3/i.test(p.sat || '') ? 10 : 3;
-        const cands = await selectPlume(lon, lat, radiusKm, rec);
-        if (analysisRequestId !== id) return;
-        const c = document.getElementById('detail-nearby');
-        if (c) c.innerHTML = nearbyMarkup(cands.slice(0, 20));
+        selectPlume(lon, lat, radiusKm, rec);
     })();
 }

@@ -35,12 +35,6 @@ export function compass(deg) {
     return COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
 }
 
-export function formatDist(km) {
-    if (km < 1) return `${Math.round(km * 1000)} m`;
-    if (km < 10) return `${km.toFixed(1)} km`;
-    return `${Math.round(km)} km`;
-}
-
 export function fmtMetres(m) {
     if (m == null) return '?';
     return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;

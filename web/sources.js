@@ -5,7 +5,7 @@
 // feature(s) highlighted.
 
 import { map } from './map.js';
-import { escapeHtml, fmtMetres, formatDist, haversineM } from './util.js';
+import { escapeHtml, fmtMetres, haversineM } from './util.js';
 
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const FGB = `${bucket || 'data'}/features.fgb`;
@@ -72,7 +72,7 @@ async function sweep() {
 // radius query around the selected plume; the rect is stretched to cover the
 // attribution's assessed source point so a distant attributed feature
 // (coarse-sensor upwind search) still loads, and attributed ids survive both
-// the radius cut and the display cap. returns candidates nearest-first.
+// the radius cut and the display cap.
 export async function selectPlume(lon, lat, radiusKm, rec) {
     hlIds = new Set((rec?.attributed_ids || []).map(normId));
     const dLat = radiusKm / 111, dLon = radiusKm / (111 * Math.cos(lat * Math.PI / 180));
@@ -83,7 +83,7 @@ export async function selectPlume(lon, lat, radiusKm, rec) {
     }
     const e = ++plumeEpoch;
     const feats = await fetchRect(rect);
-    if (e !== plumeEpoch) return [];
+    if (e !== plumeEpoch) return;
     for (const f of feats) {
         const n = nearest(lat, lon, f.geometry.coordinates);
         Object.assign(f.properties, { dist: n.d, alon: n.lon, alat: n.lat });
@@ -92,7 +92,6 @@ export async function selectPlume(lon, lat, radiusKm, rec) {
     plumeFeats = feats.filter((f, i) =>
         (i < MAX_SHOW && f.properties.dist <= radiusKm * 1000) || hlIds.has(f.properties.id));
     render();
-    return plumeFeats;
 }
 
 export function clearSelection() {
@@ -147,23 +146,7 @@ export function addSourceLayers() {
     sweep();
 }
 
-// ── nearby-sources accordion (detail panel) ──
-
-export function nearbyMarkup(feats) {
-    if (!feats.length) return '';
-    return `<details class="nearby-accordion">
-        <summary class="nearby-summary">Nearby sources <span class="nearby-count">${feats.length}</span></summary>
-        <div class="nearby-list">
-            ${feats.map(({ properties: p }) => `<div class="nearby-item" onclick="flyToSource('${escapeHtml(p.id)}')">
-                <div class="nearby-name">${escapeHtml(p.name || (p.kind || '').replace(/_/g, ' '))}</div>
-                <div class="nearby-meta">${[p.operator, formatDist(p.dist / 1000)].filter(Boolean).map(escapeHtml).join(' · ')}</div>
-                <div class="nearby-id">${escapeHtml(p.id.replace(':', ' '))}</div>
-            </div>`).join('')}
-        </div>
-    </details>`;
-}
-
-// window-bound for inline onclick handlers
+// window-bound for the attribution label's inline onclick handler
 window.flyToSource = id => {
     const f = [...plumeFeats, ...viewFeats].find(f => f.properties.id === id);
     if (!f) return;

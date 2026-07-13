@@ -120,7 +120,6 @@ export function showDetail(feature, fromPermalink) {
             <div class="stat"><div class="stat-big">${p.sat || '—'}</div><div class="stat-unit">satellite</div></div>
             <div class="stat"><div class="stat-big">${p.dt || '—'}</div><div class="stat-unit">date</div></div>
         </div>
-        <div id="detail-nearby"></div>
         <div class="enrich-section">
             <div class="enrich-section-label">
                 <span>Analysis</span>
