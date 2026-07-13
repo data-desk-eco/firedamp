@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # vendor dependencies into web/vendor: everything cartograph needs (maplibre,
-# duckdb-wasm, inter, dd design system, cartograph itself) plus firedamp's
+# hyparquet, inter, dd design system, cartograph itself) plus firedamp's
 # flatgeobuf (http-range bbox queries over features.fgb).
 set -euo pipefail
 

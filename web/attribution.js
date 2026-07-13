@@ -1,9 +1,9 @@
 // plume source attribution — served entirely from the bulk agent-produced
 // dataset (web/data/attributions.parquet, refreshed by the sibling ch4id
-// repo), queried in-browser via duckdb. wind is fetched per plume from
+// repo), read in-browser via hyparquet. wind is fetched per plume from
 // open-meteo as an independent panel stat.
 
-import { need, query } from './vendor/cartograph/data.js';
+import { read } from './vendor/cartograph/data.js';
 import { escapeHtml, compass } from './vendor/cartograph/util.js';
 import { selectPlume } from './candidates.js';
 
@@ -15,11 +15,9 @@ let attribs = null;
 export function loadAttributions() {
     return attribs ??= (async () => {
         try {
-            await need('attributions');
-            return new Map((await query(`
-                SELECT id, source_label, attributed_ids, lat, lon, confidence,
-                       paragraph, evidence
-                FROM 'attributions.parquet'`)).map(r => [r.id, r]));
+            return new Map((await read('attributions', { columns: [
+                'id', 'source_label', 'attributed_ids', 'lat', 'lon', 'confidence',
+                'paragraph', 'evidence'] })).map(r => [r.id, r]));
         } catch (err) {
             console.warn('attributions unavailable:', err);
             return new Map();

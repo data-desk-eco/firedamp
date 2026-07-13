@@ -5,7 +5,7 @@ Methane plume aggregator with per-plume AI source attribution.
 ## Architecture
 
 A [cartograph](~/Tools/cartograph) app: the generic Data Desk full-screen map
-system (dd design-system frontend + parquet/DuckDB-WASM backend, no npm, no
+system (dd design-system frontend + parquet-via-hyparquet backend, no npm, no
 build step) with all firedamp behaviour in `web/config.js` plus two hook
 modules. A Python ETL produces `web/data/plumes.parquet`; the offline research
 agent — the sibling **ch4id** repo (`~/Tools/ch4id`) — produces
@@ -32,12 +32,12 @@ Served on GitHub Pages; there is no backend service.
   source point). dd waypoint markings, orange + larger when attributed, over an
   invisible fat hit layer carrying the hover/click popup. `normId` maps old
   `OSM:way/<id>` attribution ids to ch4id's short `OSM:w<id>` form.
-- `web/vendor/` — committed: maplibre, duckdb-wasm, inter, flatgeobuf, `dd/`
+- `web/vendor/` — committed: maplibre, hyparquet, inter, flatgeobuf, `dd/`
   (design dist) and `cartograph/` (the generic core). Refresh with `make
   vendor` (calls cartograph's vendor.sh, which pulls dd from ~/Tools/design).
 
 Everything generic — dd map shell, panels, key, filters, detail/overlap-nav/
-permalinks, search, duckdb data layer — lives in vendored cartograph; keep
+permalinks, search, parquet data layer — lives in vendored cartograph; keep
 firedamp specifics out of it (change cartograph and re-vendor instead).
 
 ## Plume sources
@@ -64,7 +64,7 @@ src, lat, lon, dt, rate (kg/hr), unc, sat, sec`. SRON ids are the
 date+location display id with the source csv filename in `link` (the old FDP1
 `display|file` composite, split out); attribution keys match `id` directly.
 The old FDP1/FDA2 binaries and `build_attr.py` are gone — the frontend reads
-both parquets straight into DuckDB-WASM.
+both parquets straight in with hyparquet (pure js, no wasm).
 
 IMEO comes from UNEP's public detected-plumes dataset — a keyless Azure blob
 zip (linked from methanedata.unep.org/download-dataset, refreshed ~monthly).
@@ -73,8 +73,8 @@ the existing `data/imeo_plumes.csv`.
 
 ## Frontend data flow
 
-`config.js` prefetches `plumes.parquet` at parse, registers both parquets with
-DuckDB-WASM, and builds one geojson source: every plume whose id appears in
+`config.js` prefetches `plumes.parquet` at parse, reads both parquets with
+hyparquet, and builds one geojson source: every plume whose id appears in
 `attributions.parquet` gets `attr: 1`, which feeds the Attribution filter.
 The detail panel is cartograph-generic (title link to CM/SRON, coords,
 overlap nav across co-located plumes, `#plume=<id>` permalinks alongside
@@ -85,7 +85,7 @@ record and the candidate-source selection.
 ## Development
 
 ```
-make vendor        # vendor deps (cartograph, dd, maplibre, duckdb, flatgeobuf, inter)
+make vendor        # vendor deps (cartograph, dd, maplibre, hyparquet, flatgeobuf, inter)
 make serve         # dev server on :8000 (HTTP Range for FlatGeobuf)
 ```
 

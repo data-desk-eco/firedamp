@@ -49,10 +49,9 @@ mount({
         prefetch: ['plumes'],
     },
 
-    sources: async ({ query, need, fc }) => {
-        await need('plumes');
+    sources: async ({ read, fc }) => {
         const [plumes, attribs] = await Promise.all([
-            query(`SELECT * FROM 'plumes.parquet'`),
+            read('plumes'),
             loadAttributions(),
         ]);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
@@ -144,11 +143,10 @@ mount({
         },
         {
             label: 'Attributions',
-            rows: async ({ query, need }) => {
-                await need('attributions');
-                return query(`SELECT id, source_label, source_kind, operator, confidence, lat, lon
-                              FROM 'attributions.parquet' ORDER BY source_label`);
-            },
+            rows: async ({ read }) => (await read('attributions',
+                { columns: ['id', 'source_label', 'source_kind', 'operator', 'confidence', 'lat', 'lon'] }))
+                .sort((a, b) => String(a.source_label).localeCompare(String(b.source_label))),
+            cols: ['id', 'source_label', 'source_kind', 'operator', 'confidence', 'lat', 'lon'],
         },
     ],
 
