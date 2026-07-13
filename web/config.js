@@ -52,8 +52,8 @@ mount({
             loadAttributions(),
         ]);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
-        // overlapping plumes group into clusters until z11, summing rate
-        return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 11, clusterRadius: 30,
+        // overlapping plumes group into clusters until z9, summing rate
+        return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 9, clusterRadius: 30,
                            clusterProperties: { rate_sum: ['+', ['get', 'rate']] } } };
     },
 
@@ -80,7 +80,7 @@ mount({
                 'icon-size': ICON,
                 'icon-allow-overlap': true, 'icon-ignore-placement': true,
                 'text-field': ['concat',
-                    ['number-format', ['/', ['get', 'rate_sum'], 1000], { 'max-fraction-digits': 1 }], ' t/hr'],
+                    ['number-format', ['/', ['get', 'rate_sum'], 1000], { 'max-fraction-digits': 0 }], ' t/hr'],
                 'text-font': ['Montserrat Regular'], 'text-size': 10,
                 'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
                 'text-allow-overlap': true,
