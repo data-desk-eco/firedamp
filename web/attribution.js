@@ -18,7 +18,7 @@ export function loadAttributions() {
             await need('attributions');
             return new Map((await query(`
                 SELECT id, source_label, attributed_ids, lat, lon, confidence,
-                       paragraph, evidence, verified, verify_notes
+                       paragraph, evidence
                 FROM 'attributions.parquet'`)).map(r => [r.id, r]));
         } catch (err) {
             console.warn('attributions unavailable:', err);
@@ -88,15 +88,13 @@ function labelHtml(rec) {
 }
 
 function recordHtml(rec) {
-    const badge = { confirmed: 'verified', refuted: 'disputed' }[rec.verified];
     const evidence = rec.evidence?.length
         ? `<div class="fd-evidence">${rec.evidence.map((u, i) =>
             `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" title="${escapeHtml(u)}">[${i + 1}]</a>`).join(' ')}</div>`
         : '';
     return `
         <div class="fd-attrib">${labelHtml(rec)}
-            ${rec.confidence ? `<span class="dd-secondary">${escapeHtml(rec.confidence)}</span>` : ''}
-            ${badge ? `<span class="fd-badge-${badge}" title="${escapeHtml(rec.verify_notes || '')}">${badge}</span>` : ''}</div>
+            ${rec.confidence ? `<span class="dd-secondary">(confidence: ${escapeHtml(rec.confidence)})</span>` : ''}</div>
         ${rec.paragraph ? `<p class="fd-para">${escapeHtml(rec.paragraph)}</p>` : ''}
         ${evidence}`;
 }

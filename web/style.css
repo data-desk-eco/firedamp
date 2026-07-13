@@ -12,6 +12,3 @@
 .fd-para { color: var(--dd-ui-text); }
 .fd-evidence a { color: var(--dd-ui-text-secondary); text-decoration: none; }
 .fd-evidence a:hover { color: var(--dd-ui-text); }
-.fd-badge-verified, .fd-badge-disputed { border: 1px solid; padding: 0 4px; cursor: help; }
-.fd-badge-verified { color: var(--dd-map-green); }
-.fd-badge-disputed { color: var(--dd-map-red); }

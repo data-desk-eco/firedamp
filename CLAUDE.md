@@ -15,12 +15,13 @@ Served on GitHub Pages; there is no backend service.
 - `web/config.js` — the declarative cartograph config: sources (plume parquet →
   geojson), four per-source circle layers (dd map palette: cm cyan, imeo
   magenta, sron yellow, ghgsat orange; attributed plumes fill as discs),
-  attribution/date/rate filters, key (size ramp + source toggles), detail panel.
+  attribution/date filters, key (toggleable rate ranges + source toggles),
+  data table tabs (detections, attributions), detail panel.
 - `web/attribution.js` — attribution lookup (full attributions.parquet into a
   Map at boot, keyed by plume display id) + rendering (source label linking to
-  osm.org or flying to the feature, confidence, verified/disputed badge with
-  verify_notes tooltip, paragraph, evidence links), and the per-plume
-  daily-mean surface wind stat (Open-Meteo archive).
+  osm.org or flying to the feature, "(confidence: …)" after the label,
+  paragraph, evidence links), and the per-plume daily-mean surface wind stat
+  (Open-Meteo archive).
 - `web/candidates.js` — candidate sources from the ch4id feature catalogue
   (`features.fgb` on GCS, ~12M points: OGIM + OSM + MapStand + GEM), flatgeobuf
   bbox queries over http range requests: viewport sweep past z13 (padded rect)

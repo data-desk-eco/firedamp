@@ -78,26 +78,34 @@ async function swatchHtml(s) {
     return '<span class="cg-swatch"></span>';
 }
 
-// sections: [{label, rows: [{swatch, label, toggle: layerId | [ids], on}]}].
-// rows with `toggle` switch layer visibility; one chevron collapses the whole
-// key; section labels toggle it too (dd heading rule).
-export async function buildKey(map, sections, state = { open: true }) {
+// sections: [{label, rows: [{swatch, label, toggle: layerId | [ids], expr}]}].
+// rows with `toggle` switch layer visibility; rows with `expr` (a static
+// maplibre filter fragment) form a per-section multi-select — active rows OR
+// together into the filter pipeline via onFilter (all on = no filter). one
+// chevron collapses the whole key; section labels toggle it too (dd heading
+// rule). returns the key's filter-exprs getter.
+export async function buildKey(map, sections, state = { open: true }, onFilter) {
     const render = async () => {
-        const rowsHtml = async rows => (await Promise.all(rows.map(async r => {
+        const rowsHtml = async (rows, si) => (await Promise.all(rows.map(async (r, ri) => {
             const ids = [].concat(r.toggle || []);
-            const on = !ids.length || map.getLayoutProperty(ids[0], 'visibility') !== 'none';
-            return `<div class="dd-key-row${on ? '' : ' dd-inactive'}${ids.length ? ' cg-toggle' : ''}"
-                ${ids.length ? `data-layers="${ids.join(' ')}"` : ''}>${await swatchHtml(r.swatch || {})}${escapeHtml(r.label)}</div>`;
+            const on = r.expr ? !r.off : !ids.length || map.getLayoutProperty(ids[0], 'visibility') !== 'none';
+            return `<div class="dd-key-row${on ? '' : ' dd-inactive'}${ids.length || r.expr ? ' cg-toggle' : ''}"
+                ${ids.length ? `data-layers="${ids.join(' ')}"` : ''}${r.expr ? ` data-row="${si}.${ri}"` : ''}>${await swatchHtml(r.swatch || {})}${escapeHtml(r.label)}</div>`;
         }))).join('');
         const html = await Promise.all(sections.map(async (s, i) => `
             <div class="cg-key-section"><div class="cg-key-head">${i === 0 ? `<span class="dd-chevron${state.open ? '' : ' dd-chevron-down'}"></span>` : ''}<span class="dd-secondary">${escapeHtml(s.label)}</span></div>
-            ${state.open ? `<div class="cg-key-items">${await rowsHtml(s.rows)}</div>` : ''}</div>`));
+            ${state.open ? `<div class="cg-key-items">${await rowsHtml(s.rows, i)}</div>` : ''}</div>`));
         document.getElementById('key-panel').innerHTML = html.join('');
     };
 
     document.getElementById('key-panel').addEventListener('click', e => {
         const t = e.target.closest('.cg-toggle');
-        if (t) {
+        if (t?.dataset.row) {
+            const [si, ri] = t.dataset.row.split('.').map(Number);
+            const r = sections[si].rows[ri];
+            r.off = !r.off;
+            onFilter?.();
+        } else if (t) {
             const ids = t.dataset.layers.split(' ');
             const off = map.getLayoutProperty(ids[0], 'visibility') !== 'none';
             for (const id of ids) map.setLayoutProperty(id, 'visibility', off ? 'none' : 'visible');
@@ -107,4 +115,9 @@ export async function buildKey(map, sections, state = { open: true }) {
         render();
     });
     await render();
+
+    return () => sections.flatMap(s => {
+        const fr = s.rows.filter(r => r.expr);
+        return fr.length && fr.some(r => r.off) ? [['any', ...fr.filter(r => !r.off).map(r => r.expr)]] : [];
+    });
 }

@@ -28,12 +28,13 @@ function wireSearch(map) {
 }
 
 // filter button groups: each config.filters entry contributes expr(value) to
-// every layer marked `filtered: true` (null exprs drop out)
-function wireFilters(map, config) {
+// every layer marked `filtered: true` (null exprs drop out); `extra` supplies
+// further exprs (the key's multi-select rows). returns apply for re-runs.
+function wireFilters(map, config, extra = () => []) {
     const state = Object.fromEntries((config.filters || []).map(f => [f.key, f.value ?? 'all']));
     const bases = new Map(config.layers.filter(l => l.filtered).map(l => [l.id, l.filter]));
     const apply = () => {
-        const exprs = (config.filters || []).map(f => f.expr(state[f.key]));
+        const exprs = [...(config.filters || []).map(f => f.expr(state[f.key])), ...extra()];
         for (const [id, base] of bases)
             if (map.getLayer(id)) map.setFilter(id, composeFilter(base, exprs));
     };
@@ -48,6 +49,7 @@ function wireFilters(map, config) {
         });
     }
     apply();
+    return apply;
 }
 
 export async function mount(config) {
@@ -69,8 +71,9 @@ export async function mount(config) {
         map.addLayer(spec);
         if (hover) hoverPopup(map, spec.id, hover, { click: !config.detail?.layers.includes(spec.id) });
     }
-    wireFilters(map, config);
-    if (config.key) await buildKey(map, config.key(ctx));
+    let keyExprs = () => [];
+    const applyFilters = wireFilters(map, config, () => keyExprs());
+    if (config.key) keyExprs = await buildKey(map, config.key(ctx), undefined, applyFilters);
 
     initDetail(map, config, () =>
         Object.values(ctx.sources).flatMap(s => s.features));

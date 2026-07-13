@@ -86,19 +86,16 @@ mount({
                 : v === '60d' ? ['>=', ['get', 'dt'], new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10)]
                 : ['==', ['slice', ['get', 'dt'], 0, 4], v],
         },
-        {
-            key: 'rate', label: 'Rate (t/hr)', value: 'all',
-            options: [{ value: 'all', label: 'All' }, { value: '1', label: '>1' }, { value: '5', label: '>5' },
-                      { value: '10', label: '>10' }, { value: '20', label: '>20' }],
-            expr: v => v === 'all' ? null : ['>=', ['get', 'rate'], Number(v) * 1000],
-        },
     ],
 
     key: ctx => [
         {
+            // toggleable rate ranges: active rows OR into the layer filters
             label: 'Rate (t/hr)',
-            rows: [[16, '10+'], [11, '5'], [7, '1'], [4, '< 0.5']].map(([size, label]) =>
-                ({ swatch: { ring: dd.adjusted.white, size }, label })),
+            rows: [[16, '10+', 10], [11, '5–10', 5, 10], [7, '1–5', 1, 5], [4, '< 1', 0, 1]].map(([size, label, lo, hi]) => ({
+                swatch: { ring: dd.adjusted.white, size }, label,
+                expr: ['all', ['>=', ['get', 'rate'], lo * 1000], ...(hi ? [['<', ['get', 'rate'], hi * 1000]] : [])],
+            })),
         },
         {
             label: 'Source',
@@ -121,7 +118,7 @@ mount({
             label: 'Attributions',
             rows: async ({ query, need }) => {
                 await need('attributions');
-                return query(`SELECT id, source_label, source_kind, operator, confidence, verified, lat, lon
+                return query(`SELECT id, source_label, source_kind, operator, confidence, lat, lon
                               FROM 'attributions.parquet' ORDER BY source_label`);
             },
         },
