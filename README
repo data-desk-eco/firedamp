@@ -20,8 +20,8 @@ Plume sources
 Repo layout
 -----------
 A cartograph app: the generic Data Desk full-screen map system
-(dd design-system frontend + parquet/DuckDB-WASM backend, no npm,
-no build step), vendored, with all firedamp behaviour in three
+(dd design-system frontend + parquet-via-hyparquet backend,
+no npm, no build step), vendored, with all firedamp behaviour in three
 app modules.
 
     web/             static frontend (ES modules)
@@ -35,7 +35,7 @@ app modules.
       data/            plumes.parquet (built), attributions.parquet
                        (committed source of truth, from ch4id)
       vendor/          cartograph core, dd design dist, MapLibre,
-                       DuckDB-WASM, FlatGeobuf, Inter font
+                       hyparquet, FlatGeobuf, Inter font
     scripts/         Python ETL (uv-managed) + build/deploy shell
       fetch_carbon_mapper.py
       fetch_imeo.py
@@ -73,8 +73,8 @@ Source attribution
 Detail panels show a per-plume source attribution, produced offline
 by the ch4id sibling repo's agentic pipeline (make deploy there
 commits a refreshed web/data/attributions.parquet here and pushes).
-The parquet is the committed source of truth and is read directly by
-DuckDB-WASM in the browser, as is plumes.parquet. There is no live
+The parquet is the committed source of truth and is read directly in
+the browser, as is plumes.parquet. There is no live
 in-browser LLM pipeline. See CLAUDE.md.
 
 
