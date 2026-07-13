@@ -64,13 +64,14 @@ export function buildShell(config) {
 
 // ── key (legend) ──
 
-// swatch: {mark, color} inline dd marking svg | {ring, size} | {dot, size} |
-// {line} — all tinted via css color
+// swatch: {mark, color, size} inline dd marking svg | {ring, size} |
+// {dot, size} | {line} — all tinted via css color
 const _marks = {};
 async function swatchHtml(s) {
     if (s.mark) {
         _marks[s.mark] ??= await markSVG(s.mark);
-        return `<span class="cg-swatch" style="color:${s.color}">${_marks[s.mark]}</span>`;
+        const svg = s.size ? _marks[s.mark].replace('<svg', `<svg style="width:${s.size}px"`) : _marks[s.mark];
+        return `<span class="cg-swatch" style="color:${s.color}">${svg}</span>`;
     }
     if (s.ring) return `<span class="cg-swatch"><span class="cg-ring" style="border-color:${s.ring};width:${s.size || 9}px;height:${s.size || 9}px"></span></span>`;
     if (s.dot) return `<span class="cg-swatch"><span class="cg-ring cg-dot" style="background:${s.dot};width:${s.size || 9}px;height:${s.size || 9}px"></span></span>`;
@@ -78,19 +79,19 @@ async function swatchHtml(s) {
     return '<span class="cg-swatch"></span>';
 }
 
-// sections: [{label, rows: [{swatch, label, toggle: layerId | [ids], expr}]}].
-// rows with `toggle` switch layer visibility; rows with `expr` (a static
-// maplibre filter fragment) form a per-section multi-select — active rows OR
+// sections: [{label, rows: [{swatch, label, toggle: layerId | [ids], pred}]}].
+// rows with `toggle` switch layer visibility; rows with `pred` (a feature-
+// properties predicate) form a per-section multi-select — active rows OR
 // together into the filter pipeline via onFilter (all on = no filter). one
 // chevron collapses the whole key; section labels toggle it too (dd heading
-// rule). returns the key's filter-exprs getter.
+// rule). returns the key's filter-preds getter.
 export async function buildKey(map, sections, state = { open: true }, onFilter) {
     const render = async () => {
         const rowsHtml = async (rows, si) => (await Promise.all(rows.map(async (r, ri) => {
             const ids = [].concat(r.toggle || []);
-            const on = r.expr ? !r.off : !ids.length || map.getLayoutProperty(ids[0], 'visibility') !== 'none';
-            return `<div class="dd-key-row${on ? '' : ' dd-inactive'}${ids.length || r.expr ? ' cg-toggle' : ''}"
-                ${ids.length ? `data-layers="${ids.join(' ')}"` : ''}${r.expr ? ` data-row="${si}.${ri}"` : ''}>${await swatchHtml(r.swatch || {})}${escapeHtml(r.label)}</div>`;
+            const on = r.pred ? !r.off : !ids.length || map.getLayoutProperty(ids[0], 'visibility') !== 'none';
+            return `<div class="dd-key-row${on ? '' : ' dd-inactive'}${ids.length || r.pred ? ' cg-toggle' : ''}"
+                ${ids.length ? `data-layers="${ids.join(' ')}"` : ''}${r.pred ? ` data-row="${si}.${ri}"` : ''}>${await swatchHtml(r.swatch || {})}${escapeHtml(r.label)}</div>`;
         }))).join('');
         const html = await Promise.all(sections.map(async (s, i) => `
             <div class="cg-key-section"><div class="cg-key-head">${i === 0 ? `<span class="dd-chevron${state.open ? '' : ' dd-chevron-down'}"></span>` : ''}<span class="dd-secondary">${escapeHtml(s.label)}</span></div>
@@ -117,7 +118,7 @@ export async function buildKey(map, sections, state = { open: true }, onFilter) 
     await render();
 
     return () => sections.flatMap(s => {
-        const fr = s.rows.filter(r => r.expr);
-        return fr.length && fr.some(r => r.off) ? [['any', ...fr.filter(r => !r.off).map(r => r.expr)]] : [];
+        const fr = s.rows.filter(r => r.pred);
+        return fr.length && fr.some(r => r.off) ? [p => fr.some(r => !r.off && r.pred(p))] : [];
     });
 }

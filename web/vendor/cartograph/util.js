@@ -45,13 +45,6 @@ export function tableRows(all, { cols, bounds, q, sortCol, sortDir = 1, cap = 50
     return { rows: rows.slice(0, cap), total: rows.length };
 }
 
-// compose a maplibre layer filter from a base filter + active filter exprs
-export function composeFilter(base, exprs) {
-    const active = exprs.filter(Boolean);
-    if (!active.length) return base ?? null;
-    return ['all', ...(base ? [base] : []), ...active];
-}
-
 // #<key>=<id> permalinks, coexisting with maplibre's #map= hash
 export function getHashParam(hash, key) {
     const m = hash.match(new RegExp(`${key}=([^&]*)`));

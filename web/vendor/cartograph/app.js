@@ -7,7 +7,6 @@ import { initData, need, query, fc } from './data.js';
 import { buildShell, buildKey } from './ui.js';
 import { initDetail, closeDetail, showDetail } from './detail.js';
 import { initTable } from './table.js';
-import { composeFilter } from './util.js';
 
 // location search: "lat, lon" zooms directly, anything else geocodes via nominatim
 function wireSearch(map) {
@@ -27,16 +26,18 @@ function wireSearch(map) {
     });
 }
 
-// filter button groups: each config.filters entry contributes expr(value) to
-// every layer marked `filtered: true` (null exprs drop out); `extra` supplies
-// further exprs (the key's multi-select rows). returns apply for re-runs.
-function wireFilters(map, config, extra = () => []) {
+// filter button groups: each config.filters entry contributes pred(value) —
+// a feature-properties predicate, or null for no-op; `extra` supplies more
+// (the key's multi-select rows). active preds AND together and every geojson
+// source is re-set to the matching subset, so clustered sources re-cluster
+// to exactly the visible features. returns apply for re-runs.
+function wireFilters(map, config, sources, extra = () => []) {
     const state = Object.fromEntries((config.filters || []).map(f => [f.key, f.value ?? 'all']));
-    const bases = new Map(config.layers.filter(l => l.filtered).map(l => [l.id, l.filter]));
     const apply = () => {
-        const exprs = [...(config.filters || []).map(f => f.expr(state[f.key])), ...extra()];
-        for (const [id, base] of bases)
-            if (map.getLayer(id)) map.setFilter(id, composeFilter(base, exprs));
+        const preds = [...(config.filters || []).map(f => f.pred(state[f.key])), ...extra()].filter(Boolean);
+        for (const [id, fc] of Object.entries(sources))
+            map.getSource(id)?.setData(preds.length
+                ? { ...fc, features: fc.features.filter(f => preds.every(p => p(f.properties))) } : fc);
     };
     for (const group of document.querySelectorAll('.cg-filter')) {
         group.addEventListener('click', e => {
@@ -64,16 +65,20 @@ export async function mount(config) {
     await new Promise(r => (map.loaded() ? r() : map.on('load', r)));
     if (config.map?.satellite !== false) addSatellite(map);
 
+    // a sources entry is a FeatureCollection or {data, ...geojson source
+    // opts} (cluster etc.); consumers always see the plain fc
     ctx.sources = await config.sources(ctx);
-    for (const [id, data] of Object.entries(ctx.sources))
-        map.addSource(id, { type: 'geojson', data });
-    for (const { filtered, hover, ...spec } of config.layers) {
+    for (const [id, s] of Object.entries(ctx.sources)) {
+        map.addSource(id, { type: 'geojson', ...(s.type ? { data: s } : s) });
+        ctx.sources[id] = s.data ?? s;
+    }
+    for (const { hover, ...spec } of config.layers) {
         map.addLayer(spec);
         if (hover) hoverPopup(map, spec.id, hover, { click: !config.detail?.layers.includes(spec.id) });
     }
-    let keyExprs = () => [];
-    const applyFilters = wireFilters(map, config, () => keyExprs());
-    if (config.key) keyExprs = await buildKey(map, config.key(ctx), undefined, applyFilters);
+    let keyPreds = () => [];
+    const applyFilters = wireFilters(map, config, ctx.sources, () => keyPreds());
+    if (config.key) keyPreds = await buildKey(map, config.key(ctx), undefined, applyFilters);
 
     initDetail(map, config, () =>
         Object.values(ctx.sources).flatMap(s => s.features));

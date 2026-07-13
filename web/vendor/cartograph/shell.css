@@ -47,7 +47,7 @@ a { color: inherit; text-decoration: underline; }
 .cg-key-items { margin-top: 15px; display: flex; flex-direction: column; gap: 9px; }
 .cg-toggle { cursor: pointer; }
 .cg-swatch { width: 13px; display: flex; justify-content: center; flex-shrink: 0; }
-.cg-swatch svg { width: 11px; height: auto; }
+.cg-swatch svg { width: 11px; height: auto; flex-shrink: 0; }
 .dd-inactive .cg-swatch { opacity: 0.4; }
 .cg-ring { display: inline-block; border: 1.5px solid; border-radius: 50%; flex-shrink: 0; }
 .cg-dot { border: none; }

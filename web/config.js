@@ -13,11 +13,9 @@ const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjust
 const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
 
-// radius by emission rate (log scale)
-const radius = [
-    'interpolate', ['linear'], ['ln', ['+', ['get', 'rate'], 1]],
-    Math.log(501), 3, Math.log(1001), 5, Math.log(5001), 8, Math.log(10001), 12
-];
+// dd flare marking, one size for every plume (rate lives in the key filter
+// and the data table); grows gently with zoom, the burnoff ramp
+const ICON = ['interpolate', ['linear'], ['zoom'], 2, 0.55, 10, 0.8, 14, 1];
 
 const rateT = p => (Number(p.rate) / 1000).toFixed(1);
 
@@ -53,54 +51,71 @@ mount({
             query(`SELECT * FROM 'plumes.parquet'`),
             loadAttributions(),
         ]);
-        // attributed plumes read as filled discs against the hollow rings of the rest
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
-        return { plumes: fc(plumes) };
+        // overlapping plumes group into clusters until z11
+        return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 11, clusterRadius: 30 } };
     },
 
-    layers: SRCS.map(src => ({
-        id: `plumes-${src}`, type: 'circle', source: 'plumes',
-        filter: ['==', ['get', 'src'], src], filtered: true,
-        hover: p => `<span class="dd-title">${rateT(p)} t/hr</span><br>${LABEL[p.src]}${p.dt ? ' · ' + p.dt : ''}`,
-        paint: {
-            'circle-radius': radius,
-            'circle-color': COLOR[src],
-            'circle-opacity': ['case', ['==', ['get', 'attr'], 1], 0.3, 0],
-            'circle-stroke-color': COLOR[src],
-            'circle-stroke-width': 1.5,
-            'circle-stroke-opacity': 0.75,
+    layers: [
+        ...SRCS.map(src => ({
+            id: `plumes-${src}`, type: 'symbol', source: 'plumes',
+            filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'src'], src]],
+            hover: p => `<span class="dd-title">${rateT(p)} t/hr</span><br>${LABEL[p.src]}${p.dt ? ' · ' + p.dt : ''}`,
+            layout: {
+                'icon-image': `flare-${COLOR[src]}`,
+                'icon-size': ICON,
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+            },
+            // attributed plumes read at full strength against the dimmed rest
+            paint: { 'icon-opacity': ['case', ['==', ['get', 'attr'], 1], 1, 0.55] },
+        })),
+        {
+            // white default-state flare with the count up-and-right (dd label rule)
+            id: 'plumes-clusters', type: 'symbol', source: 'plumes',
+            filter: ['has', 'point_count'],
+            layout: {
+                'icon-image': `flare-${dd.adjusted.white}`,
+                'icon-size': ICON,
+                'icon-allow-overlap': true, 'icon-ignore-placement': true,
+                'text-field': ['get', 'point_count_abbreviated'],
+                'text-font': ['Montserrat Regular'], 'text-size': 10,
+                'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
+                'text-allow-overlap': true,
+            },
+            paint: { 'text-color': dd.adjusted.white },
         },
-    })),
+    ],
 
     filters: [
         {
             key: 'attr', label: 'Attribution', value: 'all',
             options: [{ value: 'all', label: 'All' }, { value: 'yes', label: 'Attributed' }],
-            expr: v => v === 'yes' ? ['==', ['get', 'attr'], 1] : null,
+            pred: v => v === 'yes' ? p => p.attr === 1 : null,
         },
         {
             key: 'date', label: 'Date', value: 'all',
             options: [{ value: 'all', label: 'All' }, { value: '2025', label: "'25" },
                       { value: '2026', label: "'26" }, { value: '60d', label: '-60d' }],
-            expr: v => v === 'all' ? null
-                : v === '60d' ? ['>=', ['get', 'dt'], new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10)]
-                : ['==', ['slice', ['get', 'dt'], 0, 4], v],
+            pred: v => v === 'all' ? null
+                : v === '60d' ? (cut => p => p.dt >= cut)(new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10))
+                : p => (p.dt || '').startsWith(v),
         },
     ],
 
     key: ctx => [
         {
-            // toggleable rate ranges: active rows OR into the layer filters
+            // toggleable rate ranges: active rows OR into the data filter
             label: 'Rate (t/hr)',
-            rows: [[16, '10+', 10], [11, '5–10', 5, 10], [7, '1–5', 1, 5], [4, '< 1', 0, 1]].map(([size, label, lo, hi]) => ({
-                swatch: { ring: dd.adjusted.white, size }, label,
-                expr: ['all', ['>=', ['get', 'rate'], lo * 1000], ...(hi ? [['<', ['get', 'rate'], hi * 1000]] : [])],
+            rows: [['10+', 10], ['5–10', 5, 10], ['1–5', 1, 5], ['< 1', 0, 1]].map(([label, lo, hi]) => ({
+                label, pred: p => p.rate >= lo * 1000 && (!hi || p.rate < hi * 1000),
             })),
         },
         {
+            // source rows filter the data too, so clusters re-form without them
             label: 'Source',
             rows: SRCS.filter(src => src !== 'ghgsat' || ctx.sources.plumes.features.some(f => f.properties.src === 'ghgsat'))
-                .map(src => ({ swatch: { ring: COLOR[src] }, label: LABEL[src], toggle: `plumes-${src}` })),
+                .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.src === src })),
         },
         {
             label: 'Infrastructure',
@@ -147,5 +162,14 @@ mount({
         onClose: clearSelection,
     },
 
-    ready: ({ map }) => addCandidateLayers(map),
+    ready: ({ map }) => {
+        addCandidateLayers(map);
+        map.on('click', 'plumes-clusters', async e => {
+            const f = e.features[0];
+            map.flyTo({ center: f.geometry.coordinates,
+                zoom: await map.getSource('plumes').getClusterExpansionZoom(f.properties.cluster_id) });
+        });
+        map.on('mouseenter', 'plumes-clusters', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'plumes-clusters', () => map.getCanvas().style.cursor = '');
+    },
 });
