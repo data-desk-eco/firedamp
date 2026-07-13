@@ -16,7 +16,7 @@ Served on GitHub Pages; there is no backend service.
   geojson, clustered to z11), four per-source dd flare-marking symbol layers
   (dd map palette: cm cyan, imeo magenta, sron yellow, ghgsat orange; one
   fixed size, attributed plumes full-opacity against the dimmed rest) plus a
-  white cluster layer with counts (click expands),
+  white cluster layer labelled with summed t/hr (click expands),
   attribution/date filters, key (toggleable rate ranges + source toggles),
   data table tabs (detections, attributions), detail panel.
 - `web/attribution.js` — attribution lookup (full attributions.parquet into a
