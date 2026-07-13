@@ -15,8 +15,8 @@
 #     u8  coords<<2 | verified   (verified: confirmed refuted unclear; 3 absent)
 #     f32 lat, f32 lon           assessed source point, when coords bit set
 #     8 × varint-len utf8: plume id, source_label, source_name, operator,
-#                          attributed_id, paragraph, evidence urls \x1f-joined,
-#                          verify_notes
+#                          attributed ids \x1f-joined, paragraph,
+#                          evidence urls \x1f-joined, verify_notes
 import struct
 from datetime import date
 from pathlib import Path
@@ -59,7 +59,7 @@ def build():
         if coords:
             out += struct.pack("<2f", r["lat"], r["lon"])
         for s in (r["id"], r.get("source_label"), r.get("source_name"), r.get("operator"),
-                  r.get("attributed_id"), r.get("paragraph"), "\x1f".join(r.get("evidence") or []),
+                  "\x1f".join(r.get("attributed_ids") or []), r.get("paragraph"), "\x1f".join(r.get("evidence") or []),
                   r.get("verify_notes")):
             out += vs(s)
     (ROOT / "web/data/attributions.bin").write_bytes(out)

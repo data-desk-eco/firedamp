@@ -5,6 +5,7 @@
 // wind is fetched separately as an independent panel stat.
 
 import { loadNearbyInfra, nearbyMarkup } from './ogim.js';
+import { querySources, showSources, clearSources } from './sources.js';
 import { escapeHtml, compass } from './util.js';
 
 let analysisRequestId = 0;
@@ -35,7 +36,7 @@ function parseAttributions(buf) {
         const id = str();
         db[id] = {
             source_label: str(), source_name: str() || null, operator: str() || null,
-            attributed_id: str() || null, paragraph: str(),
+            attributed_ids: str().split('\x1f').filter(Boolean), paragraph: str(),
             evidence: str().split('\x1f').filter(Boolean), verify_notes: str() || null,
             source_kind: KIND[kc >> 4], confidence: CONF[kc & 15], model, lat, lon,
             verified: VERIFIED[fl & 3] || null,
@@ -61,6 +62,7 @@ async function staticAttribution(id) {
 // invalidate any in-flight lookup (called when the panel closes)
 export function cancelAnalysis() {
     analysisRequestId++;
+    clearSources();
 }
 
 // ── wind (independent panel stat) ──
@@ -138,7 +140,7 @@ function parseAnalysis(text) {
 function renderAnalysisHTML(text) {
     const p = parseAnalysis(text);
     if (!p) return `<p class="enrich-para">${escapeHtml(text)}</p>`;
-    const labelHtml = sourceLabelHtml(p.source_label || '', p.attributed_id);
+    const labelHtml = sourceLabelHtml(p.source_label || '', p.attributed_ids);
     const evidence = Array.isArray(p.evidence) && p.evidence.length
         ? `<div class="enrich-evidence">${p.evidence.map((u, i) =>
             `<a href="${escapeHtml(u)}" target="_blank" rel="noopener" title="${escapeHtml(u)}">[${i + 1}]</a>`).join(' ')}</div>`
@@ -154,19 +156,20 @@ function renderAnalysisHTML(text) {
     </div>`;
 }
 
-// make an OGIM-attributed source label fly the map to that feature on click.
-function sourceLabelHtml(label, attributedId) {
+// make an attributed source label link out: OGIM ids fly the map to the
+// feature, OSM ids (short w/n/r or long way/node/relation form) link to osm.
+function sourceLabelHtml(label, ids) {
     if (!label) return '';
     const safe = escapeHtml(label);
-    if (!attributedId) return safe;
-    const idSafe = escapeHtml(attributedId);
-    if (attributedId.startsWith('OGIM:')) {
-        const ogimId = attributedId.slice(5);
-        return `<a class="enrich-attrib" href="#" onclick="flyToOgim('${escapeHtml(ogimId)}');return false" title="${idSafe}">${safe}</a>`;
-    }
-    if (attributedId.startsWith('OSM:')) {
-        const osmRef = attributedId.slice(4); // e.g. "way/12345"
-        return `<a class="enrich-attrib" href="https://www.openstreetmap.org/${escapeHtml(osmRef)}" target="_blank" rel="noopener" title="${idSafe}">${safe}</a>`;
+    const id = ids?.[0];
+    if (!id) return safe;
+    const idSafe = escapeHtml(ids.join(' '));
+    if (id.startsWith('OGIM:'))
+        return `<a class="enrich-attrib" href="#" onclick="flyToOgim('${escapeHtml(id.slice(5))}');return false" title="${idSafe}">${safe}</a>`;
+    const osm = id.match(/^OSM:(?:(w|n|r)|(way|node|relation)\/)(\d+)$/);
+    if (osm) {
+        const type = osm[2] || { w: 'way', n: 'node', r: 'relation' }[osm[1]];
+        return `<a class="enrich-attrib" href="https://www.openstreetmap.org/${type}/${osm[3]}" target="_blank" rel="noopener" title="${idSafe}">${safe}</a>`;
     }
     return safe;
 }
@@ -193,16 +196,19 @@ export function runPlumeAnalysis(feature) {
     // wind stat — independent of attribution.
     fetchWind(lat, lon, p.dt).then(w => { if (analysisRequestId === id) renderWind(w); });
 
-    // attribution — sole source is the bulk agentic dataset.
+    // attribution — sole source is the bulk agentic dataset — then the
+    // nearby candidate sources from the ch4id catalogue, attributed ones
+    // highlighted. coarse sensors get a wider candidate radius.
     (async () => {
-        const el = targetEl();
-        if (!el) return;
+        clearSources();
         const rec = await staticAttribution(plumeId);
         if (analysisRequestId !== id) return;
-        const el2 = targetEl();
-        if (!el2) return;
-        el2.innerHTML = rec
+        const el = targetEl();
+        if (el) el.innerHTML = rec
             ? renderAnalysisHTML(JSON.stringify(rec))
             : '<span class="enrich-empty">No source attribution yet.</span>';
+        const radiusKm = /tropomi|viirs|goes|s3/i.test(p.sat || '') ? 10 : 3;
+        const cands = await querySources(lon, lat, radiusKm, rec);
+        if (analysisRequestId === id) showSources(cands);
     })();
 }

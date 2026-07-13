@@ -18,6 +18,10 @@ curl -sLo "$VENDOR/maplibre-gl.css" "https://unpkg.com/maplibre-gl@5.1.0/dist/ma
 echo "pmtiles@3.2.0 ..."
 curl -sLo "$VENDOR/pmtiles.js" "https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"
 
+# ── FlatGeobuf 4.4.0 (http-range bbox queries over features.fgb) ───
+echo "flatgeobuf@4.4.0 ..."
+curl -sLo "$VENDOR/flatgeobuf-geojson.min.js" "https://unpkg.com/flatgeobuf@4.4.0/dist/flatgeobuf-geojson.min.js"
+
 # ── Inter font (latin subset from Google Fonts) ────────────────────
 echo "inter font ..."
 FONTS_CSS=$(curl -sH "User-Agent: $UA" \
@@ -53,7 +57,7 @@ print(f'  {i} latin font files')
 # ── Summary ─────────────────────────────────────────────────────────
 echo ""
 echo "Vendored to $VENDOR/:"
-du -sh "$VENDOR/maplibre-gl.js" "$VENDOR/maplibre-gl.css" "$VENDOR/pmtiles.js"
+du -sh "$VENDOR/maplibre-gl.js" "$VENDOR/maplibre-gl.css" "$VENDOR/pmtiles.js" "$VENDOR/flatgeobuf-geojson.min.js"
 du -sh "$VENDOR/fonts/"*
 echo ""
 echo "Total: $(du -sh "$VENDOR" | cut -f1)"
