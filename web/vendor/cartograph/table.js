@@ -45,6 +45,7 @@ export function initTable(ctx) {
     const setWidth = w => {
         width = w;
         drawer.style.width = w + 'px';
+        drawer.style.borderLeftWidth = w ? '1px' : '0';   // no 1px sliver when shut
         handle.style.right = w + 'px';
         ctx.map.setPadding({ right: w });
         document.getElementById('detail')?.style.setProperty('right', w ? w + 'px' : '');

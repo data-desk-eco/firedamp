@@ -52,8 +52,8 @@ mount({
             loadAttributions(),
         ]);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
-        // overlapping plumes group into clusters until z9, summing rate
-        return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 9, clusterRadius: 30,
+        // clusters only when far out — points take over from z5 (~UK-sized viewport)
+        return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,
                            clusterProperties: { rate_sum: ['+', ['get', 'rate']] } } };
     },
 
@@ -67,9 +67,19 @@ mount({
                 'icon-size': ICON,
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
+                // t/hr up-and-right (dd label rule); colliding labels drop, icons stay
+                'text-field': ['concat',
+                    ['number-format', ['/', ['get', 'rate'], 1000], { 'max-fraction-digits': 1 }], ' t/hr'],
+                'text-font': ['Montserrat Regular'], 'text-size': 10,
+                'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
+                'text-optional': true,
             },
             // attributed plumes read at full strength against the dimmed rest
-            paint: { 'icon-opacity': ['case', ['==', ['get', 'attr'], 1], 1, 0.55] },
+            paint: {
+                'icon-opacity': ['case', ['==', ['get', 'attr'], 1], 1, 0.55],
+                'text-color': dd.adjusted.white,
+                'text-opacity': ['case', ['==', ['get', 'attr'], 1], 1, 0.55],
+            },
         })),
         {
             // white default-state flare with total t/hr up-and-right (dd label rule)
@@ -111,7 +121,8 @@ mount({
             // toggleable rate ranges: active rows OR into the data filter
             label: 'Rate (t/hr)',
             rows: [['10+', 10], ['5–10', 5, 10], ['1–5', 1, 5], ['< 1', 0, 1]].map(([label, lo, hi]) => ({
-                label, pred: p => p.rate >= lo * 1000 && (!hi || p.rate < hi * 1000),
+                swatch: { mark: 'flare', color: dd.adjusted.white }, label,
+                pred: p => p.rate >= lo * 1000 && (!hi || p.rate < hi * 1000),
             })),
         },
         {
@@ -165,14 +176,5 @@ mount({
         onClose: clearSelection,
     },
 
-    ready: ({ map }) => {
-        addCandidateLayers(map);
-        map.on('click', 'plumes-clusters', async e => {
-            const f = e.features[0];
-            map.flyTo({ center: f.geometry.coordinates,
-                zoom: await map.getSource('plumes').getClusterExpansionZoom(f.properties.cluster_id) });
-        });
-        map.on('mouseenter', 'plumes-clusters', () => map.getCanvas().style.cursor = 'pointer');
-        map.on('mouseleave', 'plumes-clusters', () => map.getCanvas().style.cursor = '');
-    },
+    ready: ({ map }) => addCandidateLayers(map),
 });

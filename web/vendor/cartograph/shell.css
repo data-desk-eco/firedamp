@@ -70,7 +70,8 @@ a { color: inherit; text-decoration: underline; }
 
 /* --- data table drawer --- */
 
-.cg-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 0; z-index: 5; overflow: hidden; display: flex; flex-direction: column; background: var(--dd-ui-background); border-left: 1px solid var(--dd-ui-border); color: var(--dd-ui-text); }
+/* border-left-width starts 0 (no sliver while shut) — setWidth toggles it */
+.cg-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 0; z-index: 5; overflow: hidden; display: flex; flex-direction: column; background: var(--dd-ui-background); border-left: 0 solid var(--dd-ui-border); color: var(--dd-ui-text); }
 .cg-drawer-handle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 6; padding: 12px 5px; background: var(--dd-ui-background); border: 1px solid var(--dd-ui-border); border-right: none; cursor: col-resize; user-select: none; touch-action: none; }
 .cg-drawer-handle span { writing-mode: vertical-rl; color: var(--dd-ui-text-secondary); }
 .cg-drawer-handle:hover span { color: var(--dd-ui-text); }

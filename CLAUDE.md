@@ -13,10 +13,10 @@ agent — the sibling **ch4id** repo (`~/Tools/ch4id`) — produces
 Served on GitHub Pages; there is no backend service.
 
 - `web/config.js` — the declarative cartograph config: sources (plume parquet →
-  geojson, clustered to z11), four per-source dd flare-marking symbol layers
+  geojson, clustered to z4), four per-source dd flare-marking symbol layers
   (dd map palette: cm cyan, imeo magenta, sron yellow, ghgsat orange; one
-  fixed size, attributed plumes full-opacity against the dimmed rest) plus a
-  white cluster layer labelled with summed t/hr (click expands),
+  fixed size, t/hr labels, attributed plumes full-opacity against the dimmed
+  rest) plus a non-interactive white cluster layer labelled with summed t/hr,
   attribution/date filters, key (toggleable rate ranges + source toggles),
   data table tabs (detections, attributions), detail panel.
 - `web/attribution.js` — attribution lookup (full attributions.parquet into a
