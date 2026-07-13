@@ -37,6 +37,8 @@ export function initTable(ctx) {
         <div class="cg-drawer-handle"><span>Data table</span></div>`);
     const [drawer, handle] = document.querySelectorAll('.cg-drawer, .cg-drawer-handle');
     const el = sel => drawer.querySelector(sel);
+    // never wider than the table itself (0 pre-render = no cap yet)
+    const cap = () => Math.max(MIN, (el('.cg-table').offsetWidth || innerWidth) + 1);
 
     // map keeps full width; padding shifts its logical centre, the detail
     // panel slides over
@@ -64,6 +66,7 @@ export function initTable(ctx) {
             : '<tbody><tr><td class="cg-drawer-empty dd-secondary">No rows in view</td></tr></tbody>';
         el('.cg-drawer-foot').textContent =
             (total > rows.length ? `${rows.length.toLocaleString()} of ` : '') + `${total.toLocaleString()} in view`;
+        if (width > cap()) setWidth(cap());
     }
 
     // default row pick: match a source feature on the detail id and open it
@@ -107,7 +110,7 @@ export function initTable(ctx) {
         const sx = e.clientX, sw = width;
         const move = ev => {
             const was = width;
-            setWidth(Math.max(0, Math.min(innerWidth - 340, sw + sx - ev.clientX)));
+            setWidth(Math.max(0, Math.min(innerWidth - 340, cap(), sw + sx - ev.clientX)));
             if (width >= MIN && was < MIN) render();
         };
         handle.addEventListener('pointermove', move);

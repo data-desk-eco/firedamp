@@ -10,7 +10,7 @@ body { font: 400 11px/1.4 Inter, sans-serif; font-feature-settings: "calt", "tnu
 a { color: inherit; text-decoration: underline; }
 .hidden { display: none !important; }
 
-.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
 .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 .custom-scroll::-webkit-scrollbar-thumb { background: var(--dd-ui-inactive); }
 
