@@ -31,6 +31,20 @@ export function fmtCoords(lat, lon) {
          + `${Math.abs(lon).toFixed(4)}°${lon >= 0 ? 'E' : 'W'}`;
 }
 
+// the data table's row math: viewport filter (bounds = [w, s, e, n]; rows
+// without a lat pass), substring search over cols, null-last sort, cap
+export function tableRows(all, { cols, bounds, q, sortCol, sortDir = 1, cap = 500, lat = 'lat', lon = 'lon' }) {
+    const rows = all.filter(r =>
+        (!bounds || r[lat] == null ||
+            (r[lat] >= bounds[1] && r[lat] <= bounds[3] && r[lon] >= bounds[0] && r[lon] <= bounds[2]))
+        && (!q || cols.some(c => String(r[c] ?? '').toLowerCase().includes(q))));
+    if (sortCol) rows.sort((a, b) => {
+        const x = a[sortCol], y = b[sortCol];
+        return x == null ? 1 : y == null ? -1 : (x < y ? -1 : x > y ? 1 : 0) * sortDir;
+    });
+    return { rows: rows.slice(0, cap), total: rows.length };
+}
+
 // compose a maplibre layer filter from a base filter + active filter exprs
 export function composeFilter(base, exprs) {
     const active = exprs.filter(Boolean);

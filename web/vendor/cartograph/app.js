@@ -6,6 +6,7 @@ import { createMap, addSatellite, wireWorldmap, wireCollapse, hoverPopup } from 
 import { initData, need, query, fc } from './data.js';
 import { buildShell, buildKey } from './ui.js';
 import { initDetail, closeDetail, showDetail } from './detail.js';
+import { initTable } from './table.js';
 import { composeFilter } from './util.js';
 
 // location search: "lat, lon" zooms directly, anything else geocodes via nominatim
@@ -73,6 +74,7 @@ export async function mount(config) {
 
     initDetail(map, config, () =>
         Object.values(ctx.sources).flatMap(s => s.features));
+    if (config.table) initTable(ctx);
 
     await config.ready?.(ctx);
     window.cartograph = ctx;   // console + test handle

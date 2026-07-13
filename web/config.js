@@ -111,6 +111,22 @@ mount({
         },
     ],
 
+    table: [
+        {
+            label: 'Detections',
+            rows: ({ sources }) => sources.plumes.features.map(f => f.properties),
+            cols: ['id', 'src', 'dt', 'rate', 'sat', 'sec', 'lat', 'lon'],
+        },
+        {
+            label: 'Attributions',
+            rows: async ({ query, need }) => {
+                await need('attributions');
+                return query(`SELECT id, source_label, source_kind, operator, confidence, verified, lat, lon
+                              FROM 'attributions.parquet' ORDER BY source_label`);
+            },
+        },
+    ],
+
     detail: {
         layers: SRCS.map(src => `plumes-${src}`),
         hashKey: 'plume', flyZoom: 15,

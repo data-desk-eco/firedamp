@@ -64,6 +64,25 @@ a { color: inherit; text-decoration: underline; }
 .cg-overlap { white-space: nowrap; }
 .cg-nav { background: none; border: none; color: var(--dd-ui-text); font: inherit; cursor: pointer; padding: 0 3px; }
 
+/* --- data table drawer --- */
+
+.cg-drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 0; z-index: 5; overflow: hidden; display: flex; flex-direction: column; background: var(--dd-ui-background); border-right: 1px solid var(--dd-ui-border); color: var(--dd-ui-text); }
+.cg-drawer-handle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 6; padding: 12px 5px; background: var(--dd-ui-background); border: 1px solid var(--dd-ui-border); border-left: none; cursor: col-resize; user-select: none; touch-action: none; }
+.cg-drawer-handle span { writing-mode: vertical-rl; color: var(--dd-ui-text-secondary); }
+.cg-drawer-handle:hover span { color: var(--dd-ui-text); }
+.cg-drawer-head { display: flex; align-items: center; gap: 11px; padding: 10px 15px; border-bottom: 1px solid var(--dd-ui-border); flex-shrink: 0; }
+.cg-drawer-head .dd-toggle { flex: 1; min-width: 0; }
+.cg-drawer-q { width: 130px; flex-shrink: 0; }
+.cg-drawer-wrap { flex: 1; overflow: auto; }
+.cg-table { border-collapse: collapse; white-space: nowrap; }
+.cg-table th { position: sticky; top: 0; background: var(--dd-ui-background); color: var(--dd-ui-text-secondary); font-weight: 400; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--dd-ui-border); cursor: pointer; user-select: none; }
+.cg-table td { padding: 3px 8px; }
+.cg-table tbody tr { cursor: pointer; }
+.cg-table tbody tr:hover { background: var(--dd-ui-hover); }
+.cg-table tbody tr.selected { background: var(--dd-ui-active-background); color: var(--dd-ui-active-text); }
+.cg-drawer-empty { padding: 20px; }
+.cg-drawer-foot { padding: 6px 15px; border-top: 1px solid var(--dd-ui-border); flex-shrink: 0; }
+
 /* --- about modal --- */
 
 .cg-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -79,4 +98,5 @@ a { color: inherit; text-decoration: underline; }
     .cg-key { bottom: auto; top: 0; right: 0; left: auto; }
     .cg-detail { top: auto; bottom: 0; left: 0; right: 0; width: 100%; max-height: 45vh; }
     .dd-logo { display: none; }
+    .cg-drawer, .cg-drawer-handle { display: none; }
 }
