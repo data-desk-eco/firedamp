@@ -9,10 +9,16 @@ const LOGO_PATH = 'M144.68,0c-4.92,0-9.63,1.99-13.05,5.52L4.17,136.69C1.49,139.4
 
 const filterGroup = f => `
     <div class="cg-filter" data-key="${f.key}">
-        <div class="dd-slider-label">${escapeHtml(f.label)}</div>
+        ${f.label ? `<div class="dd-slider-label">${escapeHtml(f.label)}</div>` : ''}
         <div class="dd-toggle">${f.options.map(o =>
             `<button class="cg-opt${o.value === f.value ? ' active' : ''}" data-value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</button>`
         ).join('<span class="dd-toggle-divider"></span>')}</div>
+    </div>`;
+
+const sliderGroup = s => `
+    <div class="cg-slider" data-key="${s.key}">
+        <div class="dd-slider-label">${escapeHtml(s.label)}</div>
+        <div class="dd-slider-row"><input type="range" class="dd-slider" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}"><span class="cg-slider-val"></span></div>
     </div>`;
 
 export function buildShell(config) {
@@ -33,6 +39,8 @@ export function buildShell(config) {
         <svg id="worldmap"></svg>
         ${config.search ? '<input type="search" class="cg-search" id="search" placeholder="Address or lat, lon" spellcheck="false" autocomplete="off">' : ''}
         ${(config.filters || []).map(filterGroup).join('')}
+        ${config.quarters ? '<div><div class="dd-dot-grid" id="quarters"></div><div class="cg-hint dd-secondary" id="quarters-hint"></div></div>' : ''}
+        ${config.sliders?.length ? `<div class="dd-gap">${config.sliders.map(sliderGroup).join('')}</div>` : ''}
     </div>
 
     <div class="dd-panel cg-key" id="key-panel"></div>
@@ -62,6 +70,24 @@ export function buildShell(config) {
     }
 }
 
+// sliders: ctx.sliders[key] = {value, set({min,max,step,value,format})};
+// each input event calls onInput(value, ctx)
+export function wireSliders(config, ctx) {
+    ctx.sliders = {};
+    for (const s of config.sliders || []) {
+        const input = document.querySelector(`.cg-slider[data-key="${s.key}"] input`);
+        const out = input.nextElementSibling;
+        let fmt = s.format || String;
+        const show = () => out.textContent = fmt(+input.value);
+        input.addEventListener('input', () => { show(); s.onInput?.(+input.value, ctx); });
+        ctx.sliders[s.key] = {
+            get value() { return +input.value; },
+            set({ format, ...attrs } = {}) { Object.assign(input, attrs); if (format) fmt = format; show(); },
+        };
+        show();
+    }
+}
+
 // ── key (legend) ──
 
 // swatch: {mark, color, size} inline dd marking svg | {ring, size} |
@@ -84,8 +110,11 @@ async function swatchHtml(s) {
 // properties predicate) form a per-section multi-select — active rows OR
 // together into the filter pipeline via onFilter (all on = no filter). one
 // chevron collapses the whole key; section labels toggle it too (dd heading
-// rule). returns the key's filter-preds getter.
-export async function buildKey(map, sections, state = { open: true }, onFilter) {
+// rule). returns {set(sections), preds()} — set() re-renders, so apps with
+// modes can swap the whole key.
+export function initKey(map, onFilter) {
+    let sections = [];
+    const state = { open: true };
     const render = async () => {
         const rowsHtml = async (rows, si) => (await Promise.all(rows.map(async (r, ri) => {
             const ids = [].concat(r.toggle || []);
@@ -115,10 +144,12 @@ export async function buildKey(map, sections, state = { open: true }, onFilter) 
         } else return;
         render();
     });
-    await render();
 
-    return () => sections.flatMap(s => {
-        const fr = s.rows.filter(r => r.pred);
-        return fr.length && fr.some(r => r.off) ? [p => fr.some(r => !r.off && r.pred(p))] : [];
-    });
+    return {
+        set: async s => { sections = s; await render(); },
+        preds: () => sections.flatMap(s => {
+            const fr = s.rows.filter(r => r.pred);
+            return fr.length && fr.some(r => r.off) ? [p => fr.some(r => !r.off && r.pred(p))] : [];
+        }),
+    };
 }

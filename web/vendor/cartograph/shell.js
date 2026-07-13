@@ -48,6 +48,10 @@ export function addSatellite(map) {
     });
 }
 
+// drop the brightness ceiling further while an image overlay is up
+export const dimSatellite = (map, dim) =>
+    map.setPaintProperty('satellite', 'raster-brightness-max', dim ? 0.25 : 0.75);
+
 export function viewportBbox(map) {
     const b = map.getBounds();
     return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
@@ -58,6 +62,15 @@ export function wireWorldmap(map, el) {
     const update = () => setBoxes(el, [viewportBbox(map)]);
     drawWorldmap(el).then(update);
     map.on('move', update);
+}
+
+// mollweide worldmap widget with static boxes, e.g. coverage areas (pdf:86).
+// getBoxes resolves to an array of bboxes (or null to leave the map bare).
+export function boxesWorldmap(el, getBoxes, minSize) {
+    drawWorldmap(el).then(async () => {
+        const boxes = await getBoxes();
+        if (boxes) setBoxes(el, boxes, minSize);
+    });
 }
 
 // dd popup on hover: labels attach up-and-right of the marking (dd cartography

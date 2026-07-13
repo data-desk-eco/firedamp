@@ -38,6 +38,10 @@ a { color: inherit; text-decoration: underline; }
 .cg-opt { background: none; border: none; color: var(--dd-ui-inactive); font: inherit; cursor: pointer; padding: 0; }
 .cg-opt.active { color: var(--dd-ui-text); }
 
+.cg-slider-val { min-width: 30px; text-align: right; }
+.cg-hint { margin-top: 11px; }
+.cg-hint:empty { display: none; }
+
 /* --- key --- */
 
 .cg-key { bottom: 0; left: 0; padding: 15px 15px 15px 30px; display: flex; flex-direction: column; gap: 25px; min-width: 105px; }

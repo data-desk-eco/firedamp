@@ -20,6 +20,11 @@ let overlapping = [], overlapIndex = 0;
 
 const panel = () => document.getElementById('detail');
 
+// properties are exact where present; geometry gets quantized by the tile grid
+// at low zoom, but is the fallback for features without lat/lon properties
+const coordsOf = f => f.properties.lon != null
+    ? [Number(f.properties.lon), Number(f.properties.lat)] : f.geometry.coordinates;
+
 function setHash(id) {
     const target = setHashParam(location.hash, cfg.hashKey || 'id', id);
     if (location.hash !== target)
@@ -47,9 +52,8 @@ function setHighlight(features) {
 export function showDetail(feature, fromPermalink) {
     const p = feature.properties;
     const id = p[cfg.idProp || 'id'];
-    if (!fromPermalink) setHash(id);
-    // properties are exact; geometry gets quantized by the tile grid at low zoom
-    const lon = Number(p.lon), lat = Number(p.lat);
+    if (!fromPermalink && id != null) setHash(id);
+    const [lon, lat] = coordsOf(feature);
     setHighlight([{ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: {} }]);
 
     const t = cfg.title?.(p) || { text: id };
@@ -83,18 +87,20 @@ export function closeDetail() {
 }
 
 // restore #<key>=<id> after data load, then regroup overlapping features once
-// the camera settles so the prev/next nav appears just as for a map click
-function restorePermalink() {
+// the camera settles so the prev/next nav appears just as for a map click.
+// dynamic-source apps supply cfg.resolve(id) -> feature for ids not yet loaded
+async function restorePermalink() {
     const id = getHashParam(location.hash, cfg.hashKey || 'id');
     if (!id) return;
-    const match = allFeatures().find(f => f.properties[cfg.idProp || 'id'] === id);
+    const match = allFeatures().find(f => String(f.properties[cfg.idProp || 'id']) === id)
+        ?? await cfg.resolve?.(id);
     if (!match) return;
     showDetail(match, true);
-    const [lon, lat] = match.geometry.coordinates;
+    const [lon, lat] = coordsOf(match);
     map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), cfg.flyZoom ?? 15) });
     map.once('moveend', () => {
         const features = featuresAt(map.project([lon, lat]), { lng: lon, lat });
-        const idx = features.findIndex(f => f.properties[cfg.idProp || 'id'] === id);
+        const idx = features.findIndex(f => String(f.properties[cfg.idProp || 'id']) === id);
         if (features.length < 2 || idx < 0) return;
         overlapping = [features[idx], ...features.filter((_, i) => i !== idx)];
         overlapIndex = 0;
@@ -122,11 +128,14 @@ export function initDetail(m, config, getFeatures) {
     map.on('click', e => {
         const features = featuresAt(e.point, e.lngLat);
         if (!features.length) return closeDetail();
+        const center = coordsOf(features[0]);
+        // below minZoom features are too dense to pick meaningfully — zoom in instead
+        if (cfg.minZoom && map.getZoom() < cfg.minZoom)
+            return map.flyTo({ center, zoom: cfg.minZoom });
         overlapping = features;
         overlapIndex = 0;
         showDetail(features[0]);
-        const p = features[0].properties;
-        map.flyTo({ center: [Number(p.lon), Number(p.lat)], zoom: Math.max(map.getZoom(), cfg.flyZoom ?? 15) });
+        map.flyTo({ center, zoom: Math.max(map.getZoom(), cfg.flyZoom ?? 15) });
     });
 
     for (const layer of cfg.layers) {
