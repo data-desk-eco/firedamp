@@ -16,7 +16,7 @@ const MAX_SCAN = 4000, MAX_SHOW = 300;
 const PT = dd.adjusted.white, HL = dd.adjusted.orange;
 
 // ch4id feature ids are OSM:w<id>; older attributions carry OSM:way/<id>
-export const normId = id => id.replace(/^OSM:(way|node|relation)\//, (_, t) => `OSM:${t[0]}`);
+const normId = id => id.replace(/^OSM:(way|node|relation)\//, (_, t) => `OSM:${t[0]}`);
 
 let map;
 

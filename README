@@ -2,9 +2,9 @@ firedamp
 ========
 
 Methane plume aggregator. Maps satellite-detected methane plumes
-alongside O&G infrastructure from the OGIM database, and shows a
-per-plume source attribution produced offline by a research agent
-(the ch4id sibling repo) and served from a static dataset.
+alongside candidate O&G infrastructure sources, and shows a per-plume
+source attribution produced offline by a research agent (the ch4id
+sibling repo) and served from a static dataset.
 
 Live: https://research.datadesk.eco/firedamp/
 
@@ -12,33 +12,38 @@ Live: https://research.datadesk.eco/firedamp/
 Plume sources
 -------------
 - Carbon Mapper      satellite + aircraft hyperspectral (API)
-- IMEO / MARS        UNEP methane plume database (web scrape)
+- IMEO / MARS        UNEP methane plume database (Azure zip)
 - SRON               TROPOMI weekly plume CSVs (FTP)
-- OGIM v2.7          global O&G infrastructure (Zenodo GeoPackage)
+- ch4id catalogue    OGIM + OSM + MapStand + GEM candidate sources
 
 
 Repo layout
 -----------
-    web/             static frontend (ES modules, no build step, no npm)
-      app.js           entry point: data load, layer assembly, UI wiring
-      map.js           map instance + basemap style
-      plumes.js        binary parser, plume layers, filters
-      ogim.js          OGIM layers, toggle, proximity queries
-      detail.js        detail panel, permalinks, interactions
-      analysis.js      static attribution lookup/render + wind stat
-      util.js          geometry + formatting helpers
+A cartograph app: the generic Data Desk full-screen map system
+(dd design-system frontend + parquet/DuckDB-WASM backend, no npm,
+no build step), vendored, with all firedamp behaviour in three
+app modules.
+
+    web/             static frontend (ES modules)
+      config.js        declarative cartograph config: sources, layers,
+                       filters, key, data table, detail panel
+      attribution.js   attribution lookup/render + wind stat
+      candidates.js    candidate infrastructure from the ch4id
+                       catalogue (FlatGeobuf bbox queries over GCS)
       style.css
       index.html
-      vendor/          MapLibre, PMTiles, Inter font
-    scripts/         Python ETL (uv-managed)
+      data/            plumes.parquet (built), attributions.parquet
+                       (committed source of truth, from ch4id)
+      vendor/          cartograph core, dd design dist, MapLibre,
+                       DuckDB-WASM, FlatGeobuf, Inter font
+    scripts/         Python ETL (uv-managed) + build/deploy shell
       fetch_carbon_mapper.py
-      fetch_sron.py
       fetch_imeo.py
-      build.py         aggregates everything into web/data/plumes.bin
-      build_attr.py    attributions.parquet -> web/data/attributions.bin
-      build_ogim.sh    OGIM GeoPackage -> PMTiles (slow, ~30 min)
+      fetch_sron.py
+      build.py         source CSVs -> web/data/plumes.parquet
+      features.sql     ch4id catalogue -> web/data/features.fgb
       dist.sh          assembles the Pages artifact (cache-busted)
-      serve.py         dev server with HTTP Range for PMTiles
+      serve.py         dev server with HTTP Range for FlatGeobuf
       vendor.sh
     data/            input CSVs and intermediates (gitignored)
     .github/workflows/
@@ -48,30 +53,28 @@ Repo layout
 
 Setup
 -----
-Requires Python (managed with uv). OGIM rebuild additionally requires
-ogr2ogr, tippecanoe, and tile-join.
+Requires Python (managed with uv); the feature catalogue rebuild
+additionally requires duckdb.
 
-    make vendor        download vendored JS/CSS/fonts
+    make vendor        vendor JS/CSS/fonts (cartograph, dd, ...)
     make serve         dev server on :8000
 
 
 Pipelines
 ---------
-    make data          fetch CM + SRON + IMEO, build plumes.bin
-    make ogim          OGIM GeoPackage -> PMTiles
-    make ogim-upload   upload PMTiles to GCS
-    make rebuild       full pipeline: data + ogim + upload
+    make data             fetch CM + SRON + IMEO, build plumes.parquet
+    make features         ch4id catalogue -> features.fgb
+    make features-upload  upload features.fgb to GCS
+    make rebuild          full pipeline: data + features + upload
 
 
 Source attribution
 ------------------
-Detail panels show a per-plume source attribution, produced offline by
-the ch4id sibling repo's agentic pipeline (make deploy there commits a
-refreshed web/data/attributions.parquet here and pushes). The parquet
-is the committed source of truth; the site ships a compact FDA2 binary
-derived from it at deploy time (scripts/build_attr.py), including
-verification status and the assessed source point. Plumes carrying an
-attribution render as filled discs on the map. There is no live
+Detail panels show a per-plume source attribution, produced offline
+by the ch4id sibling repo's agentic pipeline (make deploy there
+commits a refreshed web/data/attributions.parquet here and pushes).
+The parquet is the committed source of truth and is read directly by
+DuckDB-WASM in the browser, as is plumes.parquet. There is no live
 in-browser LLM pipeline. See CLAUDE.md.
 
 
@@ -83,10 +86,15 @@ URL scheme
 
 Deployment
 ----------
-Push to main -> deploy.yml -> GitHub Pages. plumes.bin is pulled from
-the `latest-data` GitHub Release at deploy time. update-data.yml
-rebuilds plumes.bin every 6 h. OGIM PMTiles are deployed separately
-via `make ogim-upload` to gs://firedamp-data/.
+Push to main -> deploy.yml -> GitHub Pages. plumes.parquet is pulled
+from the `latest-data` GitHub Release at deploy time. update-data.yml
+rebuilds it every 6 h. The feature catalogue is served from GCS
+(gs://firedamp-data/features.fgb, range-requested) and uploaded
+separately via `make features-upload`.
+
+`make deploy-private` ships a Cloudflare Pages build (behind
+Cloudflare Access) that additionally includes the local-only GHGSat
+data — the only deploy that ever contains it.
 
 Both workflows assemble the Pages artifact via scripts/dist.sh — add
 any new web asset there.

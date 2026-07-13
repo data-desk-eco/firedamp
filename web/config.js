@@ -162,7 +162,7 @@ mount({
                 ${p.sec ? `<span class="dd-secondary">${SECTOR[p.sec] || escapeHtml(p.sec)}</span>` : ''}
             </div>
             <div class="fd-stats">
-                <div><div class="fd-stat-big">${rateT(p)}</div><div class="dd-secondary">t/hr</div></div>
+                <div><div class="fd-stat-big">${rateT(p)}</div><div class="dd-secondary">t/hr${p.unc ? ` ±${(p.unc / 1000).toFixed(1)}` : ''}</div></div>
                 <div id="stat-wind"><div class="fd-stat-big">…</div><div class="dd-secondary">wind</div></div>
                 <div><div class="fd-stat-big">${escapeHtml(p.sat || '—')}</div><div class="dd-secondary">satellite</div></div>
                 <div><div class="fd-stat-big">${escapeHtml(p.dt || '—')}</div><div class="dd-secondary">date</div></div>

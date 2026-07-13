@@ -5,7 +5,7 @@
 import { createMap, addSatellite, wireWorldmap, wireCollapse, hoverPopup } from './shell.js';
 import { initData, need, query, fc } from './data.js';
 import { buildShell, buildKey } from './ui.js';
-import { initDetail, closeDetail, showDetail } from './detail.js';
+import { initDetail } from './detail.js';
 import { initTable } from './table.js';
 
 // location search: "lat, lon" zooms directly, anything else geocodes via nominatim
@@ -88,5 +88,3 @@ export async function mount(config) {
     window.cartograph = ctx;   // console + test handle
     return ctx;
 }
-
-export { closeDetail, showDetail };

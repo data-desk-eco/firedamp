@@ -26,7 +26,7 @@ rebuild: data features features-upload
 	@echo "Full rebuild complete"
 
 # ── Datadesk-only deploy (Cloudflare Pages behind Access) ────────
-# ships the locally-built plumes.bin — including local-only ghgsat — so it
+# ships the locally-built plumes.parquet — including local-only ghgsat — so it
 # refuses to deploy unless the access gate is answering in front of the site
 deploy-private: data
 	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }

@@ -75,11 +75,10 @@ the existing `data/imeo_plumes.csv`.
 
 `config.js` prefetches `plumes.parquet` at parse, registers both parquets with
 DuckDB-WASM, and builds one geojson source: every plume whose id appears in
-`attributions.parquet` gets `attr: 1`, which fills its circle
-(`circle-opacity` case) so attributed plumes read as discs against hollow
-rings. The detail panel is cartograph-generic (title link to CM/SRON, coords,
+`attributions.parquet` gets `attr: 1`, which feeds the Attribution filter.
+The detail panel is cartograph-generic (title link to CM/SRON, coords,
 overlap nav across co-located plumes, `#plume=<id>` permalinks alongside
-`#map=`); firedamp's `detail.html` adds source/sector badges and a stats grid
+`#map=`); firedamp's `config.js` detail template adds source/sector badges and a stats grid
 (rate, wind, satellite, date), and `onShow` fills in wind, the attribution
 record and the candidate-source selection.
 

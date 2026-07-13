@@ -52,7 +52,7 @@ jobs:
       - name: Build plumes.parquet
         run: uv run scripts/build.py
 
-      # plumes.bin is deterministic, so identical bytes ⇒ no new plumes.
+      # plumes.parquet is deterministic, so identical bytes ⇒ no new plumes.
       # skip upload + deploy on those runs (most of the 4/day off-cycle ones).
       - name: Detect data change
         id: diff
@@ -71,7 +71,8 @@ jobs:
             web/data/plumes.parquet \
             data/imeo_plumes.csv \
             data/carbon_mapper.csv \
-            data/sron_all.csv
+            data/sron_all.csv \
+            data/sron
           gh release upload latest-data plumes-data.zip --clobber
           rm plumes-data.zip
         env:

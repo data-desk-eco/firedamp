@@ -150,7 +150,7 @@ def build_sron(path):
 
 
 # ghgsat: leaked, local-only. the whole data/ dir is gitignored and CI never
-# fetches this source, so it can only ever enter a locally-built plumes.bin —
+# fetches this source, so it can only ever enter a locally-built plumes.parquet —
 # never the published Release. rate/unc in kg/hr; error is a relative fraction.
 def build_ghgsat(path):
     if not path.exists():
