@@ -99,18 +99,29 @@ const hlCase = (a, b) => ['case', ['get', 'hl'], a, b];
 
 export function addSourceLayers() {
     map.addSource('sources', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    // invisible fat twin of src-points: the hover/touch target
     map.addLayer({
-        id: 'src-points', type: 'circle', source: 'sources',
+        id: 'src-hit', type: 'circle', source: 'sources',
+        paint: { 'circle-radius': 12, 'circle-opacity': 0, 'circle-stroke-width': 0 },
+    });
+    map.addLayer({
+        id: 'src-points', type: 'symbol', source: 'sources',
+        layout: {
+            'text-field': '×',
+            'text-font': ['Noto Sans Regular'],
+            'text-size': hlCase(22, 15),
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+        },
         paint: {
-            'circle-radius': hlCase(6, 3.5),
-            'circle-color': hlCase(HL, 'transparent'),
-            'circle-stroke-color': hlCase('rgba(0,0,0,0.8)', PT),
-            'circle-stroke-width': 1.5,
+            'text-color': hlCase(HL, PT),
+            'text-halo-color': 'rgba(0,0,0,0.8)',
+            'text-halo-width': 1,
         },
     });
 
     const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'plume-popup', offset: 10 });
-    map.on('mousemove', 'src-points', e => {
+    const show = e => {
         const p = e.features[0].properties;
         const kind = (p.kind || '').replace(/_/g, ' ');
         const title = p.name || kind;
@@ -119,8 +130,10 @@ export function addSourceLayers() {
         popup.setLngLat(e.lngLat)
             .setHTML(`<strong>${escapeHtml(title)}</strong>${p.hl ? ' ★' : ''}<br>${detail}<br><small>${escapeHtml(p.id)}</small>`)
             .addTo(map);
-    });
-    map.on('mouseleave', 'src-points', () => popup.remove());
+    };
+    map.on('mousemove', 'src-hit', show);
+    map.on('click', 'src-hit', show); // touch
+    map.on('mouseleave', 'src-hit', () => popup.remove());
 
     map.on('moveend', sweep);
     sweep();
