@@ -18,15 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download plumes.bin from release
+      - name: Download plumes.parquet from release
         run: |
           gh release download latest-data --pattern 'plumes-data.zip' --dir .
-          unzip -j plumes-data.zip web/data/plumes.bin -d web/data
+          unzip -j plumes-data.zip web/data/plumes.parquet -d web/data
           rm plumes-data.zip
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - uses: astral-sh/setup-uv@v7
 
       - name: Prepare dist
         run: bash scripts/dist.sh "$GITHUB_SHA"

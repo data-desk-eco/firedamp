@@ -35,7 +35,7 @@ jobs:
           if [ -f plumes-data.zip ]; then
             unzip -o plumes-data.zip -d .
             rm plumes-data.zip
-            cp web/data/plumes.bin plumes.bin.prev 2>/dev/null || true
+            cp web/data/plumes.parquet plumes.parquet.prev 2>/dev/null || true
           fi
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,7 +49,7 @@ jobs:
         run: uv run scripts/fetch_imeo.py
         continue-on-error: true
 
-      - name: Build plumes.bin
+      - name: Build plumes.parquet
         run: uv run scripts/build.py
 
       # plumes.bin is deterministic, so identical bytes ⇒ no new plumes.
@@ -57,9 +57,9 @@ jobs:
       - name: Detect data change
         id: diff
         run: |
-          if [ -f plumes.bin.prev ] && cmp -s plumes.bin.prev web/data/plumes.bin; then
+          if [ -f plumes.parquet.prev ] && cmp -s plumes.parquet.prev web/data/plumes.parquet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "plumes.bin unchanged — skipping upload and deploy"
+            echo "plumes.parquet unchanged — skipping upload and deploy"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -68,7 +68,7 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         run: |
           zip -r plumes-data.zip \
-            web/data/plumes.bin \
+            web/data/plumes.parquet \
             data/imeo_plumes.csv \
             data/carbon_mapper.csv \
             data/sron_all.csv

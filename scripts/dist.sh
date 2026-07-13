@@ -8,13 +8,12 @@ rm -rf dist
 mkdir -p dist/data
 cp web/index.html web/style.css web/*.js dist/
 cp -r web/vendor dist/vendor
-cp web/data/plumes.bin dist/data/
-uv run scripts/build_attr.py   # attributions.parquet (git) → FDA1 binary
-cp web/data/attributions.bin dist/data/
+cp web/data/plumes.parquet web/data/attributions.parquet dist/data/
 
-# bust the entry points in index.html, the es-module import graph, and the
-# attribution binary fetch
-sed -i.bak -E "s#(app\.js|style\.css)#\1?v=$V#g" dist/index.html
+# bust the entry points in index.html, the app-local es-module import graph
+# (vendor modules stay unbusted so each resolves to one url = one instance),
+# and the parquet fetches
+sed -i.bak -E "s#(config\.js|\"style\.css)#\1?v=$V#g" dist/index.html
 sed -i.bak -E "s#(from '\./[a-z]+\.js)'#\1?v=$V'#g" dist/*.js
-sed -i.bak -E "s#(data/attributions\.bin)#\1?v=$V#g" dist/analysis.js
+sed -i.bak -E "s#(data/(plumes|attributions)\.parquet)#\1?v=$V#g" dist/config.js
 rm dist/*.bak

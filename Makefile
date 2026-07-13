@@ -6,7 +6,6 @@ CH4ID ?= $(HOME)/Tools/ch4id
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
 data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
 	uv run scripts/build.py
-	@echo "Built web/data/plumes.bin"
 
 data/%.ok:
 	uv run scripts/fetch_$*.py
@@ -48,13 +47,13 @@ serve: vendor
 # only the refetchable csvs: ghgsat.csv (local-only) and gcmt_coal.csv
 # (manual download) are irreplaceable
 clean:
-	rm -f data/*.ok data/carbon_mapper.csv data/imeo_plumes.csv data/sron_all.csv web/data/plumes.bin
+	rm -f data/*.ok data/carbon_mapper.csv data/imeo_plumes.csv data/sron_all.csv web/data/plumes.parquet
 
 clean-all: clean
 	rm -rf web/vendor data/sron web/data/features.fgb
 
 help:
-	@echo "make data          Fetch plume sources, build web/data/plumes.bin"
+	@echo "make data          Fetch plume sources, build web/data/plumes.parquet"
 	@echo "make features      Build features.fgb from the ch4id catalogue"
 	@echo "make features-upload Upload features.fgb to GCS"
 	@echo "make rebuild       Full pipeline: data + features + upload"

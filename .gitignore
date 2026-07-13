@@ -4,8 +4,7 @@
 __pycache__/
 *.pyc
 /data/
-web/data/plumes.bin
-web/data/attributions.bin
+web/data/plumes.parquet
 web/data/*.fgb
 
 .playwright-mcp/

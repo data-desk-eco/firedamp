@@ -1,7 +1,12 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyarrow"]
+# ///
 import csv
-import struct
-from datetime import date
 from pathlib import Path
+
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 SAT_SHORT = {
     "EMIT - NASA": "EMIT",
@@ -14,11 +19,6 @@ SAT_SHORT = {
     "Landsat - NASA/USGS": "L8",
     "GOES - NOAA": "GOES",
 }
-
-EPOCH = date(2020, 1, 1)
-SRC_MAP = {"cm": 0, "imeo": 1, "sron": 2, "ghgsat": 3}
-SEC_MAP = {None: 0, "og": 1, "coal": 2, "waste": 3, "other": 4}
-
 
 def map_sector(raw):
     if not raw:
@@ -40,15 +40,6 @@ def safe_float(v):
         return float(v)
     except (ValueError, TypeError):
         return None
-
-
-def date_to_days(dt_str):
-    if not dt_str:
-        return 0
-    try:
-        return max(0, (date.fromisoformat(dt_str) - EPOCH).days)
-    except ValueError:
-        return 0
 
 
 def build_cm(path):
@@ -143,9 +134,9 @@ def build_sron(path):
             lon_s = f"{abs(lon_r):.2f}{'E' if lon_r >= 0 else 'W'}"
             date_compact = dt_raw.replace("-", "") if dt_raw else "nodate"
             display_id = f"sron_{date_compact}_{lat_s}_{lon_s}"
-            source_file = row.get("source_file", "")
             plumes.append({
-                "id": f"{display_id}|{source_file}",
+                "id": display_id,
+                "link": row.get("source_file", ""),
                 "src": "sron",
                 "lat": round(lat, 4),
                 "lon": round(lon, 4),
@@ -189,43 +180,27 @@ def build_ghgsat(path):
     return plumes
 
 
-def write_binary(plumes, path):
-    sats = sorted({p.get("sat") or "" for p in plumes})
-    sat_idx = {s: i for i, s in enumerate(sats)}
+# zstd parquet, dictionary-encoded strings. `link` is sron's source csv
+# filename (the old FDP1 "display|file" composite id, split out); rate/unc in
+# kg/hr; dt as iso string.
+SCHEMA = pa.schema([
+    ("id", pa.string()), ("link", pa.string()), ("src", pa.string()),
+    ("lat", pa.float64()), ("lon", pa.float64()), ("dt", pa.string()),
+    ("rate", pa.uint32()), ("unc", pa.uint32()),
+    ("sat", pa.string()), ("sec", pa.string()),
+])
 
-    with open(path, "wb") as f:
-        # Header
-        f.write(b"FDP1")
-        f.write(struct.pack("<I", len(plumes)))
-        f.write(struct.pack("B", len(sats)))
-        for s in sats:
-            b = s.encode("utf-8")
-            f.write(struct.pack("B", len(b)))
-            f.write(b)
 
-        # Records (20 bytes each)
-        for p in plumes:
-            lat = p.get("lat") or 0.0
-            lon = p.get("lon") or 0.0
-            days = date_to_days(p.get("dt"))
-            rate = int(p.get("rate") or 0)
-            unc = int(p.get("unc") or 0)
-            src_val = SRC_MAP.get(p.get("src"), 0)
-            sec_val = SEC_MAP.get(p.get("sec"), 0)
-            src_sec = src_val | (sec_val << 2)
-            si = sat_idx.get(p.get("sat") or "", 0)
-            f.write(struct.pack("<ffHIIBB", lat, lon, days, rate, unc, src_sec, si))
-
-        # IDs block
-        ids = "\n".join(p.get("id", "") for p in plumes)
-        f.write(ids.encode("utf-8"))
+def write_parquet(plumes, path):
+    cols = {name: [p.get(name) for p in plumes] for name in SCHEMA.names}
+    pq.write_table(pa.table(cols, schema=SCHEMA), path, compression="zstd")
 
 
 def main():
     out_dir = Path("web/data")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Building plumes.bin...")
+    print("Building plumes.parquet...")
     cm = build_cm(Path("data/carbon_mapper.csv"))
     imeo = build_imeo_plumes(Path("data/imeo_plumes.csv"))
     sron = build_sron(Path("data/sron_all.csv"))
@@ -233,8 +208,8 @@ def main():
 
     all_plumes = cm + imeo + sron + ghgsat
 
-    plumes_path = out_dir / "plumes.bin"
-    write_binary(all_plumes, plumes_path)
+    plumes_path = out_dir / "plumes.parquet"
+    write_parquet(all_plumes, plumes_path)
     size_mb = plumes_path.stat().st_size / (1024 * 1024)
     print(f"  → {plumes_path} ({len(all_plumes)} plumes, {size_mb:.1f} MB)")
 
