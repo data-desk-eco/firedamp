@@ -25,7 +25,7 @@ make features-upload  # FlatGeobuf → GCS
 make rebuild          # data + features + upload
 ```
 
-IMEO needs `IMEO_API_KEY` (request from unep-methanedata@un.org; set as a repo secret for CI). The whole `methanedata.unep.org` host is behind a Cloudflare managed challenge that fingerprints the TLS handshake, so `fetch_imeo.py` uses `curl_cffi` (Chrome JA3 impersonation) — plain httpx/requests/curl are blocked even with the key. Without a key it keeps any existing `data/imeo_plumes.csv` (manual fallback).
+IMEO comes from UNEP's public detected-plumes dataset — a keyless Azure blob zip (`unepazeconomyadlsstorage.blob.core.windows.net/.../unep_methanedata_detected_plumes_csv.zip`, linked from methanedata.unep.org/download-dataset, refreshed ~monthly). `fetch_imeo.py` pulls it with plain `httpx`, keeps the columns `build.py` reads, and on any network failure keeps the existing `data/imeo_plumes.csv`. This replaced the old `/api/v2` path, which was both Cloudflare-fingerprint-gated (needed `curl_cffi` Chrome-JA3 impersonation) *and* dependent on a personal `IMEO_API_KEY` bearer token that UNEP silently disabled.
 
 ## Binary formats
 

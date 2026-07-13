@@ -156,8 +156,8 @@ function buildFilter(src) {
     if (filters.attr === 'yes') {
         f.push(['==', ['get', 'attr'], 1]);
     }
-    if (filters.year === '30d') {
-        const cutoff = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+    if (filters.year === '60d') {
+        const cutoff = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
         f.push(['>=', ['slice', ['get', 'dt'], 0, 10], cutoff]);
     } else if (filters.year === 'pre2023') {
         f.push(['<', ['slice', ['get', 'dt'], 0, 4], '2023']);
