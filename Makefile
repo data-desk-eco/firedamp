@@ -13,10 +13,13 @@ data/%.ok:
 	@touch $@
 
 # ── ch4id feature catalogue (candidate sources) ──────────────────
+# point features only: geometries collapse to the catalogue's representative
+# lat/lon, and sprawling area/line abstractions (pipelines, fields, licence
+# areas) are dropped — a point stands them nowhere sensible
 features: web/data/features.fgb
 
 web/data/features.fgb: $(CH4ID)/data/features.parquet
-	duckdb -bail -c "load spatial; copy (select id, dataset, kind, name, operator, status, fuel, geometry from '$<') to '$@' with (format gdal, driver 'FlatGeobuf')"
+	duckdb -bail -c "load spatial; copy (select id, dataset, kind, name, operator, status, fuel, st_point(lon, lat) as geometry from '$<' where kind not in ('pipeline', 'field', 'oilfield', 'gas_field', 'offshore_field', 'licence_area', 'licence_block')) to '$@' with (format gdal, driver 'FlatGeobuf')"
 
 features-upload: web/data/features.fgb
 	gcloud storage cp web/data/features.fgb gs://firedamp-data/features.fgb

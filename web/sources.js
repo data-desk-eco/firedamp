@@ -1,8 +1,8 @@
 // candidate sources from the ch4id feature catalogue (features.fgb — ogim +
-// osm + mapstand + gem on gcs), streamed via flatgeobuf bbox queries over
-// http range requests. loaded optimistically for the viewport past MIN_ZOOM,
-// plus a radius query around the selected plume with the attributed
-// feature(s) highlighted.
+// osm + mapstand + gem point features on gcs), streamed via flatgeobuf bbox
+// queries over http range requests. loaded optimistically for the viewport
+// past MIN_ZOOM, plus a radius query around the selected plume with the
+// attributed feature(s) highlighted.
 
 import { map } from './map.js';
 import { escapeHtml, fmtMetres, haversineM } from './util.js';
@@ -15,13 +15,6 @@ const HL = '#ffc861', DIM = 'rgba(255,255,255,0.35)';
 
 // ch4id feature ids are OSM:w<id>; older attributions carry OSM:way/<id>
 export const normId = id => id.replace(/^OSM:(way|node|relation)\//, (_, t) => `OSM:${t[0]}`);
-
-// nearest vertex of a geometry to (lat, lon) → {d, lon, lat}
-const nearest = (lat, lon, c) => typeof c[0] === 'number'
-    ? { d: haversineM(lat, lon, c[1], c[0]), lon: c[0], lat: c[1] }
-    : c.map(x => nearest(lat, lon, x)).reduce((m, x) => x.d < m.d ? x : m);
-
-const firstVertex = c => typeof c[0] === 'number' ? c : firstVertex(c[0]);
 
 async function fetchRect(rect) {
     const out = [];
@@ -85,8 +78,8 @@ export async function selectPlume(lon, lat, radiusKm, rec) {
     const feats = await fetchRect(rect);
     if (e !== plumeEpoch) return;
     for (const f of feats) {
-        const n = nearest(lat, lon, f.geometry.coordinates);
-        Object.assign(f.properties, { dist: n.d, alon: n.lon, alat: n.lat });
+        const [flon, flat] = f.geometry.coordinates;
+        f.properties.dist = haversineM(lat, lon, flat, flon);
     }
     feats.sort((a, b) => a.properties.dist - b.properties.dist);
     plumeFeats = feats.filter((f, i) =>
@@ -107,18 +100,7 @@ const hlCase = (a, b) => ['case', ['get', 'hl'], a, b];
 export function addSourceLayers() {
     map.addSource('sources', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({
-        id: 'src-fills', type: 'fill', source: 'sources',
-        filter: ['==', ['geometry-type'], 'Polygon'],
-        paint: { 'fill-color': hlCase(HL, '#ffffff'), 'fill-opacity': hlCase(0.15, 0.04) },
-    });
-    map.addLayer({
-        id: 'src-lines', type: 'line', source: 'sources',
-        filter: ['!=', ['geometry-type'], 'Point'],
-        paint: { 'line-color': hlCase(HL, DIM), 'line-width': hlCase(2.5, 1.2) },
-    });
-    map.addLayer({
         id: 'src-points', type: 'circle', source: 'sources',
-        filter: ['==', ['geometry-type'], 'Point'],
         paint: {
             'circle-radius': hlCase(6, 3.5),
             'circle-color': hlCase(HL, 'transparent'),
@@ -128,19 +110,17 @@ export function addSourceLayers() {
     });
 
     const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: 'plume-popup', offset: 10 });
-    for (const layer of ['src-points', 'src-lines', 'src-fills']) {
-        map.on('mousemove', layer, e => {
-            const p = e.features[0].properties;
-            const kind = (p.kind || '').replace(/_/g, ' ');
-            const title = p.name || kind;
-            const detail = [kind, p.operator, p.status, p.fuel, p.dist != null && fmtMetres(p.dist)]
-                .filter(v => v && v !== title).map(escapeHtml).join(' · ');
-            popup.setLngLat(e.lngLat)
-                .setHTML(`<strong>${escapeHtml(title)}</strong>${p.hl ? ' ★' : ''}<br>${detail}<br><small>${escapeHtml(p.id)}</small>`)
-                .addTo(map);
-        });
-        map.on('mouseleave', layer, () => popup.remove());
-    }
+    map.on('mousemove', 'src-points', e => {
+        const p = e.features[0].properties;
+        const kind = (p.kind || '').replace(/_/g, ' ');
+        const title = p.name || kind;
+        const detail = [kind, p.operator, p.status, p.fuel, p.dist != null && fmtMetres(p.dist)]
+            .filter(v => v && v !== title).map(escapeHtml).join(' · ');
+        popup.setLngLat(e.lngLat)
+            .setHTML(`<strong>${escapeHtml(title)}</strong>${p.hl ? ' ★' : ''}<br>${detail}<br><small>${escapeHtml(p.id)}</small>`)
+            .addTo(map);
+    });
+    map.on('mouseleave', 'src-points', () => popup.remove());
 
     map.on('moveend', sweep);
     sweep();
@@ -149,9 +129,5 @@ export function addSourceLayers() {
 // window-bound for the attribution label's inline onclick handler
 window.flyToSource = id => {
     const f = [...plumeFeats, ...viewFeats].find(f => f.properties.id === id);
-    if (!f) return;
-    const [lon, lat] = f.properties.alon != null
-        ? [f.properties.alon, f.properties.alat]
-        : firstVertex(f.geometry.coordinates);
-    map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 16) });
+    if (f) map.flyTo({ center: f.geometry.coordinates, zoom: Math.max(map.getZoom(), 16) });
 };
