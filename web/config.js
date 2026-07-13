@@ -107,7 +107,7 @@ mount({
         },
         {
             label: 'Infrastructure',
-            rows: [{ swatch: { mark: 'waypoint', color: dd.adjusted.white }, label: 'Candidate sources (z13+)' }],
+            rows: [{ swatch: { mark: 'waypoint', color: dd.adjusted.white }, label: 'Candidate sources' }],
         },
     ],
 

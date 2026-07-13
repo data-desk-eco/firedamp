@@ -66,8 +66,8 @@ a { color: inherit; text-decoration: underline; }
 
 /* --- data table drawer --- */
 
-.cg-drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 0; z-index: 5; overflow: hidden; display: flex; flex-direction: column; background: var(--dd-ui-background); border-right: 1px solid var(--dd-ui-border); color: var(--dd-ui-text); }
-.cg-drawer-handle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 6; padding: 12px 5px; background: var(--dd-ui-background); border: 1px solid var(--dd-ui-border); border-left: none; cursor: col-resize; user-select: none; touch-action: none; }
+.cg-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 0; z-index: 5; overflow: hidden; display: flex; flex-direction: column; background: var(--dd-ui-background); border-left: 1px solid var(--dd-ui-border); color: var(--dd-ui-text); }
+.cg-drawer-handle { position: fixed; top: 50%; right: 0; transform: translateY(-50%); z-index: 6; padding: 12px 5px; background: var(--dd-ui-background); border: 1px solid var(--dd-ui-border); border-right: none; cursor: col-resize; user-select: none; touch-action: none; }
 .cg-drawer-handle span { writing-mode: vertical-rl; color: var(--dd-ui-text-secondary); }
 .cg-drawer-handle:hover span { color: var(--dd-ui-text); }
 .cg-drawer-head { display: flex; align-items: center; gap: 11px; padding: 10px 15px; border-bottom: 1px solid var(--dd-ui-border); flex-shrink: 0; }

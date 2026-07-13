@@ -1,4 +1,4 @@
-// data table drawer (the gaslight pattern in dd clothing): a mid-left handle
+// data table drawer (the gaslight pattern in dd clothing): a mid-right handle
 // drags open a tabbed table of raw rows — viewport-filtered when rows carry
 // lat/lon, substring-searched, sortable by column, capped with an in-view
 // count. clicking a row flies to it and opens the detail panel (or the tab's
@@ -38,14 +38,14 @@ export function initTable(ctx) {
     const [drawer, handle] = document.querySelectorAll('.cg-drawer, .cg-drawer-handle');
     const el = sel => drawer.querySelector(sel);
 
-    // map keeps full width; padding shifts its logical centre, panels slide over
+    // map keeps full width; padding shifts its logical centre, the detail
+    // panel slides over
     const setWidth = w => {
         width = w;
         drawer.style.width = w + 'px';
-        handle.style.left = w + 'px';
-        ctx.map.setPadding({ left: w });
-        for (const id of ['main-panel', 'key-panel'])
-            document.getElementById(id)?.style.setProperty('left', w ? w + 'px' : '');
+        handle.style.right = w + 'px';
+        ctx.map.setPadding({ right: w });
+        document.getElementById('detail')?.style.setProperty('right', w ? w + 'px' : '');
     };
 
     async function render() {
@@ -107,7 +107,7 @@ export function initTable(ctx) {
         const sx = e.clientX, sw = width;
         const move = ev => {
             const was = width;
-            setWidth(Math.max(0, Math.min(innerWidth - 340, sw + ev.clientX - sx)));
+            setWidth(Math.max(0, Math.min(innerWidth - 340, sw + sx - ev.clientX)));
             if (width >= MIN && was < MIN) render();
         };
         handle.addEventListener('pointermove', move);
