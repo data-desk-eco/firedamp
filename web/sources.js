@@ -109,7 +109,7 @@ export function addSourceLayers() {
         layout: {
             'text-field': '×',
             'text-font': ['Noto Sans Regular'],
-            'text-size': hlCase(22, 15),
+            'text-size': hlCase(44, 30),
             'text-allow-overlap': true,
             'text-ignore-placement': true,
         },
