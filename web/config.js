@@ -79,8 +79,9 @@ mount({
                 'icon-image': `flare-${dd.adjusted.white}`,
                 'icon-size': ICON,
                 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+                // round before formatting: maplibre drops a 0 'max-fraction-digits'
                 'text-field': ['concat',
-                    ['number-format', ['/', ['get', 'rate_sum'], 1000], { 'max-fraction-digits': 0 }], ' t/hr'],
+                    ['number-format', ['round', ['/', ['get', 'rate_sum'], 1000]], {}], ' t/hr'],
                 'text-font': ['Montserrat Regular'], 'text-size': 10,
                 'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
                 'text-allow-overlap': true,
