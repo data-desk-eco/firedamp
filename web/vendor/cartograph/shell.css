@@ -91,6 +91,9 @@ a { color: inherit; text-decoration: underline; }
 /* --- about modal --- */
 
 .cg-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+/* the badge is a tag, not heading text — drop the intro heading's bold
+   32px/-3% tracking metrics (which stay on-token for the title itself) */
+.dd-intro-heading .dd-secondary { font-size: 14px; font-weight: 400; letter-spacing: 0; margin-left: 4px; }
 .cg-modal-content { position: relative; width: 420px; max-width: calc(100vw - 40px); max-height: calc(100vh - 40px); overflow-y: auto; display: flex; flex-direction: column; gap: 38px; }
 .dd-intro-body p + p { margin-top: 14px; }
 .cg-enter { padding: 5px 6px; }
