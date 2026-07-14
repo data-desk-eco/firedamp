@@ -30,7 +30,6 @@ mount({
     title: 'Firedamp',
     badge: 'beta',
     subtitle: 'Methane plume aggregator',
-    link: 'https://github.com/data-desk-eco/firedamp',
     about: `<p>Firedamp aggregates satellite methane plume detections from
         <a href="https://carbonmapper.org" target="_blank" rel="noopener">Carbon Mapper</a>,
         UNEP's <a href="https://methanedata.unep.org" target="_blank" rel="noopener">International Methane Emissions Observatory</a>
