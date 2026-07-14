@@ -44,7 +44,7 @@ a { color: inherit; text-decoration: underline; }
 
 /* --- key --- */
 
-.cg-key { bottom: 0; left: 0; padding: 15px 30px; display: flex; flex-direction: column; gap: 25px; min-width: 105px; }
+.cg-key { bottom: 0; left: 0; padding: 15px 30px 20px; display: flex; flex-direction: column; gap: 25px; min-width: 105px; }
 /* hanging chevron per dd heading rule: -(chevron 8px + gap 11px) into the L padding */
 .cg-key-head { display: flex; align-items: center; gap: 11px; cursor: pointer; user-select: none; }
 .cg-key-head .dd-chevron { margin-left: -19px; }

@@ -133,10 +133,6 @@ mount({
             rows: SRCS.filter(src => src !== 'ghgsat' || ctx.sources.plumes.features.some(f => f.properties.src === 'ghgsat'))
                 .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.src === src })),
         },
-        {
-            label: 'Infrastructure',
-            rows: [{ swatch: { mark: 'waypoint', color: dd.adjusted.white }, label: 'Candidate sources' }],
-        },
     ],
 
     table: [
