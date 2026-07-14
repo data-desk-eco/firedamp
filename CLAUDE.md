@@ -4,9 +4,8 @@ Methane plume aggregator with per-plume AI source attribution.
 
 ## Architecture
 
-A [cartograph](~/Tools/cartograph) app: the generic Data Desk full-screen map
-system (dd design-system frontend + parquet-via-hyparquet backend, no npm, no
-build step) with all firedamp behaviour in `web/config.js` plus two hook
+A [cartograph](~/Tools/cartograph) app — the map system itself is documented
+there — with all firedamp behaviour in `web/config.js` plus two hook
 modules. A Python ETL produces `web/data/plumes.parquet`; the offline research
 agent — the sibling **ch4id** repo (`~/Tools/ch4id`) — produces
 `web/data/attributions.parquet` (committed, the attribution source of truth).

@@ -19,10 +19,9 @@ Plume sources
 
 Repo layout
 -----------
-A cartograph app: the generic Data Desk full-screen map system
-(dd design-system frontend + parquet-via-hyparquet backend,
-no npm, no build step), vendored, with all firedamp behaviour in three
-app modules.
+A cartograph app (github.com/data-desk-eco/cartograph — the map
+system itself is documented there), vendored, with all firedamp
+behaviour in three app modules.
 
     web/             static frontend (ES modules)
       config.js        declarative cartograph config: sources, layers,
