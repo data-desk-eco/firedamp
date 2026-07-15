@@ -1,4 +1,4 @@
-.PHONY: data features features-upload rebuild deploy-private serve vendor clean clean-all help
+.PHONY: data features features-upload rebuild deploy deploy-private serve vendor clean clean-all help
 
 CH4ID ?= $(HOME)/Tools/ch4id
 
@@ -24,6 +24,11 @@ features-upload: web/data/features.fgb
 # ── Full rebuild ─────────────────────────────────────────────────
 rebuild: data features features-upload
 	@echo "Full rebuild complete"
+
+# ── Deploy ───────────────────────────────────────────────────────
+# public (push → pages workflow) + private together, so they never drift
+deploy: deploy-private
+	git push
 
 # ── Datadesk-only deploy (Cloudflare Pages behind Access) ────────
 # ships the locally-built plumes.parquet — including local-only ghgsat — so it
@@ -57,6 +62,7 @@ help:
 	@echo "make features      Build features.fgb from the ch4id catalogue"
 	@echo "make features-upload Upload features.fgb to GCS"
 	@echo "make rebuild       Full pipeline: data + features + upload"
+	@echo "make deploy        Deploy private + push (public deploys via Actions)"
 	@echo "make deploy-private Deploy datadesk-only site (incl. GHGSat) to CF Pages"
 	@echo "make vendor        Download vendored JS/CSS/fonts"
 	@echo "make serve         Dev server on :8000"
