@@ -52,10 +52,8 @@ def build_cm(path):
 
             dt = row.get("datetime", "")[:10] or None
 
+            # keep rate-less plumes: cm publishes some without a quantified rate
             rate = safe_float(row.get("emission_auto"))
-            if rate is None:
-                continue
-
             unc = safe_float(row.get("emission_uncertainty_auto"))
             plumes.append({
                 "id": row.get("plume_id", ""),
@@ -63,7 +61,7 @@ def build_cm(path):
                 "lat": round(safe_float(row.get("plume_latitude")), 4),
                 "lon": round(safe_float(row.get("plume_longitude")), 4),
                 "dt": dt,
-                "rate": round(rate),
+                "rate": round(rate) if rate is not None else None,
                 "unc": round(unc) if unc is not None else None,
                 "sat": row.get("platform", "Tanager-1"),
                 "sec": map_sector(row.get("ipcc_sector")),
@@ -78,9 +76,6 @@ def build_imeo_plumes(path):
         reader = csv.DictReader(f)
         for row in reader:
             rate = safe_float(row.get("ch4_fluxrate"))
-            if rate is None:
-                continue
-
             dt_raw = row.get("tile_date", "")
             dt = dt_raw[:10] if dt_raw else None
 
@@ -94,7 +89,7 @@ def build_imeo_plumes(path):
                 "lat": round(safe_float(row.get("lat")), 4),
                 "lon": round(safe_float(row.get("lon")), 4),
                 "dt": dt,
-                "rate": round(rate),
+                "rate": round(rate) if rate is not None else None,
                 "unc": round(unc) if unc is not None else None,
                 "sat": sat,
                 "sec": map_sector(row.get("sector")),
@@ -115,9 +110,7 @@ def build_sron(path):
                 dt = dt_raw[:10] if dt_raw else None
 
             rate_t = safe_float(row.get("source_rate_t/h"))
-            if rate_t is None:
-                continue
-            rate = rate_t * 1000
+            rate = rate_t * 1000 if rate_t is not None else None
 
             unc_t = safe_float(row.get("uncertainty_t/h"))
             unc = unc_t * 1000 if unc_t is not None else None
@@ -141,7 +134,7 @@ def build_sron(path):
                 "lat": round(lat, 4),
                 "lon": round(lon, 4),
                 "dt": dt,
-                "rate": round(rate),
+                "rate": round(rate) if rate is not None else None,
                 "unc": round(unc) if unc is not None else None,
                 "sat": "TROPOMI",
             })
@@ -163,7 +156,7 @@ def build_ghgsat(path):
             rate = safe_float(row.get("emission_rate"))
             lat = safe_float(row.get("latitude"))
             lon = safe_float(row.get("longitude"))
-            if rate is None or lat is None or lon is None:
+            if lat is None or lon is None:
                 continue
             err = safe_float(row.get("emission_error_rate"))
             plumes.append({
@@ -172,8 +165,8 @@ def build_ghgsat(path):
                 "lat": round(lat, 4),
                 "lon": round(lon, 4),
                 "dt": (row.get("date") or "")[:10] or None,
-                "rate": round(rate),
-                "unc": round(rate * err) if err is not None else None,
+                "rate": round(rate) if rate is not None else None,
+                "unc": round(rate * err) if rate is not None and err is not None else None,
                 "sat": row.get("sensor", "GHGSat"),
             })
     print(f"  GHGSat: {len(plumes)} plumes (local-only)")

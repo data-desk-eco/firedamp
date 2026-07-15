@@ -17,7 +17,8 @@ const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' }
 // and the data table); grows gently with zoom, the burnoff ramp
 const ICON = ['interpolate', ['linear'], ['zoom'], 2, 0.55, 10, 0.8, 14, 1];
 
-const rateT = p => (Number(p.rate) / 1000).toFixed(1);
+// null when the provider published no rate estimate
+const rateT = p => p.rate == null ? null : (Number(p.rate) / 1000).toFixed(1);
 
 function sourceUrl(p) {
     if (!p.id) return null;
@@ -61,22 +62,23 @@ mount({
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
         // clusters only when far out — points take over from z5 (~UK-sized viewport)
         return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,
-                           clusterProperties: { rate_sum: ['+', ['get', 'rate']] } } };
+                           clusterProperties: { rate_sum: ['+', ['coalesce', ['get', 'rate'], 0]] } } };
     },
 
     layers: [
         ...SRCS.map(src => ({
             id: `plumes-${src}`, type: 'symbol', source: 'plumes',
             filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'src'], src]],
-            hover: p => `<span class="dd-title">${rateT(p)} t/hr</span><br>${LABEL[p.src]}${p.dt ? ' · ' + p.dt : ''}`,
+            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.src]}${p.dt ? ' · ' + p.dt : ''}`,
             layout: {
                 'icon-image': `flare-${COLOR[src]}`,
                 'icon-size': ICON,
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
-                // t/hr up-and-right (dd label rule); colliding labels drop, icons stay
-                'text-field': ['concat',
-                    ['number-format', ['/', ['get', 'rate'], 1000], { 'max-fraction-digits': 1 }], ' t/hr'],
+                // t/hr up-and-right (dd label rule); colliding labels drop, icons
+                // stay; rate-less plumes get no label
+                'text-field': ['case', ['==', ['typeof', ['get', 'rate']], 'number'], ['concat',
+                    ['number-format', ['/', ['get', 'rate'], 1000], { 'max-fraction-digits': 1 }], ' t/hr'], ''],
                 'text-font': ['Montserrat Regular'], 'text-size': 10,
                 'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
                 'text-optional': true,
@@ -122,9 +124,10 @@ mount({
         {
             // toggleable rate ranges: active rows OR into the data filter
             label: 'Rate (t/hr)',
-            rows: [['10+', 10], ['5–10', 5, 10], ['1–5', 1, 5], ['< 1', 0, 1]].map(([label, lo, hi]) => ({
+            rows: [['10+', 10], ['5–10', 5, 10], ['1–5', 1, 5], ['< 1', 0, 1], ['n/a']].map(([label, lo, hi]) => ({
                 swatch: { mark: 'flare', color: dd.adjusted.white }, label,
-                pred: p => p.rate >= lo * 1000 && (!hi || p.rate < hi * 1000),
+                pred: lo == null ? p => p.rate == null
+                    : p => p.rate != null && p.rate >= lo * 1000 && (!hi || p.rate < hi * 1000),
             })),
         },
         {
@@ -160,7 +163,7 @@ mount({
                 ${p.sec ? `<span class="dd-secondary">${SECTOR[p.sec] || escapeHtml(p.sec)}</span>` : ''}
             </div>
             <div class="fd-stats">
-                <div><div class="fd-stat-big">${rateT(p)}</div><div class="dd-secondary">t/hr${p.unc ? ` ±${(p.unc / 1000).toFixed(1)}` : ''}</div></div>
+                <div><div class="fd-stat-big">${rateT(p) ?? '—'}</div><div class="dd-secondary">t/hr${p.unc ? ` ±${(p.unc / 1000).toFixed(1)}` : ''}</div></div>
                 <div id="stat-wind"><div class="fd-stat-big">…</div><div class="dd-secondary">wind</div></div>
                 <div><div class="fd-stat-big">${escapeHtml(p.sat || '—')}</div><div class="dd-secondary">satellite</div></div>
                 <div><div class="fd-stat-big">${escapeHtml(p.dt || '—')}</div><div class="dd-secondary">date</div></div>
