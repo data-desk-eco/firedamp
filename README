@@ -85,11 +85,12 @@ URL scheme
 
 Deployment
 ----------
-Push to main -> deploy.yml -> GitHub Pages. plumes.parquet is pulled
-from the `latest-data` GitHub Release at deploy time. update-data.yml
-rebuilds it every 6 h. The feature catalogue is served from GCS
-(gs://firedamp-data/features.fgb, range-requested) and uploaded
-separately via `make features-upload`.
+Push to main -> deploy.yml -> GitHub Pages. All data is served live
+from the central datadesk store (the CloudFerro bucket
+https://s3.WAW3-2.cloudferro.com/datadesk-archive): update-data.yml
+rebuilds plumes/data.parquet there every 6 h, and the ch4id repo
+publishes the feature catalogue to features/data.fgb
+(range-requested).
 
 `make deploy-private` ships a Cloudflare Pages build (behind
 Cloudflare Access) that additionally includes the local-only GHGSat

@@ -8,6 +8,13 @@ import { escapeHtml } from './vendor/cartograph/util.js';
 import { loadAttributions, enrich } from './attribution.js';
 import { addCandidateLayers, clearSelection } from './candidates.js';
 
+// plumes live in the central datadesk store; localhost and the private deploy
+// (dist.sh local mode, whose baked parquet carries ghgsat) read the local copy.
+// hourly cache-buster: the store key is stable and refreshed ~6-hourly.
+const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
+const PLUMES = location.hostname === 'localhost' || document.querySelector('meta[name="local-plumes"]')
+    ? 'data/plumes.parquet' : `${bucket}/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+
 const SRCS = ['cm', 'imeo', 'sron', 'ghgsat'];
 const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange };
 const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat' };
@@ -50,7 +57,7 @@ mount({
     search: true,
     map: { center: [-98, 39], zoom: 4, minZoom: 1.5, maxZoom: 18 },
     data: {
-        files: { plumes: 'data/plumes.parquet', attributions: 'data/attributions.parquet' },
+        files: { plumes: PLUMES, attributions: 'data/attributions.parquet' },
         prefetch: ['plumes'],
     },
 

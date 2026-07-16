@@ -8,37 +8,33 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
   issues: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   update:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      STORE: https://s3.WAW3-2.cloudferro.com/datadesk-archive
     steps:
       - uses: actions/checkout@v6
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Download existing data from release
+      - name: Install duckdb           # upload_plumes.sh ghgsat guard
         run: |
-          gh release download latest-data --pattern 'plumes-data.zip' --dir . || true
-          if [ -f plumes-data.zip ]; then
-            unzip -o plumes-data.zip -d .
-            rm plumes-data.zip
-            cp web/data/plumes.parquet plumes.parquet.prev 2>/dev/null || true
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
+          curl -sL https://install.duckdb.org | sh
+          echo "$HOME/.duckdb/cli/latest" >> "$GITHUB_PATH"
+
+      # the store holds the previous build (plumes/data.parquet, the byte-diff
+      # baseline) and the source-csv cache (plumes/sources.zip — sron's
+      # accumulated weeklies + the last good imeo csv, which fetch_imeo keeps
+      # on network failure)
+      - name: Download previous data from the store
+        run: |
+          curl -sf "$STORE/plumes/sources.zip" -o sources.zip && unzip -oq sources.zip && rm sources.zip || true
+          curl -sf "$STORE/plumes/data.parquet" -o plumes.parquet.prev || true
 
       - name: Fetch Carbon Mapper + SRON
         run: |
@@ -53,44 +49,27 @@ jobs:
         run: uv run scripts/build.py
 
       # plumes.parquet is deterministic, so identical bytes ⇒ no new plumes.
-      # skip upload + deploy on those runs (most of the 4/day off-cycle ones).
+      # skip the upload on those runs (most of the 4/day off-cycle ones).
       - name: Detect data change
         id: diff
         run: |
           if [ -f plumes.parquet.prev ] && cmp -s plumes.parquet.prev web/data/plumes.parquet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "plumes.parquet unchanged — skipping upload and deploy"
+            echo "plumes.parquet unchanged — skipping upload"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Upload data to release
+      - name: Upload to the store
         if: steps.diff.outputs.changed == 'true'
-        run: |
-          zip -r plumes-data.zip \
-            web/data/plumes.parquet \
-            data/imeo_plumes.csv \
-            data/carbon_mapper.csv \
-            data/sron_all.csv \
-            data/sron
-          gh release upload latest-data plumes-data.zip --clobber
-          rm plumes-data.zip
         env:
-          GH_TOKEN: ${{ github.token }}
-
-      - name: Prepare dist
-        if: steps.diff.outputs.changed == 'true'
-        run: bash scripts/dist.sh "$GITHUB_SHA"
-
-      - if: steps.diff.outputs.changed == 'true'
-        uses: actions/configure-pages@v6
-      - if: steps.diff.outputs.changed == 'true'
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: dist
-      - id: deployment
-        if: steps.diff.outputs.changed == 'true'
-        uses: actions/deploy-pages@v5
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFERRO_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFERRO_S3_SECRET }}
+          AWS_DEFAULT_REGION: WAW3-2
+        run: |
+          bash scripts/upload_plumes.sh
+          zip -rq sources.zip data/imeo_plumes.csv data/carbon_mapper.csv data/sron_all.csv data/sron
+          aws --endpoint-url https://s3.WAW3-2.cloudferro.com s3 cp sources.zip s3://datadesk-archive/plumes/sources.zip --no-progress
 
       # data staleness must not go unnoticed: file an issue on failure
       # (skipped if one is already open, so persistent breakage = one issue)

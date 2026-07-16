@@ -24,7 +24,8 @@ Served on GitHub Pages; there is no backend service.
   paragraph, evidence links), and the per-plume daily-mean surface wind stat
   (Open-Meteo archive).
 - `web/candidates.js` — candidate sources from the ch4id feature catalogue
-  (`features.fgb` on GCS, ~12M points: OGIM + OSM + MapStand + GEM), flatgeobuf
+  (`features/data.fgb` in the central datadesk store, ~12M points: OGIM + OSM +
+  MapStand + GEM), flatgeobuf
   bbox queries over http range requests: viewport sweep past z13 (padded rect)
   + per-plume radius query on selection (3 km, 10 km for coarse sensors;
   nearest 300; attributed ids always kept, rect stretched to the assessed
@@ -49,13 +50,20 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 - **ch4id feature catalogue** — OGIM + OSM + MapStand + GEM merged
   (`~/Tools/ch4id/data/features.parquet`, ~15M features; ~12M exported as points)
 
+## Central data store
+
+Firedamp serves its data from the shared datadesk CloudFerro bucket
+(`https://s3.WAW3-2.cloudferro.com/datadesk-archive`, the `data-bucket` meta;
+defined in `~/Tools/s2-flares/cloud/store.sh`). Firedamp owns the `plumes/`
+prefix (`plumes/data.parquet` + the CI source-csv cache `plumes/sources.zip`);
+the feature catalogue at `features/data.fgb` is owned and published by ch4id
+(`make -C ~/Tools/ch4id features`).
+
 ## ETL
 
 ```
 make data             # CM + SRON + IMEO → web/data/plumes.parquet
-make features         # ch4id features.parquet → web/data/features.fgb (duckdb spatial)
-make features-upload  # FlatGeobuf → GCS
-make rebuild          # data + features + upload
+make plumes-upload    # publish plumes.parquet to the store (CI does this 6-hourly)
 ```
 
 `scripts/build.py` normalises the source CSVs into one zstd parquet: `id, link,
@@ -88,25 +96,29 @@ make vendor        # vendor deps (cartograph, dd, maplibre, hyparquet, flatgeobu
 make serve         # dev server on :8000 (HTTP Range for FlatGeobuf)
 ```
 
-Dev (`localhost`) reads `data/features.fgb` locally if present instead of GCS.
-Verify with the `browse` cli: `window.cartograph` exposes `{ map, sources, … }`.
+Dev (`localhost`) reads plumes locally (`web/data/plumes.parquet`, `make data`)
+and the feature catalogue from the store. Verify with the `browse` cli: `window.cartograph` exposes `{ map, sources, … }`.
 
 ## Deployment
 
-- **Pages**: push to `main` runs `deploy.yml`. Pulls `plumes.parquet` from the
-  `latest-data` Release, runs `scripts/dist.sh` (copies `web/*`, cache-busts
-  entry points / app-local imports / parquet fetches with the git SHA — vendor
-  modules stay unbusted so each resolves to one URL = one module instance), and
-  deploys.
-- **Plumes refresh**: `update-data.yml` every 6h — rebuilds `plumes.parquet`,
-  skips upload + deploy when bytes are unchanged, else uploads to the Release
-  and redeploys.
+- **Pages**: push to `main` runs `deploy.yml` — `scripts/dist.sh` (copies
+  `web/*`, cache-busts entry points / app-local imports / parquet fetches with
+  the git SHA — vendor modules stay unbusted so each resolves to one URL = one
+  module instance) and deploys. No plume data in the artifact: the site reads
+  `plumes/data.parquet` live from the store (hourly cache-buster in the URL).
+- **Plumes refresh**: `update-data.yml` every 6h — rebuilds `plumes.parquet`
+  against the store's source-csv cache, and when bytes changed uploads
+  `plumes/data.parquet` + `plumes/sources.zip` to the store (secrets
+  `CLOUDFERRO_S3_KEY`/`CLOUDFERRO_S3_SECRET`). No redeploy needed.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` locally
-  (including gitignored `data/ghgsat.csv`) and ships to Cloudflare Pages
-  project `firedamp-private` behind Cloudflare Access; refuses to deploy unless
-  the Access gate is answering. The **only** deploy that ever contains GHGSat.
-- **Feature catalogue**: `make features features-upload` (re-run when ch4id's
-  catalogue is rebuilt).
+  (including gitignored `data/ghgsat.csv`) and bakes it into the dist
+  (`dist.sh <sha> local` sets `<meta name="local-plumes">`), shipped to
+  Cloudflare Pages project `firedamp-private` behind Cloudflare Access; refuses
+  to deploy unless the Access gate is answering. The **only** deploy that ever
+  contains GHGSat — `upload_plumes.sh` refuses to publish a ghgsat-carrying
+  parquet to the store.
+- **Feature catalogue**: owned by ch4id — `make -C ~/Tools/ch4id features`
+  (re-run when the catalogue is rebuilt).
 
 **When adding new web assets**, add them to `scripts/dist.sh` (shared by both
 deploy workflows).

@@ -18,14 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download plumes.parquet from release
-        run: |
-          gh release download latest-data --pattern 'plumes-data.zip' --dir .
-          unzip -j plumes-data.zip web/data/plumes.parquet -d web/data
-          rm plumes-data.zip
-        env:
-          GH_TOKEN: ${{ github.token }}
-
+      # no plume data in the artifact: the site reads plumes/data.parquet live
+      # from the central datadesk store (update-data.yml keeps it fresh)
       - name: Prepare dist
         run: bash scripts/dist.sh "$GITHUB_SHA"
 
