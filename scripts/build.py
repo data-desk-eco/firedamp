@@ -173,6 +173,32 @@ def build_ghgsat(path):
     return plumes
 
 
+# datadesk: our own mars-s2l / hypergas detections, via the ch4id catalogue on
+# the store (`make dd` stages data/dd.csv). private-deploy-only like ghgsat:
+# ci never stages the file and upload_plumes.sh refuses to publish dd rows.
+def build_dd(path):
+    if not path.exists():
+        return []
+    plumes = []
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            rate = safe_float(row.get("rate"))
+            unc = safe_float(row.get("unc"))
+            plumes.append({
+                "id": row.get("id", ""),
+                "src": "dd",
+                "lat": round(float(row["lat"]), 4),
+                "lon": round(float(row["lon"]), 4),
+                "dt": (row.get("dt") or "")[:10] or None,
+                "rate": round(rate) if rate is not None else None,
+                "unc": round(unc) if unc is not None else None,
+                "sat": row.get("sat"),
+                "sec": "og",  # both detectors target oil & gas infrastructure
+            })
+    print(f"  Data Desk: {len(plumes)} plumes (local-only)")
+    return plumes
+
+
 # zstd parquet, dictionary-encoded strings. `link` is sron's source csv
 # filename (the old FDP1 "display|file" composite id, split out); rate/unc in
 # kg/hr; dt as iso string.
@@ -198,8 +224,9 @@ def main():
     imeo = build_imeo_plumes(Path("data/imeo_plumes.csv"))
     sron = build_sron(Path("data/sron_all.csv"))
     ghgsat = build_ghgsat(Path("data/ghgsat.csv"))
+    datadesk = build_dd(Path("data/dd.csv"))
 
-    all_plumes = cm + imeo + sron + ghgsat
+    all_plumes = cm + imeo + sron + ghgsat + datadesk
 
     plumes_path = out_dir / "plumes.parquet"
     write_parquet(all_plumes, plumes_path)

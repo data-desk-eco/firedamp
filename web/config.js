@@ -15,9 +15,10 @@ const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const PLUMES = location.hostname === 'localhost' || document.querySelector('meta[name="local-plumes"]')
     ? 'data/plumes.parquet' : `${bucket}/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 
-const SRCS = ['cm', 'imeo', 'sron', 'ghgsat'];
-const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange };
-const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat' };
+const SRCS = ['cm', 'imeo', 'sron', 'ghgsat', 'dd'];
+const PRIVATE = new Set(['ghgsat', 'dd']);   // only ever in the private deploy's baked parquet
+const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, dd: dd.adjusted.green };
+const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', dd: 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
 
 // dd flare marking, one size for every plume (rate lives in the key filter
@@ -31,6 +32,11 @@ function sourceUrl(p) {
     if (!p.id) return null;
     if (p.src === 'cm') return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(p.id)}`;
     if (p.src === 'sron' && p.link) return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(p.link)}`;
+    if (p.src === 'dd') {
+        // DD:<site>:<scene> → the run's quicklook panel on the store
+        const [, site, scene] = p.id.split(':');
+        if (scene) return `${bucket}/${scene.startsWith('EMIT') ? 'hypergas' : 'mars-s2l'}/plumes/${site}_${scene}.png`;
+    }
     return null;
 }
 
@@ -140,7 +146,7 @@ mount({
         {
             // source rows filter the data too, so clusters re-form without them
             label: 'Source',
-            rows: SRCS.filter(src => src !== 'ghgsat' || ctx.sources.plumes.features.some(f => f.properties.src === 'ghgsat'))
+            rows: SRCS.filter(src => !PRIVATE.has(src) || ctx.sources.plumes.features.some(f => f.properties.src === src))
                 .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.src === src })),
         },
     ],

@@ -9,8 +9,8 @@ cd "$(dirname "$0")/.."
 
 SRC=web/data/plumes.parquet
 [ -f "$SRC" ] || { echo "missing $SRC — run 'make data' first"; exit 1; }
-[ "$(duckdb -noheader -list -c "select count(*) from read_parquet('$SRC') where src='ghgsat'")" = 0 ] \
-    || { echo "refusing to publish: $SRC contains ghgsat (private) rows — ci publishes the public build"; exit 1; }
+[ "$(duckdb -noheader -list -c "select count(*) from read_parquet('$SRC') where src in ('ghgsat','dd')")" = 0 ] \
+    || { echo "refusing to publish: $SRC contains private rows (ghgsat/dd) — ci publishes the public build"; exit 1; }
 
 store=${S2FLARES:-$HOME/Tools/s2-flares}/cloud/store.sh
 if [ -f "$store" ]; then . "$store"; store_creds

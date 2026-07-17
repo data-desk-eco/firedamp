@@ -1,8 +1,15 @@
-.PHONY: data plumes-upload deploy deploy-private serve vendor clean clean-all help
+.PHONY: data dd plumes-upload deploy deploy-private serve vendor clean clean-all help
 
 # ── Data pipeline ────────────────────────────────────────────────
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
 data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
+
+# datadesk plumes — our own mars-s2l/hypergas detections, via the ch4id
+# catalogue on the store. private-deploy-only like ghgsat: ci never stages
+# data/dd.csv, and upload_plumes.sh refuses to publish dd rows.
+dd:
+	duckdb -c "copy (select id, detected_on as dt, rate_kg_hr as rate, uncertainty_kg_hr as unc, satellite as sat, lat, lon from read_parquet('https://s3.WAW3-2.cloudferro.com/datadesk-archive/ch4id/plumes.parquet') where provider = 'datadesk') to 'data/dd.csv' (format csv, header)"
+	uv run scripts/build.py
 	uv run scripts/build.py
 
 data/%.ok:
@@ -23,9 +30,10 @@ deploy: deploy-private
 	git push
 
 # ── Datadesk-only deploy (Cloudflare Pages behind Access) ────────
-# bakes the locally-built plumes.parquet — including local-only ghgsat — so it
-# refuses to deploy unless the access gate is answering in front of the site
-deploy-private: data
+# bakes the locally-built plumes.parquet — including local-only ghgsat and our
+# own dd detections — so it refuses to deploy unless the access gate is
+# answering in front of the site
+deploy-private: data dd
 	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }
 	bash scripts/dist.sh $$(git rev-parse HEAD) local
 	npx wrangler pages deploy dist --project-name firedamp-private --branch main

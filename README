@@ -94,7 +94,9 @@ publishes the feature catalogue to features/data.fgb
 
 `make deploy-private` ships a Cloudflare Pages build (behind
 Cloudflare Access) that additionally includes the local-only GHGSat
-data — the only deploy that ever contains it.
+data and Data Desk's own detections (`make dd` — MARS-S2L / hypergas
+candidates from the store, pending analyst review) — the only deploy
+that ever contains either.
 
 Both workflows assemble the Pages artifact via scripts/dist.sh — add
 any new web asset there.
