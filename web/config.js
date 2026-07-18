@@ -191,8 +191,7 @@ mount({
             <div class="fd-analysis">
                 <div class="dd-secondary">Analysis</div>
                 <div id="analysis" class="dd-secondary">Loading…</div>
-            </div>
-            ${overlayUrl(p) ? `<a class="fd-preview" href="${escapeHtml(sourceUrl(p))}" target="_blank" rel="noopener"><img src="${escapeHtml(overlayUrl(p))}" alt="MARS-S2L plume probability preview"></a>` : ''}`,
+            </div>`,
         onShow: p => { enrich(p); showProbabilityOverlay(p, overlayUrl(p)); },
         onClose: () => { clearSelection(); clearProbabilityOverlay(); },
     },

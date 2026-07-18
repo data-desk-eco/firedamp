@@ -12,5 +12,3 @@
 .fd-para { color: var(--dd-ui-text); }
 .fd-evidence a { color: var(--dd-ui-text-secondary); text-decoration: none; }
 .fd-evidence a:hover { color: var(--dd-ui-text); }
-.fd-preview { display: block; margin-top: 14px; }
-.fd-preview img { display: block; width: 100%; border-radius: 3px; image-rendering: auto; }
