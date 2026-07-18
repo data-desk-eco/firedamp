@@ -89,7 +89,10 @@ export function closeDetail() {
 // restore #<key>=<id> after data load, then regroup overlapping features once
 // the camera settles so the prev/next nav appears just as for a map click.
 // dynamic-source apps supply cfg.resolve(id) -> feature for ids not yet loaded
-async function restorePermalink() {
+// exported so mount() can restore after config.ready — apps often wire map
+// handles (overlays, extra layers) in ready, and onShow may depend on them
+export async function restorePermalink() {
+    if (!cfg) return;
     const id = getHashParam(location.hash, cfg.hashKey || 'id');
     if (!id) return;
     const match = allFeatures().find(f => String(f.properties[cfg.idProp || 'id']) === id)
@@ -155,5 +158,11 @@ export function initDetail(m, config, getFeatures) {
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
-    restorePermalink();
+    // deep links into an already-open tab: internal selection writes the hash
+    // via replaceState (no event), so hashchange only fires for external
+    // navigation — re-resolve the id or close if it was removed
+    addEventListener('hashchange', () => {
+        const id = getHashParam(location.hash, cfg.hashKey || 'id');
+        id ? restorePermalink() : closeDetail();
+    });
 }

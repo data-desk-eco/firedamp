@@ -8,7 +8,7 @@ import { createMap, addSatellite, wireWorldmap, wireCollapse, hoverPopup } from 
 import { initData, read, meta, fc } from './data.js';
 import { buildShell, initKey, wireSliders } from './ui.js';
 import { initQuarters } from './quarters.js';
-import { initDetail } from './detail.js';
+import { initDetail, restorePermalink } from './detail.js';
 import { initTable } from './table.js';
 import { initStory } from './story.js';
 import { compileConfig } from './util.js';
@@ -106,6 +106,8 @@ export async function mount(config) {
     }
 
     await config.ready?.(ctx);
+    // only after ready: onShow hooks may depend on handles wired there
+    restorePermalink();
     window.cartograph = ctx;   // console + test handle
     return ctx;
 }
