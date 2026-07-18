@@ -13,7 +13,7 @@ SRC=web/data/plumes.parquet
 [ "$(duckdb -noheader -list -c "select count(*) from read_parquet('$SRC') where src = 'ghgsat'")" = 0 ] \
     || { echo "refusing to publish: $SRC contains private ghgsat rows — ci publishes the public build"; exit 1; }
 
-store=${S2FLARES:-$HOME/Tools/s2-flares}/cloud/store.sh
+store=${DATA_DESK:-$HOME/Tools/data-desk}/store.sh
 if [ -f "$store" ]; then . "$store"; store_creds
 else STORE_BUCKET=datadesk-archive; STORE_ENDPOINT=https://s3.WAW3-2.cloudferro.com; fi
 

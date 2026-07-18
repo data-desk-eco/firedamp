@@ -60,7 +60,7 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 
 Firedamp serves its data from the shared datadesk CloudFerro bucket
 (`https://s3.WAW3-2.cloudferro.com/datadesk-archive`, the `data-bucket` meta;
-defined in `~/Tools/s2-flares/cloud/store.sh`). Firedamp owns the `plumes/`
+defined in `~/Tools/data-desk/store.sh`). Firedamp owns the `plumes/`
 prefix (`plumes/data.parquet` + the CI source-csv cache `plumes/sources.zip`);
 the feature catalogue at `features/data.fgb` is owned and published by ch4id
 (`make -C ~/Tools/ch4id features`).
