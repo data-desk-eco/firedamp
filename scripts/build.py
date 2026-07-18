@@ -187,6 +187,8 @@ def build_dd(path):
             plumes.append({
                 "id": row.get("id", ""),
                 "link": row.get("link", ""),
+                "overlay": row.get("overlay", ""),
+                "bounds": row.get("bounds", ""),
                 "src": "dd",
                 "lat": round(float(row["lat"]), 4),
                 "lon": round(float(row["lon"]), 4),
@@ -204,7 +206,8 @@ def build_dd(path):
 # filename (the old FDP1 "display|file" composite id, split out); rate/unc in
 # kg/hr; dt as iso string.
 SCHEMA = pa.schema([
-    ("id", pa.string()), ("link", pa.string()), ("src", pa.string()),
+    ("id", pa.string()), ("link", pa.string()), ("overlay", pa.string()),
+    ("bounds", pa.string()), ("src", pa.string()),
     ("lat", pa.float64()), ("lon", pa.float64()), ("dt", pa.string()),
     ("rate", pa.uint32()), ("unc", pa.uint32()),
     ("sat", pa.string()), ("sec", pa.string()),

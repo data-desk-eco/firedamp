@@ -7,6 +7,7 @@ import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml } from './vendor/cartograph/util.js';
 import { loadAttributions, enrich } from './attribution.js';
 import { addCandidateLayers, clearSelection } from './candidates.js';
+import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay } from './overlay.js';
 
 // plumes live in the central datadesk store; localhost and the private deploy
 // (dist.sh local mode, whose baked parquet carries ghgsat) read the local copy.
@@ -33,12 +34,17 @@ function sourceUrl(p) {
     if (p.src === 'cm') return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(p.id)}`;
     if (p.src === 'sron' && p.link) return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(p.link)}`;
     if (p.src === 'dd') {
-        if (p.link) return /^https?:/.test(p.link) ? p.link : `${bucket}/${p.link.replace(/^\//, '')}`;
+        if (p.link) return /^https?:/.test(p.link) ? p.link : `${bucket}/${p.link.replace(/^\//, '')}?v=viridis`;
         // Compatibility with the pre-canonical ch4id catalogue.
         const [, site, scene] = p.id.split(':');
         if (scene) return `${bucket}/${scene.startsWith('EMIT') ? 'hypergas' : 'mars-s2l'}/plumes/${site}_${scene}.png`;
     }
     return null;
+}
+
+function overlayUrl(p) {
+    if (p.src !== 'dd' || !p.overlay) return null;
+    return /^https?:/.test(p.overlay) ? p.overlay : `${bucket}/${p.overlay.replace(/^\//, '')}?v=viridis`;
 }
 
 mount({
@@ -186,10 +192,10 @@ mount({
                 <div class="dd-secondary">Analysis</div>
                 <div id="analysis" class="dd-secondary">Loading…</div>
             </div>
-            ${p.src === 'dd' && sourceUrl(p) ? `<a class="fd-preview" href="${escapeHtml(sourceUrl(p))}" target="_blank" rel="noopener"><img src="${escapeHtml(sourceUrl(p))}" alt="MARS-S2L plume probability preview"></a>` : ''}`,
-        onShow: enrich,
-        onClose: clearSelection,
+            ${overlayUrl(p) ? `<a class="fd-preview" href="${escapeHtml(sourceUrl(p))}" target="_blank" rel="noopener"><img src="${escapeHtml(overlayUrl(p))}" alt="MARS-S2L plume probability preview"></a>` : ''}`,
+        onShow: p => { enrich(p); showProbabilityOverlay(p, overlayUrl(p)); },
+        onClose: () => { clearSelection(); clearProbabilityOverlay(); },
     },
 
-    ready: ({ map }) => addCandidateLayers(map),
+    ready: ({ map }) => { initProbabilityOverlay(map); addCandidateLayers(map); },
 });

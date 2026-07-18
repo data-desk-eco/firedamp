@@ -8,7 +8,7 @@ data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
 # scene GeoJSON remains authoritative; this tiny CSV is private-build staging.
 DD_ARCHIVE ?= https://s3.WAW3-2.cloudferro.com/datadesk-archive/plumes/results.parquet
 dd:
-	duckdb -c "copy (select concat('DD:', target_id, ':', scene, ':', coalesce(id, 'plume-1')) as id, date as dt, flux_rate_kg_h as rate, flux_rate_std_kg_h as unc, satellite as sat, lat, lon, coalesce(preview_asset, probability_asset) as link from read_parquet('$(DD_ARCHIVE)') where detected order by date, target_id, scene, id) to 'data/dd.csv' (format csv, header)"
+	duckdb -c "copy (select concat('DD:', target_id, ':', scene, ':', coalesce(id, 'plume-1')) as id, date as dt, flux_rate_kg_h as rate, flux_rate_std_kg_h as unc, satellite as sat, lat, lon, coalesce(preview_asset, probability_asset) as link, preview_asset as overlay, footprint as bounds from read_parquet('$(DD_ARCHIVE)') where detected order by date, target_id, scene, id) to 'data/dd.csv' (format csv, header)"
 	uv run scripts/build.py
 
 data/%.ok:
