@@ -173,7 +173,7 @@ def build_ghgsat(path):
     return plumes
 
 
-# datadesk: our own canonical s2-flares detections (`make dd` stages the
+# datadesk: our own canonical s2e detections (`make dd` stages the
 # disposable archive view, curated valid-only). public like every other
 # source; only ghgsat remains private-deploy-only.
 def build_dd(path):

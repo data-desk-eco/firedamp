@@ -4,7 +4,7 @@
 # refuses a parquet carrying ghgsat rows: those are private-deploy-only and
 # must never be published (ci never has ghgsat.csv; a local build may).
 # dd rows are public: curated valid-only detections from the archive view.
-# creds: static env aws keys (ci) or the s2-flares store helper (local).
+# creds: static env aws keys (ci) or the s2e store helper (local).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

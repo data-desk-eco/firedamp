@@ -48,8 +48,8 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 - **GHGSat** — leaked, local-only `data/ghgsat.csv`; only ever enters the
   private deploy (see Deployment)
 - **Data Desk (`dd`)** — our own MARS-S2L / hypergas detections, staged from
-  the s2-flares archive view by `make dd` (`data/dd.csv`). Curated: only rows
-  the archive marks `valid` (s2-flares `data/valid-plumes.txt`) pass, deduped
+  the s2e archive view by `make dd` (`data/dd.csv`). Curated: only rows
+  the archive marks `valid` (s2e `data/valid-plumes.txt`) pass, deduped
   to one row per target/date/plume with native records preferred over the
   legacy import. Public like every other source. Detail-panel title links to
   the plume preview on the store

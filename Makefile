@@ -5,7 +5,7 @@
 data: data/sron.ok data/carbon_mapper.ok data/imeo.ok dd
 	uv run scripts/build.py
 
-# Data Desk plumes come straight from s2-flares' disposable map view, curated:
+# Data Desk plumes come straight from s2e's disposable map view, curated:
 # only detections the archive marks valid pass, one row per target/date/plume
 # (native records win over the legacy import). Canonical scene GeoJSON remains
 # authoritative. Public like every other source; only ghgsat stays private.

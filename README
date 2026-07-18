@@ -15,7 +15,7 @@ Plume sources
 - IMEO / MARS        UNEP methane plume database (Azure zip)
 - SRON               TROPOMI weekly plume CSVs (FTP)
 - ch4id catalogue    OGIM + OSM + MapStand + GEM candidate sources
-- Data Desk          curated valid-only, from s2-flares canonical archive views
+- Data Desk          curated valid-only, from s2e canonical archive views
 
 
 Repo layout
