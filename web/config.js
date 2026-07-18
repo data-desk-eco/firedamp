@@ -33,7 +33,8 @@ function sourceUrl(p) {
     if (p.src === 'cm') return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(p.id)}`;
     if (p.src === 'sron' && p.link) return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(p.link)}`;
     if (p.src === 'dd') {
-        // DD:<site>:<scene> → the run's quicklook panel on the store
+        if (p.link) return /^https?:/.test(p.link) ? p.link : `${bucket}/${p.link.replace(/^\//, '')}`;
+        // Compatibility with the pre-canonical ch4id catalogue.
         const [, site, scene] = p.id.split(':');
         if (scene) return `${bucket}/${scene.startsWith('EMIT') ? 'hypergas' : 'mars-s2l'}/plumes/${site}_${scene}.png`;
     }
@@ -184,7 +185,8 @@ mount({
             <div class="fd-analysis">
                 <div class="dd-secondary">Analysis</div>
                 <div id="analysis" class="dd-secondary">Loading…</div>
-            </div>`,
+            </div>
+            ${p.src === 'dd' && sourceUrl(p) ? `<a class="fd-preview" href="${escapeHtml(sourceUrl(p))}" target="_blank" rel="noopener"><img src="${escapeHtml(sourceUrl(p))}" alt="MARS-S2L plume probability preview"></a>` : ''}`,
         onShow: enrich,
         onClose: clearSelection,
     },

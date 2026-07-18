@@ -4,12 +4,11 @@
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
 data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
 
-# datadesk plumes — our own mars-s2l/hypergas detections, via the ch4id
-# catalogue on the store. private-deploy-only like ghgsat: ci never stages
-# data/dd.csv, and upload_plumes.sh refuses to publish dd rows.
+# Data Desk plumes come straight from s2-flares' disposable map view. Canonical
+# scene GeoJSON remains authoritative; this tiny CSV is private-build staging.
+DD_ARCHIVE ?= https://s3.WAW3-2.cloudferro.com/datadesk-archive/plumes/results.parquet
 dd:
-	duckdb -c "copy (select id, detected_on as dt, rate_kg_hr as rate, uncertainty_kg_hr as unc, satellite as sat, lat, lon from read_parquet('https://s3.WAW3-2.cloudferro.com/datadesk-archive/ch4id/plumes.parquet') where provider = 'datadesk') to 'data/dd.csv' (format csv, header)"
-	uv run scripts/build.py
+	duckdb -c "copy (select concat('DD:', target_id, ':', scene, ':', coalesce(id, 'plume-1')) as id, date as dt, flux_rate_kg_h as rate, flux_rate_std_kg_h as unc, satellite as sat, lat, lon, coalesce(preview_asset, probability_asset) as link from read_parquet('$(DD_ARCHIVE)') where detected order by date, target_id, scene, id) to 'data/dd.csv' (format csv, header)"
 	uv run scripts/build.py
 
 data/%.ok:

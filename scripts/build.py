@@ -173,9 +173,9 @@ def build_ghgsat(path):
     return plumes
 
 
-# datadesk: our own mars-s2l / hypergas detections, via the ch4id catalogue on
-# the store (`make dd` stages data/dd.csv). private-deploy-only like ghgsat:
-# ci never stages the file and upload_plumes.sh refuses to publish dd rows.
+# datadesk: our own canonical s2-flares detections (`make dd` stages the
+# disposable archive view). private-deploy-only like ghgsat: CI never stages
+# the file and upload_plumes.sh refuses to publish dd rows.
 def build_dd(path):
     if not path.exists():
         return []
@@ -186,6 +186,7 @@ def build_dd(path):
             unc = safe_float(row.get("unc"))
             plumes.append({
                 "id": row.get("id", ""),
+                "link": row.get("link", ""),
                 "src": "dd",
                 "lat": round(float(row["lat"]), 4),
                 "lon": round(float(row["lon"]), 4),
