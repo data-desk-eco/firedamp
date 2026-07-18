@@ -14,9 +14,9 @@ import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay
 // hourly cache-buster: the store key is stable and refreshed ~6-hourly.
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const PLUMES = location.hostname === 'localhost' || document.querySelector('meta[name="local-plumes"]')
-    ? 'data/plumes.parquet' : `${bucket}/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+    ? 'data/plumes.parquet' : `${bucket}/views/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 // attributions live on the store too (ch4id `sync push` exports the contract)
-const ATTRIBUTIONS = `${bucket}/attributions/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+const ATTRIBUTIONS = `${bucket}/views/attributions/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 
 const SRCS = ['cm', 'imeo', 'sron', 'ghgsat', 'dd'];
 const PRIVATE = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet

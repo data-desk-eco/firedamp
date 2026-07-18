@@ -1,4 +1,4 @@
-// candidate sources from the ch4id feature catalogue (features/data.fgb —
+// candidate sources from the ch4id feature catalogue (web/features.fgb —
 // ogim + osm + mapstand + gem point features in the central datadesk store),
 // streamed via flatgeobuf bbox queries over http range requests. loaded optimistically for the viewport
 // past MIN_ZOOM, plus a radius query around the selected plume with the
@@ -10,7 +10,7 @@ import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml, fmtMetres, haversineM } from './vendor/cartograph/util.js';
 
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
-const FGB = `${bucket}/features/data.fgb`;
+const FGB = `${bucket}/web/features.fgb`;
 const MIN_ZOOM = 13;
 const MAX_SCAN = 4000, MAX_SHOW = 300;
 const PT = dd.adjusted.white, HL = dd.adjusted.orange;
