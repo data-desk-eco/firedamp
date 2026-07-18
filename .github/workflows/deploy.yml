@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v6
 
       # no plume data in the artifact: the site reads plumes/data.parquet live
-      # from the central datadesk store (update-data.yml keeps it fresh)
+      # from the central datadesk store (etl/plumes.yml keeps it fresh)
       - name: Prepare dist
         run: bash scripts/dist.sh "$GITHUB_SHA"
 

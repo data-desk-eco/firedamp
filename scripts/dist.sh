@@ -12,7 +12,6 @@ rm -rf dist
 mkdir -p dist/data
 cp web/index.html web/style.css web/*.js dist/
 cp -r web/vendor dist/vendor
-cp web/data/attributions.parquet dist/data/
 if [ "${2:-}" = local ]; then
     cp web/data/plumes.parquet dist/data/
     sed -i.bak 's#<head>#<head><meta name="local-plumes">#' dist/index.html
@@ -23,5 +22,5 @@ fi
 # and the local parquet fetches (the store url self-busts hourly)
 sed -i.bak -E "s#(config\.js|\"style\.css)#\1?v=$V#g" dist/index.html
 sed -i.bak -E "s#(from '\./[a-z]+\.js)'#\1?v=$V'#g" dist/*.js
-sed -i.bak -E "s#(data/(plumes|attributions)\.parquet)#\1?v=$V#g" dist/config.js
+sed -i.bak -E "s#(data/plumes\.parquet)#\1?v=$V#g" dist/config.js
 rm dist/*.bak

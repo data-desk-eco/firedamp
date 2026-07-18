@@ -36,19 +36,12 @@ behaviour in three app modules.
                        (committed source of truth, from ch4id)
       vendor/          cartograph core, dd design dist, MapLibre,
                        hyparquet, FlatGeobuf, Inter font
-    scripts/         Python ETL (uv-managed) + build/deploy shell
-      fetch_carbon_mapper.py
-      fetch_imeo.py
-      fetch_sron.py
-      build.py         source CSVs -> web/data/plumes.parquet
-      features.sql     ch4id catalogue -> web/data/features.fgb
+    scripts/         build/deploy shell (the plume etl lives in ~/Tools/etl)
       dist.sh          assembles the Pages artifact (cache-busted)
       serve.py         dev server with HTTP Range for FlatGeobuf
       vendor.sh
-    data/            input CSVs and intermediates (gitignored)
     .github/workflows/
       deploy.yml          Pages on push to main
-      update-data.yml     plume refresh every 6 h
 
 
 Setup
@@ -71,11 +64,10 @@ Pipelines
 Source attribution
 ------------------
 Detail panels show a per-plume source attribution, produced offline
-by the ch4id sibling repo's agentic pipeline (make deploy there
-commits a refreshed web/data/attributions.parquet here and pushes).
-The parquet is the committed source of truth and is read directly in
-the browser, as is plumes.parquet. There is no live
-in-browser LLM pipeline. See CLAUDE.md.
+by the ch4id sibling repo's agentic pipeline (sync push there exports
+the contract to attributions/data.parquet on the store). The browser
+reads it live, as it does plumes.parquet. There is no live in-browser
+LLM pipeline. See CLAUDE.md.
 
 
 URL scheme
@@ -88,10 +80,9 @@ Deployment
 ----------
 Push to main -> deploy.yml -> GitHub Pages. All data is served live
 from the central datadesk store (the CloudFerro bucket
-https://s3.WAW3-2.cloudferro.com/datadesk-archive): update-data.yml
-rebuilds plumes/data.parquet there every 6 h, and the ch4id repo
-publishes the feature catalogue to features/data.fgb
-(range-requested).
+https://s3.WAW3-2.cloudferro.com/datadesk-archive): the etl repo
+rebuilds plumes/data.parquet there every 6 h and publishes the
+feature catalogue at features/data.fgb (range-requested).
 
 `make deploy-private` ships a Cloudflare Pages build (behind
 Cloudflare Access) that additionally includes the local-only GHGSat

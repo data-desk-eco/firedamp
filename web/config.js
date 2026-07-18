@@ -15,6 +15,8 @@ import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const PLUMES = location.hostname === 'localhost' || document.querySelector('meta[name="local-plumes"]')
     ? 'data/plumes.parquet' : `${bucket}/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+// attributions live on the store too (ch4id `sync push` exports the contract)
+const ATTRIBUTIONS = `${bucket}/attributions/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 
 const SRCS = ['cm', 'imeo', 'sron', 'ghgsat', 'dd'];
 const PRIVATE = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
@@ -70,7 +72,7 @@ mount({
     search: true,
     map: { center: [-98, 39], zoom: 4, minZoom: 1.5, maxZoom: 18 },
     data: {
-        files: { plumes: PLUMES, attributions: 'data/attributions.parquet' },
+        files: { plumes: PLUMES, attributions: ATTRIBUTIONS },
         prefetch: ['plumes'],
     },
 
