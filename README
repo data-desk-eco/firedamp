@@ -15,7 +15,7 @@ Plume sources
 - IMEO / MARS        UNEP methane plume database (Azure zip)
 - SRON               TROPOMI weekly plume CSVs (FTP)
 - ch4id catalogue    OGIM + OSM + MapStand + GEM candidate sources
-- Data Desk          private build, from s2-flares canonical archive views
+- Data Desk          curated valid-only, from s2-flares canonical archive views
 
 
 Repo layout
@@ -95,9 +95,9 @@ publishes the feature catalogue to features/data.fgb
 
 `make deploy-private` ships a Cloudflare Pages build (behind
 Cloudflare Access) that additionally includes the local-only GHGSat
-data and Data Desk's own detections (`make dd` — MARS-S2L / hypergas
-candidates from the store, pending analyst review) — the only deploy
-that ever contains either.
+data — the only deploy that ever contains it. Data Desk's own
+detections (`make dd` — curated, archive-validated MARS-S2L /
+hypergas plumes) are public alongside the other sources.
 
 Both workflows assemble the Pages artifact via scripts/dist.sh — add
 any new web asset there.

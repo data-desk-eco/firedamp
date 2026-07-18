@@ -45,6 +45,11 @@ jobs:
         run: uv run scripts/fetch_imeo.py
         continue-on-error: true
 
+      # curated data desk detections from the s2-flares archive view
+      # (valid-only; see the dd target)
+      - name: Stage Data Desk plumes
+        run: make dd
+
       - name: Build plumes.parquet
         run: uv run scripts/build.py
 

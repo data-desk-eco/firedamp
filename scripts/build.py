@@ -174,8 +174,8 @@ def build_ghgsat(path):
 
 
 # datadesk: our own canonical s2-flares detections (`make dd` stages the
-# disposable archive view). private-deploy-only like ghgsat: CI never stages
-# the file and upload_plumes.sh refuses to publish dd rows.
+# disposable archive view, curated valid-only). public like every other
+# source; only ghgsat remains private-deploy-only.
 def build_dd(path):
     if not path.exists():
         return []
@@ -198,7 +198,7 @@ def build_dd(path):
                 "sat": row.get("sat"),
                 "sec": "og",  # both detectors target oil & gas infrastructure
             })
-    print(f"  Data Desk: {len(plumes)} plumes (local-only)")
+    print(f"  Data Desk: {len(plumes)} plumes (curated)")
     return plumes
 
 

@@ -2,14 +2,16 @@
 
 # ── Data pipeline ────────────────────────────────────────────────
 # fetches are sentinel-cached: rm data/<source>.ok (or make clean) to refetch
-data: data/sron.ok data/carbon_mapper.ok data/imeo.ok
+data: data/sron.ok data/carbon_mapper.ok data/imeo.ok dd
+	uv run scripts/build.py
 
-# Data Desk plumes come straight from s2-flares' disposable map view. Canonical
-# scene GeoJSON remains authoritative; this tiny CSV is private-build staging.
+# Data Desk plumes come straight from s2-flares' disposable map view, curated:
+# only detections the archive marks valid pass, one row per target/date/plume
+# (native records win over the legacy import). Canonical scene GeoJSON remains
+# authoritative. Public like every other source; only ghgsat stays private.
 DD_ARCHIVE ?= https://s3.WAW3-2.cloudferro.com/datadesk-archive/plumes/results.parquet
 dd:
-	duckdb -c "copy (select concat('DD:', target_id, ':', scene, ':', coalesce(id, 'plume-1')) as id, date as dt, flux_rate_kg_h as rate, flux_rate_std_kg_h as unc, satellite as sat, lat, lon, coalesce(preview_asset, probability_asset) as link, preview_asset as overlay, footprint as bounds from read_parquet('$(DD_ARCHIVE)') where detected order by date, target_id, scene, id) to 'data/dd.csv' (format csv, header)"
-	uv run scripts/build.py
+	duckdb -c "copy (select concat('DD:', target_id, ':', scene, ':', coalesce(id, 'plume-1')) as id, date as dt, flux_rate_kg_h as rate, flux_rate_std_kg_h as unc, satellite as sat, lat, lon, coalesce(preview_asset, probability_asset) as link, preview_asset as overlay, footprint as bounds from read_parquet('$(DD_ARCHIVE)') where detected and valid qualify row_number() over (partition by target_id, date, id order by (method = 'legacy-mars-s2l'), scene desc) = 1 order by date, target_id, scene, id) to 'data/dd.csv' (format csv, header)"
 
 data/%.ok:
 	uv run scripts/fetch_$*.py
@@ -32,7 +34,7 @@ deploy: deploy-private
 # bakes the locally-built plumes.parquet — including local-only ghgsat and our
 # own dd detections — so it refuses to deploy unless the access gate is
 # answering in front of the site
-deploy-private: data dd
+deploy-private: data
 	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }
 	bash scripts/dist.sh $$(git rev-parse HEAD) local
 	npx wrangler pages deploy dist --project-name firedamp-private --branch main

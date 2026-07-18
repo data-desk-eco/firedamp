@@ -48,9 +48,11 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 - **GHGSat** — leaked, local-only `data/ghgsat.csv`; only ever enters the
   private deploy (see Deployment)
 - **Data Desk (`dd`)** — our own MARS-S2L / hypergas detections, staged from
-  the store's ch4id catalogue by `make dd` (`data/dd.csv`, local-only like
-  ghgsat; unreviewed candidates → private deploy only). Detail-panel title
-  links to the run's quicklook panel on the store
+  the s2-flares archive view by `make dd` (`data/dd.csv`). Curated: only rows
+  the archive marks `valid` (s2-flares `data/valid-plumes.txt`) pass, deduped
+  to one row per target/date/plume with native records preferred over the
+  legacy import. Public like every other source. Detail-panel title links to
+  the plume preview on the store
 - **ch4id feature catalogue** — OGIM + OSM + MapStand + GEM merged
   (`~/Tools/ch4id/data/features.parquet`, ~15M features; ~12M exported as points)
 
@@ -115,12 +117,12 @@ and the feature catalogue from the store. Verify with the `browse` cli: `window.
   `plumes/data.parquet` + `plumes/sources.zip` to the store (secrets
   `CLOUDFERRO_S3_KEY`/`CLOUDFERRO_S3_SECRET`). No redeploy needed.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` locally
-  (including gitignored `data/ghgsat.csv` and `data/dd.csv`) and bakes it into
+  (including gitignored `data/ghgsat.csv`) and bakes it into
   the dist (`dist.sh <sha> local` sets `<meta name="local-plumes">`), shipped to
   Cloudflare Pages project `firedamp-private` behind Cloudflare Access; refuses
   to deploy unless the Access gate is answering. The **only** deploy that ever
-  contains GHGSat or Data Desk plumes — `upload_plumes.sh` refuses to publish a
-  parquet carrying either to the store.
+  contains GHGSat plumes — `upload_plumes.sh` refuses to publish a parquet
+  carrying them to the store. Data Desk rows are public (curated valid-only).
 - **Feature catalogue**: owned by ch4id — `make -C ~/Tools/ch4id features`
   (re-run when the catalogue is rebuilt).
 

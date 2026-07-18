@@ -3,14 +3,15 @@
 # (plumes/data.parquet, public) — the url the deployed site reads live.
 # refuses a parquet carrying ghgsat rows: those are private-deploy-only and
 # must never be published (ci never has ghgsat.csv; a local build may).
+# dd rows are public: curated valid-only detections from the archive view.
 # creds: static env aws keys (ci) or the s2-flares store helper (local).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SRC=web/data/plumes.parquet
 [ -f "$SRC" ] || { echo "missing $SRC — run 'make data' first"; exit 1; }
-[ "$(duckdb -noheader -list -c "select count(*) from read_parquet('$SRC') where src in ('ghgsat','dd')")" = 0 ] \
-    || { echo "refusing to publish: $SRC contains private rows (ghgsat/dd) — ci publishes the public build"; exit 1; }
+[ "$(duckdb -noheader -list -c "select count(*) from read_parquet('$SRC') where src = 'ghgsat'")" = 0 ] \
+    || { echo "refusing to publish: $SRC contains private ghgsat rows — ci publishes the public build"; exit 1; }
 
 store=${S2FLARES:-$HOME/Tools/s2-flares}/cloud/store.sh
 if [ -f "$store" ]; then . "$store"; store_creds

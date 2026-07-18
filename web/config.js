@@ -17,7 +17,7 @@ const PLUMES = location.hostname === 'localhost' || document.querySelector('meta
     ? 'data/plumes.parquet' : `${bucket}/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 
 const SRCS = ['cm', 'imeo', 'sron', 'ghgsat', 'dd'];
-const PRIVATE = new Set(['ghgsat', 'dd']);   // only ever in the private deploy's baked parquet
+const PRIVATE = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
 const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, dd: dd.adjusted.green };
 const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', dd: 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
