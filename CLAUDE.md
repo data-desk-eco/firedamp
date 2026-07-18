@@ -24,7 +24,7 @@ Pages; there is no backend service.
   paragraph, evidence links), and the per-plume daily-mean surface wind stat
   (Open-Meteo archive).
 - `web/candidates.js` — candidate sources from the ch4id feature catalogue
-  (`features/data.fgb` in the central datadesk store, ~12M points: OGIM + OSM +
+  (`web/features.fgb` in the central datadesk store, ~12M points: OGIM + OSM +
   MapStand + GEM), flatgeobuf
   bbox queries over http range requests: viewport sweep past z13 (padded rect)
   + per-plume radius query on selection (3 km, 10 km for coarse sensors;
@@ -61,7 +61,7 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 Firedamp serves its data from the shared datadesk CloudFerro bucket
 (`https://s3.WAW3-2.cloudferro.com/datadesk-archive`, the `data-bucket` meta;
 defined in `~/Tools/data-desk/store.sh`; layout in `data-desk/DATASETS.md`).
-The `plumes/data.parquet` aggregation and `features/data.fgb` catalogue are
+The `views/plumes/` aggregation and `web/features.fgb` catalogue are
 both produced by the `etl` repo; firedamp only reads them.
 
 ## Frontend data flow
@@ -91,7 +91,7 @@ Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
   `web/*`, cache-busts entry points / app-local imports / parquet fetches with
   the git SHA — vendor modules stay unbusted so each resolves to one URL = one
   module instance) and deploys. No plume data in the artifact: the site reads
-  `plumes/data.parquet` live from the store (hourly cache-buster in the URL).
+  `views/plumes/data.parquet` live from the store (hourly cache-buster in the URL).
 - **Plumes refresh**: `etl/plumes.yml` every 6h in the etl repo — no redeploy
   needed, the site reads the store live.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` via the

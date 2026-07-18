@@ -65,7 +65,7 @@ Source attribution
 ------------------
 Detail panels show a per-plume source attribution, produced offline
 by the ch4id sibling repo's agentic pipeline (sync push there exports
-the contract to attributions/data.parquet on the store). The browser
+the contract to views/attributions/data.parquet on the store). The browser
 reads it live, as it does plumes.parquet. There is no live in-browser
 LLM pipeline. See CLAUDE.md.
 
@@ -81,8 +81,8 @@ Deployment
 Push to main -> deploy.yml -> GitHub Pages. All data is served live
 from the central datadesk store (the CloudFerro bucket
 https://s3.WAW3-2.cloudferro.com/datadesk-archive): the etl repo
-rebuilds plumes/data.parquet there every 6 h and publishes the
-feature catalogue at features/data.fgb (range-requested).
+rebuilds views/plumes/data.parquet there every 6 h and publishes the
+feature catalogue at web/features.fgb (range-requested).
 
 `make deploy-private` ships a Cloudflare Pages build (behind
 Cloudflare Access) that additionally includes the local-only GHGSat
