@@ -16,7 +16,7 @@ deploy: deploy-private
 deploy-private:
 	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }
 	$(MAKE) -C $(ETL) plumes
-	cp $(ETL)/data/plumes.parquet web/data/plumes.parquet
+	cp $(ETL)/data/plumes/data.parquet web/data/plumes.parquet
 	bash scripts/dist.sh $$(git rev-parse HEAD) local
 	npx wrangler pages deploy dist --project-name firedamp-private --branch main
 
