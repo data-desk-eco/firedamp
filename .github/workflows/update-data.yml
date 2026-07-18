@@ -71,6 +71,9 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFERRO_S3_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFERRO_S3_SECRET }}
           AWS_DEFAULT_REGION: WAW3-2
+          # awscli >= 2.23 defaults to crc checksums non-aws s3 rejects
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
           bash scripts/upload_plumes.sh
           zip -rq sources.zip data/imeo_plumes.csv data/carbon_mapper.csv data/sron_all.csv data/sron
