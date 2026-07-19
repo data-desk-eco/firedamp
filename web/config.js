@@ -167,7 +167,8 @@ mount({
             cols: ['id', 'src', 'dt', 'rate', 'sat', 'sec', 'lat', 'lon'],
         },
         {
-            label: 'Attributions',
+            // rows aren't plume properties, so the legend preds don't apply
+            label: 'Attributions', filter: false,
             rows: async ({ read }) => (await read('attributions',
                 { columns: ['id', 'source_label', 'source_kind', 'operator', 'confidence', 'lat', 'lon'] }))
                 .sort((a, b) => String(a.source_label).localeCompare(String(b.source_label))),

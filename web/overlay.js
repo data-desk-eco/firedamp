@@ -4,16 +4,33 @@
 
 const SOURCE = 'dd-plume-probability';
 const LAYER = 'dd-plume-probability';
-let map;
+let map, epoch = 0, objectUrl = null;
 
 export function initProbabilityOverlay(value) {
     map = value;
 }
 
 export function clearProbabilityOverlay() {
+    epoch++;
     if (!map) return;
     if (map.getLayer(LAYER)) map.removeLayer(LAYER);
     if (map.getSource(SOURCE)) map.removeSource(SOURCE);
+    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+}
+
+// the png's alpha tracks probability, whose floor is ~0.25 (alpha 64) — a
+// visible chip-shaped tint over the basemap. remap 64→0, 255→255 so the
+// background is fully transparent and the plume ramps in smoothly.
+async function transparentize(url) {
+    const bitmap = await createImageBitmap(await (await fetch(url)).blob());
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext('2d');
+    context.drawImage(bitmap, 0, 0);
+    const image = context.getImageData(0, 0, bitmap.width, bitmap.height);
+    const d = image.data;
+    for (let i = 3; i < d.length; i += 4) d[i] = Math.max(0, (d[i] - 64) * 255 / 191);
+    context.putImageData(image, 0, 0);
+    return URL.createObjectURL(await canvas.convertToBlob());
 }
 
 function imageCorners(bounds) {
@@ -23,13 +40,17 @@ function imageCorners(bounds) {
     return [ring[3], ring[2], ring[1], ring[0]];
 }
 
-export function showProbabilityOverlay(properties, url) {
+export async function showProbabilityOverlay(properties, url) {
     clearProbabilityOverlay();
     if (!map || properties.src !== 'dd' || !url || !properties.bounds) return;
+    const now = epoch;
     try {
         const coordinates = imageCorners(properties.bounds);
         if (!coordinates) return;
-        map.addSource(SOURCE, { type: 'image', url, coordinates });
+        const blobUrl = await transparentize(url);
+        if (now !== epoch) return URL.revokeObjectURL(blobUrl);   // superseded mid-fetch
+        objectUrl = blobUrl;
+        map.addSource(SOURCE, { type: 'image', url: blobUrl, coordinates });
         map.addLayer({
             id: LAYER,
             type: 'raster',
