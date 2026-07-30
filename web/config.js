@@ -7,19 +7,24 @@ import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml } from './vendor/cartograph/util.js';
 import { loadAttributions, enrich } from './attribution.js';
 import { addCandidateLayers, clearSelection } from './candidates.js';
+import { LICENCE_LAYERS, addLicenceLayers } from './licences.js';
 import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay } from './overlay.js';
 
-// plumes live in the central datadesk store; localhost and the private deploy
-// (dist.sh local mode, whose baked parquet carries ghgsat) read the local copy.
-// hourly cache-buster: the store key is stable and refreshed ~6-hourly.
+// the datadesk-only deploy (dist.sh local mode, behind cloudflare access) and
+// localhost. it bakes a plumes parquet carrying ghgsat and is the only place
+// mapstand licence acreage — licensed data — is drawn.
+const PRIVATE = location.hostname === 'localhost' || document.querySelector('meta[name="private"]');
+
+// plumes live in the central datadesk store; the private deploy reads its
+// baked copy. hourly cache-buster: the store key is stable, refreshed ~6-hourly.
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
-const PLUMES = location.hostname === 'localhost' || document.querySelector('meta[name="local-plumes"]')
+const PLUMES = PRIVATE
     ? 'data/plumes.parquet' : `${bucket}/views/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 // attributions live on the store too (ch4id `sync push` exports the contract)
 const ATTRIBUTIONS = `${bucket}/views/attributions/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 
 const SRCS = ['cm', 'imeo', 'sron', 'ghgsat', 'dd'];
-const PRIVATE = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
+const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
 const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, dd: dd.adjusted.green };
 const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', dd: 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
@@ -76,7 +81,10 @@ mount({
         prefetch: ['plumes'],
     },
 
-    sources: async ({ read, fc }) => {
+    sources: async ({ read, fc, map }) => {
+        // added here, not in ready(), so the key's visibility toggle has a
+        // layer to read — and so licence acreage sits beneath every plume
+        if (PRIVATE) addLicenceLayers(map);
         const [plumes, attribs] = await Promise.all([
             read('plumes'),
             loadAttributions(),
@@ -155,9 +163,17 @@ mount({
         {
             // source rows filter the data too, so clusters re-form without them
             label: 'Source',
-            rows: SRCS.filter(src => !PRIVATE.has(src) || ctx.sources.plumes.features.some(f => f.properties.src === src))
+            rows: SRCS.filter(src => !PRIVATE_SRCS.has(src) || ctx.sources.plumes.features.some(f => f.properties.src === src))
                 .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.src === src })),
         },
+        // layer toggle, not a data filter: licence areas aren't plumes
+        ...(PRIVATE ? [{
+            label: 'Licensing',
+            rows: [{
+                swatch: { ring: dd.adjusted.purple }, label: 'Licence areas (MapStand)',
+                toggle: LICENCE_LAYERS,
+            }],
+        }] : []),
     ],
 
     table: [

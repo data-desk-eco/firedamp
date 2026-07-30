@@ -3,8 +3,9 @@
 # usage: dist.sh <sha> [local]
 #   public (deploy.yml): plumes are read live from the central datadesk store
 #   local  (deploy-private): bake the locally-built plumes.parquet — the only
-#   artifact that may carry ghgsat — and flag the page to read it via
-#   <meta name="local-plumes"> instead of the store
+#   artifact that may carry ghgsat — and set <meta name="private">, which tells
+#   the page to read it instead of the store and unlocks the datadesk-only
+#   layers (mapstand licence areas, streamed from the store's licences.fgb)
 set -euo pipefail
 
 V="${1:-dev}"; V="${V:0:8}"
@@ -14,7 +15,7 @@ cp web/index.html web/style.css web/*.js dist/
 cp -r web/vendor dist/vendor
 if [ "${2:-}" = local ]; then
     cp web/data/plumes.parquet dist/data/
-    sed -i.bak 's#<head>#<head><meta name="local-plumes">#' dist/index.html
+    sed -i.bak 's#<head>#<head><meta name="private">#' dist/index.html
 fi
 
 # bust the entry points in index.html, the app-local es-module import graph

@@ -32,6 +32,14 @@ Pages; there is no backend service.
   source point). dd waypoint markings, orange + larger when attributed, over an
   invisible fat hit layer carrying the hover/click popup. `normId` maps old
   `OSM:way/<id>` attribution ids to ch4id's short `OSM:w<id>` form.
+- `web/licences.js` — MapStand oil and gas licence areas (`web/licences.fgb`,
+  98,881 polygons), same flatgeobuf range-read shape: viewport sweep past z6,
+  purple boundary over a faint wash, beneath every plume layer, with a key
+  toggle. **Private deploy only** — the acreage is licensed data, so the layer
+  is gated on `PRIVATE` in `config.js`. Known defect, upstream in etl's
+  `catalogue/mirror`: 55.7% of the polygons are rectangles collapsed to
+  triangles, because the WMS sweep lets GeoServer generalise geometry to its
+  ~2 km render resolution. Position and extent are right, boundaries are not.
 - `web/vendor/` — committed: maplibre, hyparquet, inter, flatgeobuf, `dd/`
   (design dist) and `cartograph/` (the generic core). Refresh with `make
   vendor` (calls cartograph's vendor.sh, which pulls dd from ~/Tools/design).
