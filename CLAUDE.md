@@ -7,7 +7,7 @@ Methane plume aggregator with per-plume AI source attribution.
 A [cartograph](~/Tools/cartograph) app — the map system itself is documented
 there — with all firedamp behaviour in `web/config.js` plus two hook
 modules. The plume aggregation ETL lives in the sibling **etl** repo
-(`~/Tools/etl`, 6-hourly publish to the store); the offline research agent —
+(`~/Tools/etl`, 6-hourly publish to the archive); the offline research agent —
 the sibling **ch4id** repo — produces the attributions. Served on GitHub
 Pages; there is no backend service.
 
@@ -24,7 +24,7 @@ Pages; there is no backend service.
   paragraph, evidence links), and the per-plume daily-mean surface wind stat
   (Open-Meteo archive).
 - `web/candidates.js` — candidate sources from the ch4id feature catalogue
-  (`web/features.fgb` in the central datadesk store, ~12M points: OGIM + OSM +
+  (`web/features.fgb` in the central datadesk archive, ~12M points: OGIM + OSM +
   MapStand + GEM), flatgeobuf
   bbox queries over http range requests: viewport sweep past z13 (padded rect)
   + per-plume radius query on selection (3 km, 10 km for coarse sensors;
@@ -52,15 +52,15 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
   the archive marks `valid` (s2e `data/valid-plumes.txt`) pass, deduped
   to one row per target/date/plume with native records preferred over the
   legacy import. Public like every other source. Detail-panel title links to
-  the plume preview on the store
+  the plume preview on the archive
 - **ch4id feature catalogue** — OGIM + OSM + MapStand + GEM merged
   (`~/Tools/ch4id/data/features.parquet`, ~15M features; ~12M exported as points)
 
-## Central data store
+## Central data archive
 
 Firedamp serves its data from the shared datadesk CloudFerro bucket
 (`https://s3.WAW3-2.cloudferro.com/datadesk-archive`, the `data-bucket` meta;
-defined in `~/Tools/data-desk/infra/store.sh`; layout in `data-desk/docs/archive/`).
+defined in `~/Tools/data-desk/infra/archive.sh`; layout in `data-desk/docs/archive/`).
 The `views/plumes/` aggregation and `web/features.fgb` catalogue are
 both produced by the `etl` repo; firedamp only reads them.
 
@@ -83,7 +83,7 @@ make serve         # dev server on :8000 (HTTP Range for FlatGeobuf)
 ```
 
 Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
-(copy one from the etl repo), else the store; feature catalogue from the store. Verify with the `browse` cli: `window.cartograph` exposes `{ map, sources, … }`.
+(copy one from the etl repo), else the archive; feature catalogue from the archive. Verify with the `browse` cli: `window.cartograph` exposes `{ map, sources, … }`.
 
 ## Deployment
 
@@ -91,16 +91,16 @@ Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
   `web/*`, cache-busts entry points / app-local imports / parquet fetches with
   the git SHA — vendor modules stay unbusted so each resolves to one URL = one
   module instance) and deploys. No plume data in the artifact: the site reads
-  `views/plumes/data.parquet` live from the store (hourly cache-buster in the URL).
+  `views/plumes/data.parquet` live from the archive (hourly cache-buster in the URL).
 - **Plumes refresh**: `etl/plumes.yml` every 6h in the etl repo — no redeploy
-  needed, the site reads the store live.
+  needed, the site reads the archive live.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` via the
   etl repo (including its local-only `ghgsat.csv`) and bakes it into
   the dist (`dist.sh <sha> local` sets `<meta name="local-plumes">`), shipped to
   Cloudflare Pages project `firedamp-private` behind Cloudflare Access; refuses
   to deploy unless the Access gate is answering. The **only** deploy that ever
   contains GHGSat plumes — etl's `plumes-upload` refuses to publish a parquet
-  carrying them to the store. Data Desk rows are public (curated valid-only).
+  carrying them to the archive. Data Desk rows are public (curated valid-only).
 - **Feature catalogue**: published by the etl repo
   (re-run when the catalogue is rebuilt).
 
