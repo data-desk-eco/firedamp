@@ -53,8 +53,6 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 - **Carbon Mapper** — satellite + aircraft hyperspectral (API → `data/carbon_mapper.csv`)
 - **IMEO / MARS** — UNEP methane plume database (public Azure zip → `data/imeo_plumes.csv`)
 - **SRON** — TROPOMI weekly plume CSVs (FTP scrape → `data/sron/` → `data/sron_all.csv`)
-- **GHGSat** — leaked, local-only `data/ghgsat.csv`; only ever enters the
-  private deploy (see Deployment)
 - **Data Desk (`dd`)** — our own MARS-S2L / hypergas detections, staged from
   the s2e archive view by `make dd` (`data/dd.csv`). Curated: only rows
   the archive marks `valid` (s2e `data/valid-plumes.txt`) pass, deduped
@@ -103,12 +101,13 @@ Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
 - **Plumes refresh**: `etl/plumes.yml` every 6h in the etl repo — no redeploy
   needed, the site reads the archive live.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` via the
-  etl repo (including its local-only `ghgsat.csv`) and bakes it into
-  the dist (`dist.sh <sha> local` sets `<meta name="local-plumes">`), shipped to
-  Cloudflare Pages project `firedamp-private` behind Cloudflare Access; refuses
-  to deploy unless the Access gate is answering. The **only** deploy that ever
-  contains GHGSat plumes — etl's `plumes-upload` refuses to publish a parquet
-  carrying them to the archive. Data Desk rows are public (curated valid-only).
+  etl repo (including any source held back from the public archive) and bakes
+  it into the dist (`dist.sh <sha> local` sets `<meta name="local-plumes">`),
+  shipped to Cloudflare Pages project `firedamp-private` behind Cloudflare
+  Access; refuses to deploy unless the Access gate is answering. The **only**
+  deploy that carries restricted sources — etl's `plumes-upload` refuses to
+  publish a parquet containing them. `config.js` lists them in `PRIVATE_SRCS`.
+  Data Desk rows are public (curated valid-only).
 - **Feature catalogue**: published by the etl repo
   (re-run when the catalogue is rebuilt).
 
