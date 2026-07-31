@@ -94,13 +94,13 @@ mount({
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
         // clusters only when far out — points take over from z5 (~UK-sized viewport)
         return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,
-                           clusterProperties: { rate_sum: ['+', ['coalesce', ['get', 'rate'], 0]] } } };
+                           clusterProperties: { rate_sum: ['+', ['coalesce', ['get', 'rate_kg_h'], 0]] } } };
     },
 
     layers: [
         ...SRCS.map(src => ({
             id: `plumes-${src}`, type: 'symbol', source: 'plumes',
-            filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'src'], src]],
+            filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'provider'], src]],
             hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.provider]}${p.detected_on ? ' · ' + p.detected_on : ''}`,
             layout: {
                 'icon-image': `flare-${COLOR[src]}`,
@@ -109,8 +109,8 @@ mount({
                 'icon-ignore-placement': true,
                 // t/hr up-and-right (dd label rule); colliding labels drop, icons
                 // stay; rate-less plumes get no label
-                'text-field': ['case', ['==', ['typeof', ['get', 'rate']], 'number'], ['concat',
-                    ['number-format', ['/', ['get', 'rate'], 1000], { 'max-fraction-digits': 1 }], ' t/hr'], ''],
+                'text-field': ['case', ['==', ['typeof', ['get', 'rate_kg_h']], 'number'], ['concat',
+                    ['number-format', ['/', ['get', 'rate_kg_h'], 1000], { 'max-fraction-digits': 1 }], ' t/hr'], ''],
                 'text-font': ['Montserrat Regular'], 'text-size': 10,
                 'text-anchor': 'bottom-left', 'text-offset': [0.7, -0.7],
                 'text-optional': true,
