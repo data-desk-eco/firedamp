@@ -103,7 +103,7 @@ export function enrich(p) {
     const id = ++requestId;
     const lat = Number(p.lat), lon = Number(p.lon);
 
-    fetchWind(lat, lon, p.dt).then(w => { if (requestId === id) renderWind(w); });
+    fetchWind(lat, lon, p.detected_on).then(w => { if (requestId === id) renderWind(w); });
 
     (async () => {
         const rec = (await loadAttributions()).get(p.id) || null;
@@ -114,7 +114,7 @@ export function enrich(p) {
             el.classList.toggle('dd-secondary', !rec);
         }
         // candidate sources around the plume; coarse sensors get a wider radius
-        const radiusKm = /tropomi|viirs|goes|s3/i.test(p.sat || '') ? 10 : 3;
+        const radiusKm = /tropomi|viirs|goes|s3/i.test(p.satellite || '') ? 10 : 3;
         selectPlume(lon, lat, radiusKm, rec);
     })();
 }

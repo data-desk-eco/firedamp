@@ -42,7 +42,7 @@ function imageCorners(bounds) {
 
 export async function showProbabilityOverlay(properties, url) {
     clearProbabilityOverlay();
-    if (!map || properties.src !== 'dd' || !url || !properties.bounds) return;
+    if (!map || properties.provider !== 'data-desk' || !url || !properties.bounds) return;
     const now = epoch;
     try {
         const coordinates = imageCorners(properties.bounds);

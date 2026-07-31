@@ -15,18 +15,20 @@ import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay
 // mapstand licence acreage — licensed data — is drawn.
 const PRIVATE = location.hostname === 'localhost' || document.querySelector('meta[name="private"]');
 
-// plumes live in the central datadesk store; the private deploy reads its
-// baked copy. hourly cache-buster: the store key is stable, refreshed ~6-hourly.
+// plumes live in the central data desk archive, which keys every table on the
+// provider that produced it. a browser cannot glob those prefixes, so etl's web
+// build assembles them into one object under web/. the private deploy reads its
+// baked copy. hourly cache-buster: the key is stable, refreshed ~6-hourly.
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const PLUMES = PRIVATE
-    ? 'data/plumes.parquet' : `${bucket}/views/plumes/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+    ? 'data/plumes.parquet' : `${bucket}/web/plumes.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 // attributions live on the store too (ch4id `sync push` exports the contract)
 const ATTRIBUTIONS = `${bucket}/views/attributions/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
 
-const SRCS = ['cm', 'imeo', 'sron', 'ghgsat', 'dd'];
+const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
 const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
-const COLOR = { cm: dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, dd: dd.adjusted.green };
-const LABEL = { cm: 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', dd: 'Data Desk' };
+const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
+const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
 
 // dd flare marking, one size for every plume (rate lives in the key filter
@@ -34,13 +36,13 @@ const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' }
 const ICON = ['interpolate', ['linear'], ['zoom'], 2, 0.55, 10, 0.8, 14, 1];
 
 // null when the provider published no rate estimate
-const rateT = p => p.rate == null ? null : (Number(p.rate) / 1000).toFixed(1);
+const rateT = p => p.rate_kg_h == null ? null : (Number(p.rate_kg_h) / 1000).toFixed(1);
 
 function sourceUrl(p) {
     if (!p.id) return null;
-    if (p.src === 'cm') return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(p.id)}`;
-    if (p.src === 'sron' && p.link) return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(p.link)}`;
-    if (p.src === 'dd') {
+    if (p.provider === 'carbon-mapper') return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(p.id)}`;
+    if (p.provider === 'sron' && p.link) return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(p.link)}`;
+    if (p.provider === 'data-desk') {
         if (p.link) return /^https?:/.test(p.link) ? p.link : `${bucket}/${p.link.replace(/^\//, '')}?v=viridis`;
         // Compatibility with the pre-canonical ch4id catalogue.
         const [, site, scene] = p.id.split(':');
@@ -50,7 +52,7 @@ function sourceUrl(p) {
 }
 
 function overlayUrl(p) {
-    if (p.src !== 'dd' || !p.overlay) return null;
+    if (p.provider !== 'data-desk' || !p.overlay) return null;
     return /^https?:/.test(p.overlay) ? p.overlay : `${bucket}/${p.overlay.replace(/^\//, '')}?v=viridis`;
 }
 
@@ -99,7 +101,7 @@ mount({
         ...SRCS.map(src => ({
             id: `plumes-${src}`, type: 'symbol', source: 'plumes',
             filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'src'], src]],
-            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.src]}${p.dt ? ' · ' + p.dt : ''}`,
+            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.provider]}${p.detected_on ? ' · ' + p.detected_on : ''}`,
             layout: {
                 'icon-image': `flare-${COLOR[src]}`,
                 'icon-size': ICON,
@@ -145,8 +147,8 @@ mount({
             options: [{ value: 'all', label: 'All' }, { value: '2025', label: "'25" },
                       { value: '2026', label: "'26" }, { value: '60d', label: '-60d' }],
             pred: v => v === 'all' ? null
-                : v === '60d' ? (cut => p => p.dt >= cut)(new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10))
-                : p => (p.dt || '').startsWith(v),
+                : v === '60d' ? (cut => p => p.detected_on >= cut)(new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10))
+                : p => (p.detected_on || '').startsWith(v),
         },
     ],
 
@@ -156,15 +158,15 @@ mount({
             label: 'Rate (t/hr)',
             rows: [['10+', 10], ['5–10', 5, 10], ['1–5', 1, 5], ['< 1', 0, 1], ['n/a']].map(([label, lo, hi]) => ({
                 swatch: { mark: 'flare', color: dd.adjusted.white }, label,
-                pred: lo == null ? p => p.rate == null
-                    : p => p.rate != null && p.rate >= lo * 1000 && (!hi || p.rate < hi * 1000),
+                pred: lo == null ? p => p.rate_kg_h == null
+                    : p => p.rate_kg_h != null && p.rate_kg_h >= lo * 1000 && (!hi || p.rate_kg_h < hi * 1000),
             })),
         },
         {
             // source rows filter the data too, so clusters re-form without them
             label: 'Source',
-            rows: SRCS.filter(src => !PRIVATE_SRCS.has(src) || ctx.sources.plumes.features.some(f => f.properties.src === src))
-                .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.src === src })),
+            rows: SRCS.filter(src => !PRIVATE_SRCS.has(src) || ctx.sources.plumes.features.some(f => f.properties.provider === src))
+                .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.provider === src })),
         },
         // layer toggle, not a data filter: licence areas aren't plumes
         ...(PRIVATE ? [{
@@ -198,14 +200,14 @@ mount({
         title: p => ({ text: p.id || '—', href: sourceUrl(p) }),
         html: p => `
             <div class="fd-badges">
-                <span style="color:${COLOR[p.src]}">${LABEL[p.src] || escapeHtml(p.src)}</span>
-                ${p.sec ? `<span class="dd-secondary">${SECTOR[p.sec] || escapeHtml(p.sec)}</span>` : ''}
+                <span style="color:${COLOR[p.provider]}">${LABEL[p.provider] || escapeHtml(p.provider)}</span>
+                ${p.sector ? `<span class="dd-secondary">${SECTOR[p.sector] || escapeHtml(p.sector)}</span>` : ''}
             </div>
             <div class="fd-stats">
-                <div><div class="fd-stat-big">${rateT(p) ?? '—'}</div><div class="dd-secondary">t/hr${p.unc ? ` ±${(p.unc / 1000).toFixed(1)}` : ''}</div></div>
+                <div><div class="fd-stat-big">${rateT(p) ?? '—'}</div><div class="dd-secondary">t/hr${p.rate_std_kg_h ? ` ±${(p.rate_std_kg_h / 1000).toFixed(1)}` : ''}</div></div>
                 <div id="stat-wind"><div class="fd-stat-big">…</div><div class="dd-secondary">wind</div></div>
-                <div><div class="fd-stat-big">${escapeHtml(p.sat || '—')}</div><div class="dd-secondary">satellite</div></div>
-                <div><div class="fd-stat-big">${escapeHtml(p.dt || '—')}</div><div class="dd-secondary">date</div></div>
+                <div><div class="fd-stat-big">${escapeHtml(p.satellite || '—')}</div><div class="dd-secondary">satellite</div></div>
+                <div><div class="fd-stat-big">${escapeHtml(p.detected_on || '—')}</div><div class="dd-secondary">date</div></div>
             </div>
             <div class="fd-analysis">
                 <div class="dd-secondary">Analysis</div>

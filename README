@@ -80,7 +80,7 @@ Deployment
 ----------
 Push to main -> deploy.yml -> GitHub Pages. All data is served live
 from the central datadesk store (the CloudFerro bucket
-https://s3.WAW3-2.cloudferro.com/datadesk-archive): the etl repo
+https://s3.WAW3-2.cloudferro.com/data-desk-archive): the etl repo
 rebuilds views/plumes/data.parquet there every 6 h and publishes the
 feature catalogue at web/features.fgb (range-requested).
 

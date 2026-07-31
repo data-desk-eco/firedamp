@@ -65,7 +65,7 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 ## Central data archive
 
 Firedamp serves its data from the shared datadesk CloudFerro bucket
-(`https://s3.WAW3-2.cloudferro.com/datadesk-archive`, the `data-bucket` meta;
+(`https://s3.WAW3-2.cloudferro.com/data-desk-archive`, the `data-bucket` meta;
 defined in `~/Tools/data-desk/infra/archive.sh`; layout in `data-desk/docs/archive/`).
 The `views/plumes/` aggregation and `web/features.fgb` catalogue are
 both produced by the `etl` repo; firedamp only reads them.
