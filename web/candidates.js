@@ -107,7 +107,7 @@ export function addCandidateLayers(m) {
     map.addLayer({
         id: 'candidates-hit', type: 'circle', source: 'candidates',
         paint: { 'circle-radius': 12, 'circle-opacity': 0, 'circle-stroke-width': 0 },
-    }, 'plumes-cm');
+    }, 'plumes-carbon-mapper');
     map.addLayer({
         id: 'candidates', type: 'symbol', source: 'candidates',
         layout: {
@@ -116,7 +116,7 @@ export function addCandidateLayers(m) {
             'icon-allow-overlap': true,
             'icon-ignore-placement': true,
         },
-    }, 'plumes-cm');
+    }, 'plumes-carbon-mapper');
 
     hoverPopup(map, 'candidates-hit', p => {
         const kind = (p.kind || '').replace(/_/g, ' ');
