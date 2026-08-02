@@ -24,7 +24,7 @@ Pages; there is no backend service.
   paragraph, evidence links), and the per-plume daily-mean surface wind stat
   (Open-Meteo archive).
 - `web/candidates.js` — candidate sources from the provider-owned MapStand,
-  OGIM, OSM, and GEM Hilbert GeoParquet files. DuckDB-Wasm applies bounding-box
+  OGIM, OSM, and GEM `infrastructure/` tables. DuckDB-Wasm applies bounding-box
   filters: viewport sweep past z13 (padded rect)
   + per-plume radius query on selection (3 km, 10 km for coarse sensors;
   nearest 300; attributed ids always kept, rect stretched to the assessed
@@ -52,27 +52,28 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 - **Carbon Mapper** — satellite + aircraft hyperspectral (API → `data/carbon_mapper.csv`)
 - **IMEO / MARS** — UNEP methane plume database (public Azure zip → `data/imeo_plumes.csv`)
 - **SRON** — TROPOMI weekly plume CSVs (FTP scrape → `data/sron/` → `data/sron_all.csv`)
-- **Data Desk (`dd`)** — our own MARS-S2L / hypergas detections, staged from
-  the s2e archive view by `make dd` (`data/dd.csv`). Curated: only rows
-  the archive marks `valid` (s2e `data/valid-plumes.txt`) pass, deduped
-  to one row per target/date/plume with native records preferred over the
-  legacy import. Public like every other source. Detail-panel title links to
-  the plume preview on the archive
-- **ch4id feature catalogue** — OGIM + OSM + MapStand + GEM merged
-  (`~/Tools/ch4id/data/features.parquet`, ~15M features; ~12M exported as points)
+- **Data Desk (`dd`)** — our own Sentinel-2 retrievals, published by the etl
+  repo as the `kind = 'plume'` rows of `data-desk/detections/`. Curation is a
+  column now, not a prefix: the table also carries the retrievals the producer
+  does not trust, so `config.js` reads `valid = true` itself. Public like every
+  other source. Detail-panel title links to the plume preview under
+  `data-desk/assets/`
+- **Infrastructure tables** — OGIM, OSM, MapStand and GEM, one
+  `<provider>/infrastructure/data.parquet` each, ~15M features in total
 
 ## Central data archive
 
 Firedamp serves its data from the shared datadesk CloudFerro bucket
 (`https://s3.WAW3-2.cloudferro.com/data-desk-archive`, the `data-bucket` meta;
 defined in `~/Tools/data-desk/infra/archive.sh`; layout in `data-desk/docs/archive/`).
-The ETL repository publishes provider plume and feature tables. Firedamp lists
-and combines the plume tables and queries provider feature tables directly.
+The ETL repository publishes the provider `detections/` and `infrastructure/`
+tables. Firedamp reads four fixed `<provider>/detections/data.parquet` objects
+filtered to `kind = 'plume'`, and queries the infrastructure tables directly.
 
 ## Frontend data flow
 
-`config.js` lists the public provider plume objects and reads them through
-DuckDB-Wasm. Every plume whose id appears in
+`config.js` names the four public provider detections objects and reads them
+through DuckDB-Wasm. Every plume whose id appears in
 `attributions.parquet` gets `attr: 1`, which feeds the Attribution filter.
 The detail panel is cartograph-generic (title link to CM/SRON, coords,
 overlap nav across co-located plumes, `#plume=<id>` permalinks alongside
@@ -88,15 +89,15 @@ make serve         # dev server on :8000
 ```
 
 Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
-(copy one from the etl repo), else the archive; feature catalogue from the archive. Verify with the `browse` cli: `window.cartograph` exposes `{ map, sources, … }`.
+(copy one from the etl repo), else the archive; infrastructure from the archive. Verify with the `browse` cli: `window.cartograph` exposes `{ map, sources, … }`.
 
 ## Deployment
 
 - **Pages**: push to `main` runs `deploy.yml` — `scripts/dist.sh` (copies
   `web/*`, cache-busts entry points / app-local imports / parquet fetches with
   the git SHA — vendor modules stay unbusted so each resolves to one URL = one
-  module instance) and deploys. No plume data is in the artifact: the site lists
-  the provider `plumes/` prefixes and reads them live from the archive.
+  module instance) and deploys. No plume data is in the artifact: the site
+  reads the provider `detections/` objects live from the archive.
 - **Plumes refresh**: `etl/plumes.yml` every 6h in the etl repo — no redeploy
   needed, the site reads the archive live.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` via the
@@ -107,8 +108,8 @@ Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
   deploy that carries restricted sources — etl's `plumes-upload` refuses to
   publish a parquet containing them. `config.js` lists them in `PRIVATE_SRCS`.
   Data Desk rows are public (curated valid-only).
-- **Feature catalogue**: published by the etl repo
-  (re-run when the catalogue is rebuilt).
+- **Infrastructure tables**: published by the etl repo
+  (re-run when a provider catalogue is rebuilt).
 
 **When adding new web assets**, add them to `scripts/dist.sh` (shared by both
 deploy workflows).

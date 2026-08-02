@@ -11,24 +11,25 @@ Live: https://research.datadesk.eco/firedamp/
 Data
 ----
 
-Public plume tables come directly from these provider paths in the CloudFerro
+Public plumes come directly from these provider objects in the CloudFerro
 archive:
 
-- `carbon-mapper/plumes/`
-- `imeo/plumes/`
-- `sron/plumes/`
-- `data-desk/plumes/`
+- `carbon-mapper/detections/data.parquet`
+- `imeo/detections/data.parquet`
+- `sron/detections/data.parquet`
+- `data-desk/detections/data.parquet`
 
-The public map lists and combines those tables in the browser. The private map
-also contains licensed GHGSat rows and MapStand licence polygons.
+A detections table also holds flares, so the browser reads the four objects
+with `kind = 'plume'`. The private map also contains licensed GHGSat rows and
+MapStand licence polygons.
 
 Candidate infrastructure remains provider-owned. DuckDB-Wasm queries four
 Hilbert-sorted GeoParquet files by viewport:
 
-- `mapstand/features/data.parquet`
-- `ogim/features/data.parquet`
-- `osm/features/data.parquet`
-- `gem/features/data.parquet`
+- `mapstand/infrastructure/data.parquet`
+- `ogim/infrastructure/data.parquet`
+- `osm/infrastructure/data.parquet`
+- `gem/infrastructure/data.parquet`
 
 Attributions use `data-desk/attributions/data.parquet`. The browser does not run
 an attribution model.

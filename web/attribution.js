@@ -103,7 +103,7 @@ export function enrich(p) {
     const id = ++requestId;
     const lat = Number(p.lat), lon = Number(p.lon);
 
-    fetchWind(lat, lon, p.detected_on).then(w => { if (requestId === id) renderWind(w); });
+    fetchWind(lat, lon, p.date).then(w => { if (requestId === id) renderWind(w); });
 
     (async () => {
         const rec = (await loadAttributions()).get(p.id) || null;

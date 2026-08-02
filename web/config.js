@@ -1,6 +1,6 @@
 // firedamp on cartograph — everything firedamp-specific is this config plus
 // two hook modules: attribution.js (static attribution + wind) and
-// candidates.js (provider-owned Hilbert GeoParquet feature catalogues).
+// candidates.js (the provider-owned `infrastructure` tables).
 
 import { mount } from './vendor/cartograph/app.js';
 import { map as dd } from './vendor/dd/palette.js';
@@ -24,26 +24,19 @@ const ATTRIBUTIONS = `${bucket}/data-desk/attributions/data.parquet`;
 const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
 const PUBLIC_SRCS = SRCS.filter(src => src !== 'ghgsat');
 const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
+// one object per provider, no partition to discover: the archive's key is a
+// function of a position, so a reader calculates it rather than listing
+const DETECTIONS = PUBLIC_SRCS.map(src => `${bucket}/${src}/detections/data.parquet`);
 const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
 const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
-// everything the map, key, table and detail panel read — `year` is only the
-// partition key, and 70k copies of it ride into every geojson feature
-const PLUME_COLS = ['id', 'provider', 'detected_on', 'lat', 'lon', 'rate_kg_h',
+// everything the map, key, table and detail panel read — the projection stays
+// narrow because every column rides into 70k geojson features
+const PLUME_COLS = ['id', 'provider', 'date', 'lat', 'lon', 'rate_kg_h',
     'rate_std_kg_h', 'satellite', 'sector', 'link', 'overlay', 'bounds'];
-
-async function archiveParquets(provider, table) {
-    const prefix = `${provider}/${table}/`;
-    const response = await fetch(`${bucket}?list-type=2&prefix=${encodeURIComponent(prefix)}`);
-    if (!response.ok) throw new Error(`archive list failed: ${response.status}`);
-    const xml = new DOMParser().parseFromString(await response.text(), 'application/xml');
-    if (xml.querySelector('IsTruncated')?.textContent === 'true')
-        throw new Error(`archive list for ${prefix} was truncated`);
-    return [...xml.querySelectorAll('Contents > Key')]
-        .map(node => node.textContent)
-        .filter(key => key.endsWith('/data.parquet'))
-        .map(key => `${bucket}/${key}`);
-}
+// `detections` holds flares as well as plumes, and a data-desk retrieval the
+// producer does not trust rides along with valid = false
+const PLUME_WHERE = { kind: ['plume', 'plume'], valid: [true, true] };
 
 // dd flare marking, one size for every plume (rate lives in the key filter
 // and the data table); grows gently with zoom, the burnoff ramp
@@ -56,12 +49,8 @@ function sourceUrl(p) {
     if (!p.id) return null;
     if (p.provider === 'carbon-mapper') return `https://data.carbonmapper.org/?plume_id=${encodeURIComponent(p.id)}`;
     if (p.provider === 'sron' && p.link) return `https://ftp.sron.nl/pub/memo/CSVs/${encodeURIComponent(p.link)}`;
-    if (p.provider === 'data-desk') {
-        if (p.link) return /^https?:/.test(p.link) ? p.link : `${bucket}/${p.link.replace(/^\//, '')}?v=viridis`;
-        // Compatibility with the pre-canonical ch4id catalogue.
-        const [, site, scene] = p.id.split(':');
-        if (scene) return `${bucket}/${scene.startsWith('EMIT') ? 'hypergas' : 'mars-s2l'}/plumes/${site}_${scene}.png`;
-    }
+    if (p.provider === 'data-desk' && p.link)
+        return /^https?:/.test(p.link) ? p.link : `${bucket}/${p.link.replace(/^\//, '')}?v=viridis`;
     return null;
 }
 
@@ -101,10 +90,8 @@ mount({
         // added here, not in ready(), so the key's visibility toggle has a
         // layer to read — and so licence acreage sits beneath every plume
         if (PRIVATE) addLicenceLayers(map, sql);
-        const plumeSource = PRIVATE ? 'plumes'
-            : (await Promise.all(PUBLIC_SRCS.map(src => archiveParquets(src, 'plumes')))).flat();
         const [plumes, attribs] = await Promise.all([
-            read(plumeSource, { columns: PLUME_COLS }),
+            read(PRIVATE ? 'plumes' : DETECTIONS, { columns: PLUME_COLS, where: PLUME_WHERE }),
             loadAttributions(),
         ]);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
@@ -117,7 +104,7 @@ mount({
         ...SRCS.map(src => ({
             id: `plumes-${src}`, type: 'symbol', source: 'plumes',
             filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'provider'], src]],
-            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.provider]}${p.detected_on ? ' · ' + p.detected_on : ''}`,
+            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.provider]}${p.date ? ' · ' + p.date : ''}`,
             layout: {
                 'icon-image': `flare-${COLOR[src]}`,
                 'icon-size': ICON,
@@ -163,8 +150,8 @@ mount({
             options: [{ value: 'all', label: 'All' }, { value: '2025', label: "'25" },
                       { value: '2026', label: "'26" }, { value: '60d', label: '-60d' }],
             pred: v => v === 'all' ? null
-                : v === '60d' ? (cut => p => p.detected_on >= cut)(new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10))
-                : p => (p.detected_on || '').startsWith(v),
+                : v === '60d' ? (cut => p => p.date >= cut)(new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10))
+                : p => (p.date || '').startsWith(v),
         },
     ],
 
@@ -198,7 +185,7 @@ mount({
         {
             label: 'Detections',
             rows: ({ sources }) => sources.plumes.features.map(f => f.properties),
-            cols: ['id', 'provider', 'detected_on', 'rate_kg_h', 'satellite', 'sector', 'lat', 'lon'],
+            cols: ['id', 'provider', 'date', 'rate_kg_h', 'satellite', 'sector', 'lat', 'lon'],
         },
         {
             // rows aren't plume properties, so the legend preds don't apply
@@ -223,7 +210,7 @@ mount({
                 <div><div class="fd-stat-big">${rateT(p) ?? '—'}</div><div class="dd-secondary">t/hr${p.rate_std_kg_h ? ` ±${(p.rate_std_kg_h / 1000).toFixed(1)}` : ''}</div></div>
                 <div id="stat-wind"><div class="fd-stat-big">…</div><div class="dd-secondary">wind</div></div>
                 <div><div class="fd-stat-big">${escapeHtml(p.satellite || '—')}</div><div class="dd-secondary">satellite</div></div>
-                <div><div class="fd-stat-big">${escapeHtml(p.detected_on || '—')}</div><div class="dd-secondary">date</div></div>
+                <div><div class="fd-stat-big">${escapeHtml(p.date || '—')}</div><div class="dd-secondary">date</div></div>
             </div>
             <div class="fd-analysis">
                 <div class="dd-secondary">Analysis</div>

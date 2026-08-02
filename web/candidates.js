@@ -1,6 +1,6 @@
-// Candidate sources from the four provider-owned Hilbert GeoParquet tables.
-// DuckDB applies the viewport bounds against clustered lon/lat row groups.
-// Loaded optimistically for the viewport
+// Candidate sources from the four provider-owned `infrastructure` tables.
+// DuckDB applies the viewport bounds against Hilbert-clustered lon/lat row
+// groups. Loaded optimistically for the viewport
 // past MIN_ZOOM, plus a radius query around the selected plume with the
 // attributed feature(s) highlighted. drawn as dd waypoint markings (white ×,
 // orange and larger when attributed) over an invisible fat hit layer.
@@ -11,7 +11,7 @@ import { escapeHtml, fmtMetres, haversineM } from './vendor/cartograph/util.js';
 
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const TABLES = ['mapstand', 'ogim', 'osm', 'gem']
-    .map(provider => `${bucket}/${provider}/features/data.parquet`);
+    .map(provider => `${bucket}/${provider}/infrastructure/data.parquet`);
 const MIN_ZOOM = 13;
 const MAX_SCAN = 4000, MAX_SHOW = 300;
 const PT = dd.adjusted.white, HL = dd.adjusted.orange;
@@ -26,7 +26,7 @@ const literal = value => `'${value.replaceAll("'", "''")}'`;
 async function fetchRect(rect) {
     try {
         const rows = await query(`
-            select * exclude geometry
+            select * exclude (geometry, cell)
             from read_parquet([${TABLES.map(literal).join(', ')}], union_by_name = true)
             where lon between ${Number(rect.minX)} and ${Number(rect.maxX)}
               and lat between ${Number(rect.minY)} and ${Number(rect.maxY)}

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # assemble the pages artifact in dist/, cache-busting js/css with the git sha.
 # usage: dist.sh <sha> [local]
-#   public (deploy.yml): plumes are read live from the central datadesk store
+#   public (deploy.yml): plumes are read live from the provider detections
+#   objects on the central datadesk store
 #   local  (deploy-private): bake the locally-built plumes.parquet — the only
 #   artifact that may carry ghgsat — and set <meta name="private">, which tells
 #   the page to read it instead of the store and unlocks the datadesk-only
