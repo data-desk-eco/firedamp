@@ -10,8 +10,10 @@ import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml, fmtMetres, haversineM } from './vendor/cartograph/util.js';
 
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
-const TABLES = ['mapstand', 'ogim', 'osm', 'gem']
-    .map(provider => `${bucket}/${provider}/infrastructure/data.parquet`);
+// one pattern, not one url per provider: an enumerated list fails whole when a
+// single member is missing, so a provider that has not published yet would take
+// the whole candidate layer with it
+const TABLES = [`${bucket}/*/infrastructure/data.parquet`];
 const MIN_ZOOM = 13;
 const MAX_SCAN = 4000, MAX_SHOW = 300;
 const PT = dd.adjusted.white, HL = dd.adjusted.orange;
