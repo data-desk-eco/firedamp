@@ -27,6 +27,10 @@ const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's
 const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
 const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
+// everything the map, key, table and detail panel read — `year` is only the
+// partition key, and 70k copies of it ride into every geojson feature
+const PLUME_COLS = ['id', 'provider', 'detected_on', 'lat', 'lon', 'rate_kg_h',
+    'rate_std_kg_h', 'satellite', 'sector', 'link', 'overlay', 'bounds'];
 
 async function archiveParquets(provider, table) {
     const prefix = `${provider}/${table}/`;
@@ -100,7 +104,7 @@ mount({
         const plumeSource = PRIVATE ? 'plumes'
             : (await Promise.all(PUBLIC_SRCS.map(src => archiveParquets(src, 'plumes')))).flat();
         const [plumes, attribs] = await Promise.all([
-            read(plumeSource),
+            read(plumeSource, { columns: PLUME_COLS }),
             loadAttributions(),
         ]);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
@@ -194,13 +198,13 @@ mount({
         {
             label: 'Detections',
             rows: ({ sources }) => sources.plumes.features.map(f => f.properties),
-            cols: ['id', 'src', 'dt', 'rate', 'sat', 'sec', 'lat', 'lon'],
+            cols: ['id', 'provider', 'detected_on', 'rate_kg_h', 'satellite', 'sector', 'lat', 'lon'],
         },
         {
             // rows aren't plume properties, so the legend preds don't apply
             label: 'Attributions', filter: false,
-            rows: async ({ read }) => (await read('attributions',
-                { columns: ['id', 'source_label', 'source_kind', 'operator', 'confidence', 'lat', 'lon'] }))
+            rows: async ({ read }) => (await read('attributions', { cache: true,
+                columns: ['id', 'source_label', 'source_kind', 'operator', 'confidence', 'lat', 'lon'] }))
                 .sort((a, b) => String(a.source_label).localeCompare(String(b.source_label))),
             cols: ['id', 'source_label', 'source_kind', 'operator', 'confidence', 'lat', 'lon'],
         },

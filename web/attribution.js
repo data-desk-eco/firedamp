@@ -9,7 +9,7 @@ import { selectPlume } from './candidates.js';
 
 let requestId = 0;
 
-// full table into a Map at boot: ~1k records, keyed by plume display id.
+// full table into a Map at boot: ~2k records, keyed by plume display id.
 // config.js also reads the key set to mark attributed plumes.
 let attribs = null;
 export function loadAttributions() {
