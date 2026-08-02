@@ -24,9 +24,12 @@ const ATTRIBUTIONS = `${bucket}/data-desk/attributions/data.parquet`;
 const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
 const PUBLIC_SRCS = SRCS.filter(src => src !== 'ghgsat');
 const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
-// one object per provider, no partition to discover: the archive's key is a
-// function of a position, so a reader calculates it rather than listing
-const DETECTIONS = PUBLIC_SRCS.map(src => `${bucket}/${src}/detections/data.parquet`);
+// one pattern, not one url per provider: an enumerated list fails whole when a
+// single member is missing, so a provider that has not published yet took the
+// map down with it. a glob matches what is there, and picks up a new plume
+// provider without a change here. it stays a one-element list because that is
+// what gets union_by_name, which the extension columns need.
+const DETECTIONS = [`${bucket}/*/detections/data.parquet`];
 const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
 const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
