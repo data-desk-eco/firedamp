@@ -22,7 +22,6 @@ const PLUMES = PRIVATE
 const ATTRIBUTIONS = `${bucket}/data-desk/attributions/data.parquet`;
 
 const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
-const PUBLIC_SRCS = SRCS.filter(src => src !== 'ghgsat');
 const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
 // one pattern, not one url per provider: an enumerated list fails whole when a
 // single member is missing, so a provider that has not published yet took the

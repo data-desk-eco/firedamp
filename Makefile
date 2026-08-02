@@ -15,7 +15,7 @@ deploy: deploy-private
 # dd detections — so it refuses to deploy unless the access gate is answering
 deploy-private:
 	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }
-	$(MAKE) -C $(ETL) carbon-mapper sron imeo data-desk ghgsat
+	$(MAKE) -C $(ETL) carbon-mapper sron imeo ghgsat s2e-views
 	@mkdir -p web/data
 	duckdb -c "COPY (FROM read_parquet(['$(ETL)/data/carbon-mapper/detections/**/data.parquet','$(ETL)/data/sron/detections/**/data.parquet','$(ETL)/data/imeo/detections/**/data.parquet','$(ETL)/data/data-desk/detections/**/data.parquet','$(ETL)/data/ghgsat/private/detections/**/data.parquet'], union_by_name=true) WHERE kind = 'plume') TO 'web/data/plumes.parquet' (FORMAT PARQUET, COMPRESSION ZSTD)"
 	cp $(ETL)/data/mapstand/private/licences/data.parquet web/data/licences.parquet
