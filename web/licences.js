@@ -1,22 +1,21 @@
-// mapstand oil and gas licence areas — the private deploy only (config.js
-// gates on PRIVATE; mapstand acreage is licensed data). polygons stream from
-// the archive's web/licences.fgb by flatgeobuf bbox query over http range
-// requests, the same shape as candidates.js, drawn as a thin purple boundary
-// over a faint wash beneath every plume layer.
+// MapStand oil and gas licence areas. The private deploy bakes the restricted
+// Hilbert GeoParquet locally; DuckDB range-reads only intersecting row groups.
 
 import { hoverPopup } from './vendor/cartograph/shell.js';
 import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml } from './vendor/cartograph/util.js';
 
-const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
-const FGB = `${bucket}/web/licences.fgb`;
+// absolute, because this goes into raw SQL: cartograph resolves a relative name
+// only inside read()/meta(), and DuckDB treats a bare path as a local file it
+// has no way to open. dist.sh appends its cache-buster inside the literal.
+const FILE = new URL('data/licences.parquet', document.baseURI).href;
 const MIN_ZOOM = 6;          // whole-continent viewports would sweep the world
 const MAX_SCAN = 1500;
 const C = dd.adjusted.purple;
 
 export const LICENCE_LAYERS = ['licences-fill', 'licences-line', 'licences-label'];
 
-let map, epoch = 0, swept = null;
+let map, query, epoch = 0, swept = null;
 
 // refetch on moveend unless the viewport is still inside the padded rect we
 // last swept (same skip rule as the candidate sweep)
@@ -31,13 +30,20 @@ async function sweep() {
     const px = (b.getEast() - b.getWest()) * 0.3, py = (b.getNorth() - b.getSouth()) * 0.3;
     const rect = { minX: b.getWest() - px, minY: b.getSouth() - py,
                    maxX: b.getEast() + px, maxY: b.getNorth() + py };
-    const e = ++epoch, out = [];
+    const e = ++epoch;
+    let out;
     try {
-        for await (const f of flatgeobuf.deserialize(FGB, rect)) {
-            out.push(f);
-            if (out.length >= MAX_SCAN) break;
-        }
-    } catch (err) { return void console.warn('licences.fgb query failed:', err); }
+        const rows = await query(`
+            select * exclude geometry, st_asgeojson(geometry) as geometry_json
+            from read_parquet('${FILE}')
+            where xmin <= ${Number(rect.maxX)} and xmax >= ${Number(rect.minX)}
+              and ymin <= ${Number(rect.maxY)} and ymax >= ${Number(rect.minY)}
+            limit ${MAX_SCAN}
+        `);
+        out = rows.map(({ geometry_json, ...properties }) => ({
+            type: 'Feature', geometry: JSON.parse(geometry_json), properties,
+        }));
+    } catch (err) { return void console.warn('licence GeoParquet query failed:', err); }
     if (e !== epoch) return;
     swept = rect;
     set(out);
@@ -46,8 +52,8 @@ async function sweep() {
 const set = features =>
     map.getSource('licences')?.setData({ type: 'FeatureCollection', features });
 
-export function addLicenceLayers(m) {
-    map = m;
+export function addLicenceLayers(m, sql) {
+    map = m; query = sql;
     map.addSource('licences', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({
         id: 'licences-fill', type: 'fill', source: 'licences',

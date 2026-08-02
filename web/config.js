@@ -1,6 +1,6 @@
 // firedamp on cartograph — everything firedamp-specific is this config plus
 // two hook modules: attribution.js (static attribution + wind) and
-// candidates.js (ch4id feature catalogue from features.fgb).
+// candidates.js (provider-owned Hilbert GeoParquet feature catalogues).
 
 import { mount } from './vendor/cartograph/app.js';
 import { map as dd } from './vendor/dd/palette.js';
@@ -15,21 +15,31 @@ import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay
 // mapstand licence acreage — licensed data — is drawn.
 const PRIVATE = location.hostname === 'localhost' || document.querySelector('meta[name="private"]');
 
-// plumes live in the central data desk archive, which keys every table on the
-// provider that produced it. a browser cannot glob those prefixes, so etl's web
-// build assembles them into one object under web/. the private deploy reads its
-// baked copy. hourly cache-buster: the key is stable, refreshed ~6-hourly.
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 const PLUMES = PRIVATE
-    ? 'data/plumes.parquet' : `${bucket}/web/plumes.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+    ? 'data/plumes.parquet' : null;
 // attributions live on the store too (ch4id `sync push` exports the contract)
-const ATTRIBUTIONS = `${bucket}/views/attributions/data.parquet?v=${Math.floor(Date.now() / 36e5)}`;
+const ATTRIBUTIONS = `${bucket}/data-desk/attributions/data.parquet`;
 
 const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
+const PUBLIC_SRCS = SRCS.filter(src => src !== 'ghgsat');
 const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
 const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
 const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
+
+async function archiveParquets(provider, table) {
+    const prefix = `${provider}/${table}/`;
+    const response = await fetch(`${bucket}?list-type=2&prefix=${encodeURIComponent(prefix)}`);
+    if (!response.ok) throw new Error(`archive list failed: ${response.status}`);
+    const xml = new DOMParser().parseFromString(await response.text(), 'application/xml');
+    if (xml.querySelector('IsTruncated')?.textContent === 'true')
+        throw new Error(`archive list for ${prefix} was truncated`);
+    return [...xml.querySelectorAll('Contents > Key')]
+        .map(node => node.textContent)
+        .filter(key => key.endsWith('/data.parquet'))
+        .map(key => `${bucket}/${key}`);
+}
 
 // dd flare marking, one size for every plume (rate lives in the key filter
 // and the data table); grows gently with zoom, the burnoff ramp
@@ -77,18 +87,20 @@ mount({
         are promising, attributions are more speculative for lower-resolution sensors like TROPOMI. Your feedback
         will help inform our work: <a href="mailto:hello@datadesk.eco">hello@datadesk.eco</a></p>`,
     search: true,
-    map: { center: [-98, 39], zoom: 4, minZoom: 1.5, maxZoom: 18 },
+    map: { center: [10, 50], zoom: 4, minZoom: 1.5, maxZoom: 18 },
     data: {
-        files: { plumes: PLUMES, attributions: ATTRIBUTIONS },
-        prefetch: ['plumes'],
+        files: { ...(PRIVATE ? { plumes: PLUMES } : {}), attributions: ATTRIBUTIONS },
+        prefetch: PRIVATE ? ['plumes'] : [],
     },
 
-    sources: async ({ read, fc, map }) => {
+    sources: async ({ read, fc, map, sql }) => {
         // added here, not in ready(), so the key's visibility toggle has a
         // layer to read — and so licence acreage sits beneath every plume
-        if (PRIVATE) addLicenceLayers(map);
+        if (PRIVATE) addLicenceLayers(map, sql);
+        const plumeSource = PRIVATE ? 'plumes'
+            : (await Promise.all(PUBLIC_SRCS.map(src => archiveParquets(src, 'plumes')))).flat();
         const [plumes, attribs] = await Promise.all([
-            read('plumes'),
+            read(plumeSource),
             loadAttributions(),
         ]);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
@@ -217,5 +229,5 @@ mount({
         onClose: () => { clearSelection(); clearProbabilityOverlay(); },
     },
 
-    ready: ({ map }) => { initProbabilityOverlay(map); addCandidateLayers(map); },
+    ready: ({ map, sql }) => { initProbabilityOverlay(map); addCandidateLayers(map, sql); },
 });

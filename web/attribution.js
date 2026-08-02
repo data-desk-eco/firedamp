@@ -1,6 +1,6 @@
 // plume source attribution — served entirely from the bulk agent-produced
 // dataset (attributions/data.parquet on the store, pushed by the sibling ch4id
-// repo), read in-browser via hyparquet. wind is fetched per plume from
+// repo), read in-browser via DuckDB. wind is fetched per plume from
 // open-meteo as an independent panel stat.
 
 import { read } from './vendor/cartograph/data.js';

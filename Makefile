@@ -1,8 +1,8 @@
 .PHONY: deploy deploy-private serve vendor clean clean-all help
 
 # plume aggregation etl (carbon mapper / imeo / sron / dd, 6-hourly publish to
-# the store) lives in ~/Tools/etl now; the deployed site reads plumes/data.parquet
-# live. this repo only builds and deploys the map.
+# the store) lives in ~/Tools/etl now; the deployed site reads each provider's
+# year-partitioned plume table live. this repo only builds and deploys the map.
 ETL ?= $(HOME)/Tools/etl
 
 # ── Deploy ───────────────────────────────────────────────────────
@@ -15,8 +15,10 @@ deploy: deploy-private
 # dd detections — so it refuses to deploy unless the access gate is answering
 deploy-private:
 	@curl -so /dev/null -w '%{redirect_url}' https://firedamp-private.pages.dev | grep -q cloudflareaccess.com || { echo "access gate is down — refusing to deploy"; exit 1; }
-	$(MAKE) -C $(ETL) plumes
-	cp $(ETL)/data/plumes/data.parquet web/data/plumes.parquet
+	$(MAKE) -C $(ETL) carbon-mapper sron imeo data-desk ghgsat
+	@mkdir -p web/data
+	duckdb -c "COPY (FROM read_parquet(['$(ETL)/data/carbon-mapper/plumes/*/*.parquet','$(ETL)/data/sron/plumes/*/*.parquet','$(ETL)/data/imeo/plumes/*/*.parquet','$(ETL)/data/data-desk/plumes/*/*.parquet','$(ETL)/data/ghgsat/private/plumes/*/*.parquet'], union_by_name=true)) TO 'web/data/plumes.parquet' (FORMAT PARQUET, COMPRESSION ZSTD)"
+	cp $(ETL)/data/mapstand/private/licences/data.parquet web/data/licences.parquet
 	bash scripts/dist.sh $$(git rev-parse HEAD) local
 	npx wrangler pages deploy dist --project-name firedamp-private --branch main
 
@@ -32,7 +34,7 @@ serve: vendor
 
 # ── Cleanup ──────────────────────────────────────────────────────
 clean:
-	rm -f web/data/plumes.parquet
+	rm -f web/data/plumes.parquet web/data/licences.parquet
 
 clean-all: clean
 	rm -rf web/vendor

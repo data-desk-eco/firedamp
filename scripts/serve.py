@@ -1,4 +1,4 @@
-"""Dev server with HTTP Range request support (needed for FlatGeobuf range queries)."""
+"""Dev server with range requests."""
 
 import http.server
 import os

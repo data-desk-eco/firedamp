@@ -1,99 +1,88 @@
 firedamp
 ========
 
-Methane plume aggregator. Maps satellite-detected methane plumes
-alongside candidate O&G infrastructure sources, and shows a per-plume
-source attribution produced offline by a research agent (the ch4id
-sibling repo) and served from a static dataset.
+Methane plume aggregator. It maps satellite plume detections with candidate
+oil and gas infrastructure and shows source attributions produced offline by
+the ch4id repository.
 
 Live: https://research.datadesk.eco/firedamp/
 
 
-Plume sources
--------------
-- Carbon Mapper      satellite + aircraft hyperspectral (API)
-- IMEO / MARS        UNEP methane plume database (Azure zip)
-- SRON               TROPOMI weekly plume CSVs (FTP)
-- ch4id catalogue    OGIM + OSM + MapStand + GEM candidate sources
-- Data Desk          curated valid-only, from s2e canonical archive views
+Data
+----
+
+Public plume tables come directly from these provider paths in the CloudFerro
+archive:
+
+- `carbon-mapper/plumes/`
+- `imeo/plumes/`
+- `sron/plumes/`
+- `data-desk/plumes/`
+
+The public map lists and combines those tables in the browser. The private map
+also contains licensed GHGSat rows and MapStand licence polygons.
+
+Candidate infrastructure remains provider-owned. DuckDB-Wasm queries four
+Hilbert-sorted GeoParquet files by viewport:
+
+- `mapstand/features/data.parquet`
+- `ogim/features/data.parquet`
+- `osm/features/data.parquet`
+- `gem/features/data.parquet`
+
+Attributions use `data-desk/attributions/data.parquet`. The browser does not run
+an attribution model.
 
 
-Repo layout
+Repository layout
+-----------------
+
+```
+web/                    static ES-module application
+  config.js             sources, layers, filters, key, table, and detail panel
+  attribution.js        attribution rendering and wind statistic
+  candidates.js         provider GeoParquet viewport queries
+  licences.js           private MapStand GeoParquet viewport queries
+  vendor/               Cartograph, DuckDB-Wasm, MapLibre, design assets, fonts
+scripts/
+  dist.sh               Pages artifact
+  serve.py              development server
+  vendor.sh             shared dependency copy
+```
+
+The ETL repository retrieves and publishes the source tables. Firedamp reads
+them and does not maintain a second plume or feature aggregation.
+
+
+Development
 -----------
-A cartograph app (github.com/data-desk-eco/cartograph — the map
-system itself is documented there), vendored, with all firedamp
-behaviour in three app modules.
 
-    web/             static frontend (ES modules)
-      config.js        declarative cartograph config: sources, layers,
-                       filters, key, data table, detail panel
-      attribution.js   attribution lookup/render + wind stat
-      candidates.js    candidate infrastructure from the ch4id
-                       catalogue (FlatGeobuf bbox queries over GCS)
-      style.css
-      index.html
-      data/            plumes.parquet (built), attributions.parquet
-                       (committed source of truth, from ch4id)
-      vendor/          cartograph core, dd design dist, MapLibre,
-                       hyparquet, FlatGeobuf, Inter font
-    scripts/         build/deploy shell (the plume etl lives in ~/Tools/etl)
-      dist.sh          assembles the Pages artifact (cache-busted)
-      serve.py         dev server with HTTP Range for FlatGeobuf
-      vendor.sh
-    .github/workflows/
-      deploy.yml          Pages on push to main
+```
+make vendor
+make serve
+```
 
-
-Setup
------
-Requires Python (managed with uv); the feature catalogue rebuild
-additionally requires duckdb.
-
-    make vendor        vendor JS/CSS/fonts (cartograph, dd, ...)
-    make serve         dev server on :8000
-
-
-Pipelines
----------
-    make data             fetch CM + SRON + IMEO, build plumes.parquet
-    make features         ch4id catalogue -> features.fgb
-    make features-upload  upload features.fgb to GCS
-    make rebuild          full pipeline: data + features + upload
-
-
-Source attribution
-------------------
-Detail panels show a per-plume source attribution, produced offline
-by the ch4id sibling repo's agentic pipeline (sync push there exports
-the contract to views/attributions/data.parquet on the store). The browser
-reads it live, as it does plumes.parquet. There is no live in-browser
-LLM pipeline. See CLAUDE.md.
-
-
-URL scheme
-----------
-    Map position     #map=<zoom>/<lat>/<lon>
-    Plume permalink  #plume=<id>
+The local server runs on port 8000. A local `web/data/plumes.parquet` overrides
+the public plume tables. The private deployment also expects
+`web/data/licences.parquet`.
 
 
 Deployment
 ----------
-Push to main -> deploy.yml -> GitHub Pages. All data is served live
-from the central datadesk store (the CloudFerro bucket
-https://s3.WAW3-2.cloudferro.com/data-desk-archive): the etl repo
-rebuilds views/plumes/data.parquet there every 6 h and publishes the
-feature catalogue at web/features.fgb (range-requested).
 
-`make deploy-private` ships a Cloudflare Pages build (behind
-Cloudflare Access) that additionally includes the local-only GHGSat
-data — the only deploy that ever contains it. Data Desk's own
-detections (`make dd` — curated, archive-validated MARS-S2L /
-hypergas plumes) are public alongside the other sources.
+Pushing `main` deploys the public GitHub Pages site. It reads the provider
+tables live from:
 
-Both workflows assemble the Pages artifact via scripts/dist.sh — add
-any new web asset there.
+```
+https://s3.WAW3-2.cloudferro.com/data-desk-archive
+```
+
+`make deploy-private` builds the licensed plume and licence files, checks the
+Cloudflare Access gate, and deploys `firedamp-private`. Public and private builds
+use `scripts/dist.sh`; add new browser assets there.
 
 
 License
 -------
-Private repository. (c) The Data Desk.
+
+Private repository. Copyright Data Desk.

@@ -23,24 +23,23 @@ Pages; there is no backend service.
   osm.org or flying to the feature, "(confidence: …)" after the label,
   paragraph, evidence links), and the per-plume daily-mean surface wind stat
   (Open-Meteo archive).
-- `web/candidates.js` — candidate sources from the ch4id feature catalogue
-  (`web/features.fgb` in the central datadesk archive, ~12M points: OGIM + OSM +
-  MapStand + GEM), flatgeobuf
-  bbox queries over http range requests: viewport sweep past z13 (padded rect)
+- `web/candidates.js` — candidate sources from the provider-owned MapStand,
+  OGIM, OSM, and GEM Hilbert GeoParquet files. DuckDB-Wasm applies bounding-box
+  filters: viewport sweep past z13 (padded rect)
   + per-plume radius query on selection (3 km, 10 km for coarse sensors;
   nearest 300; attributed ids always kept, rect stretched to the assessed
   source point). dd waypoint markings, orange + larger when attributed, over an
   invisible fat hit layer carrying the hover/click popup. `normId` maps old
   `OSM:way/<id>` attribution ids to ch4id's short `OSM:w<id>` form.
-- `web/licences.js` — MapStand oil and gas licence areas (`web/licences.fgb`,
-  98,881 polygons), same flatgeobuf range-read shape: viewport sweep past z6,
+- `web/licences.js` — MapStand oil and gas licence areas in a private,
+  Hilbert-sorted GeoParquet file. It applies a viewport sweep past z6,
   purple boundary over a faint wash, beneath every plume layer, with a key
   toggle. **Private deploy only** — the acreage is licensed data, so the layer
-  is gated on `PRIVATE` in `config.js`. Known defect, upstream in etl's
-  `catalogue/mirror`: 55.7% of the polygons are rectangles collapsed to
+  is gated on `PRIVATE` in `config.js`. Known source defect: 55.7% of the
+  polygons are rectangles collapsed to
   triangles, because the WMS sweep lets GeoServer generalise geometry to its
   ~2 km render resolution. Position and extent are right, boundaries are not.
-- `web/vendor/` — committed: maplibre, hyparquet, inter, flatgeobuf, `dd/`
+- `web/vendor/` — committed: MapLibre, DuckDB-Wasm, Inter, `dd/`
   (design dist) and `cartograph/` (the generic core). Refresh with `make
   vendor` (calls cartograph's vendor.sh, which pulls dd from ~/Tools/design).
 
@@ -67,13 +66,13 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
 Firedamp serves its data from the shared datadesk CloudFerro bucket
 (`https://s3.WAW3-2.cloudferro.com/data-desk-archive`, the `data-bucket` meta;
 defined in `~/Tools/data-desk/infra/archive.sh`; layout in `data-desk/docs/archive/`).
-The `views/plumes/` aggregation and `web/features.fgb` catalogue are
-both produced by the `etl` repo; firedamp only reads them.
+The ETL repository publishes provider plume and feature tables. Firedamp lists
+and combines the plume tables and queries provider feature tables directly.
 
 ## Frontend data flow
 
-`config.js` prefetches `plumes.parquet` at parse, reads both parquets with
-hyparquet, and builds one geojson source: every plume whose id appears in
+`config.js` lists the public provider plume objects and reads them through
+DuckDB-Wasm. Every plume whose id appears in
 `attributions.parquet` gets `attr: 1`, which feeds the Attribution filter.
 The detail panel is cartograph-generic (title link to CM/SRON, coords,
 overlap nav across co-located plumes, `#plume=<id>` permalinks alongside
@@ -84,8 +83,8 @@ record and the candidate-source selection.
 ## Development
 
 ```
-make vendor        # vendor deps (cartograph, dd, maplibre, hyparquet, flatgeobuf, inter)
-make serve         # dev server on :8000 (HTTP Range for FlatGeobuf)
+make vendor        # vendor Cartograph, DuckDB-Wasm, MapLibre, design assets, and Inter
+make serve         # dev server on :8000
 ```
 
 Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
@@ -96,8 +95,8 @@ Dev (`localhost`) reads plumes locally if `web/data/plumes.parquet` exists
 - **Pages**: push to `main` runs `deploy.yml` — `scripts/dist.sh` (copies
   `web/*`, cache-busts entry points / app-local imports / parquet fetches with
   the git SHA — vendor modules stay unbusted so each resolves to one URL = one
-  module instance) and deploys. No plume data in the artifact: the site reads
-  `views/plumes/data.parquet` live from the archive (hourly cache-buster in the URL).
+  module instance) and deploys. No plume data is in the artifact: the site lists
+  the provider `plumes/` prefixes and reads them live from the archive.
 - **Plumes refresh**: `etl/plumes.yml` every 6h in the etl repo — no redeploy
   needed, the site reads the archive live.
 - **Private deploy**: `make deploy-private` — builds `plumes.parquet` via the
