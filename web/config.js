@@ -65,6 +65,16 @@ function overlayUrl(p) {
     return /^https?:/.test(p.overlay) ? p.overlay : `${bucket}/${p.overlay.replace(/^\//, '')}?v=viridis`;
 }
 
+// a plume id carries its provider's namespace since the archive took the
+// detection tables over: `c096faa6…` became `IMEO:c096faa6…`, and
+// `sron_20250927_65.61N_25.19E` became `SRON:20250927:65.61N:25.19E`. a link
+// somebody has already sent is the one thing a rename may not break, so the
+// permalink resolves on the namespace-free form too — one canonical spelling,
+// matched against the loaded features rather than a table of old ids.
+let loaded;   // the plume collection, kept for resolve()
+const canon = id => String(id).toLowerCase().replace(/_/g, ':').replace(/^[a-z]+:/, '');
+const resolve = id => loaded?.features.find(f => canon(f.properties.id) === canon(id));
+
 mount({
     title: 'Firedamp',
     badge: 'beta',
@@ -114,7 +124,7 @@ mount({
         const plumes = reads.flatMap(r => r.status === 'fulfilled' ? r.value : []);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
         // clusters only when far out — points take over from z5 (~UK-sized viewport)
-        return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,
+        return { plumes: { data: loaded = fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,
                            clusterProperties: { rate_sum: ['+', ['coalesce', ['get', 'rate_kg_h'], 0]] } } };
     },
 
@@ -224,7 +234,7 @@ mount({
 
     detail: {
         layers: [...SRCS, 'other'].map(src => `plumes-${src}`),
-        hashKey: 'plume', flyZoom: 15,
+        hashKey: 'plume', flyZoom: 15, resolve,
         title: p => ({ text: p.id || '—', href: sourceUrl(p) }),
         html: p => `
             <div class="fd-badges">

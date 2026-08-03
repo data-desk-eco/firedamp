@@ -79,7 +79,11 @@ The detail panel is cartograph-generic (title link to CM/SRON, coords,
 overlap nav across co-located plumes, `#plume=<id>` permalinks alongside
 `#map=`); firedamp's `config.js` detail template adds source/sector badges and a stats grid
 (rate, wind, satellite, date), and `onShow` fills in wind, the attribution
-record and the candidate-source selection.
+record and the candidate-source selection. Archive ids carry a provider
+namespace (`IMEO:<uuid>`, `SRON:<date>:<lat>:<lon>`, `DD:…`; Carbon Mapper's
+are bare), so `config.js` gives the panel a `resolve` that matches a permalink
+on the namespace-free spelling — links minted before the archive move still
+open their plume.
 
 ## Development
 

@@ -11,3 +11,4 @@ web/data/*.fgb
 promptlab/
 .claude/
 dist/
+web/vendor/.ok
