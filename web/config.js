@@ -23,12 +23,16 @@ const ATTRIBUTIONS = `${bucket}/data-desk/attributions/data.parquet`;
 
 const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
 const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
-// one pattern, not one url per provider: an enumerated list fails whole when a
-// single member is missing, so a provider that has not published yet took the
-// map down with it. a glob matches what is there, and picks up a new plume
-// provider without a change here. it stays a one-element list because that is
-// what gets union_by_name, which the extension columns need.
-const DETECTIONS = [`${bucket}/*/detections/data.parquet`];
+// one url per provider, read independently. the glob that used to be here had
+// its wildcard in the first path segment, so there was no literal prefix to
+// narrow a listing on: duckdb-wasm-lite paginated the whole bucket, `prefix=`
+// empty, before it read a byte of parquet. that is a page load's worth of round
+// trips on a slow connection.
+//
+// reading each separately is what the glob was for — a provider that has not
+// published yet takes only itself down, not the map. see sources().
+const DETECTIONS = ['carbon-mapper', 'imeo', 'sron', 'data-desk']
+    .map(p => `${bucket}/${p}/detections/data.parquet`);
 const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
 const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
@@ -92,10 +96,17 @@ mount({
         // added here, not in ready(), so the key's visibility toggle has a
         // layer to read — and so licence acreage sits beneath every plume
         if (PRIVATE) addLicenceLayers(map, sql);
-        const [plumes, attribs] = await Promise.all([
-            read(PRIVATE ? 'plumes' : DETECTIONS, { columns: PLUME_COLS, where: PLUME_WHERE }),
+        // allSettled, so a provider whose object is missing costs its own rows
+        // and nothing else — the property the glob used to give us
+        const opts = { columns: PLUME_COLS, where: PLUME_WHERE };
+        const [reads, attribs] = await Promise.all([
+            PRIVATE ? Promise.allSettled([read('plumes', opts)])
+                    : Promise.allSettled(DETECTIONS.map(u => read(u, opts))),
             loadAttributions(),
         ]);
+        for (const r of reads)
+            if (r.status === 'rejected') console.warn('a detections source did not load:', r.reason);
+        const plumes = reads.flatMap(r => r.status === 'fulfilled' ? r.value : []);
         for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
         // clusters only when far out — points take over from z5 (~UK-sized viewport)
         return { plumes: { data: fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,

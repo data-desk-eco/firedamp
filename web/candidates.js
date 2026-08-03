@@ -10,10 +10,13 @@ import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml, fmtMetres, haversineM } from './vendor/cartograph/util.js';
 
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
-// one pattern, not one url per provider: an enumerated list fails whole when a
-// single member is missing, so a provider that has not published yet would take
-// the whole candidate layer with it
-const TABLES = [`${bucket}/*/infrastructure/data.parquet`];
+// one url per provider, swept independently. the glob that used to be here put
+// its wildcard in the first path segment, which left duckdb-wasm-lite no literal
+// prefix to narrow on: it paginated the entire bucket before reading a byte.
+// separate queries keep the property the glob was for, that a provider which has
+// not published yet costs only its own rows.
+const TABLES = ['gem', 'ogim', 'mapstand', 'osm']
+    .map(p => `${bucket}/${p}/infrastructure/data.parquet`);
 const MIN_ZOOM = 13;
 const MAX_SCAN = 4000, MAX_SHOW = 300;
 const PT = dd.adjusted.white, HL = dd.adjusted.orange;
@@ -26,25 +29,23 @@ let map, query;
 const literal = value => `'${value.replaceAll("'", "''")}'`;
 
 async function fetchRect(rect) {
-    try {
-        const rows = await query(`
-            select * exclude (geometry, cell)
-            from read_parquet([${TABLES.map(literal).join(', ')}], union_by_name = true)
-            where lon between ${Number(rect.minX)} and ${Number(rect.maxX)}
-              and lat between ${Number(rect.minY)} and ${Number(rect.maxY)}
-              and kind not in ('pipeline', 'field', 'oilfield', 'gas_field',
-                               'offshore_field', 'licence_area', 'licence_block')
-            limit ${MAX_SCAN}
-        `);
-        return rows.map(properties => ({
+    const settled = await Promise.allSettled(TABLES.map(table => query(`
+        select * exclude (geometry, cell)
+        from read_parquet(${literal(table)})
+        where lon between ${Number(rect.minX)} and ${Number(rect.maxX)}
+          and lat between ${Number(rect.minY)} and ${Number(rect.maxY)}
+          and kind not in ('pipeline', 'field', 'oilfield', 'gas_field',
+                           'offshore_field', 'licence_area', 'licence_block')
+        limit ${MAX_SCAN}
+    `)));
+    for (const r of settled)
+        if (r.status === 'rejected') console.warn('a candidate source did not load:', r.reason);
+    return settled.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+        .map(properties => ({
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [properties.lon, properties.lat] },
             properties,
         }));
-    } catch (err) {
-        console.warn('feature GeoParquet query failed:', err);
-        return [];
-    }
 }
 
 // ── state: viewport sweep + per-plume selection, merged for display ──
