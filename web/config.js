@@ -20,7 +20,7 @@ const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
 // the archive states which providers publish `detections` and `infrastructure`,
 // so neither this file nor candidates.js carries a provider list. one fetch of a
 // ~640 byte object, started here at module parse so it overlaps the duckdb boot.
-initArchive(bucket);
+initArchive(bucket).catch(() => {});   // the real handler is in sources()
 const PLUMES = PRIVATE
     ? 'data/plumes.parquet' : null;
 // attributions live on the store too (ch4id `sync push` exports the contract)

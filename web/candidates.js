@@ -27,7 +27,7 @@ const literal = value => `'${value.replaceAll("'", "''")}'`;
 // one query per object, swept independently, which keeps the property the glob
 // was for: a provider that has not published yet costs only its own rows
 async function fetchRect(rect) {
-    const settled = await Promise.allSettled((await objects('infrastructure')).map(table => query(`
+    const settled = await Promise.allSettled((await objects('infrastructure').catch(() => [])).map(table => query(`
         select * exclude (geometry, cell)
         from read_parquet(${literal(table)})
         where lon between ${Number(rect.minX)} and ${Number(rect.maxX)}
