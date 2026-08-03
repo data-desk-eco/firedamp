@@ -1,4 +1,7 @@
-// Candidate sources from the four provider-owned `infrastructure` tables.
+// Candidate sources from the provider-owned `infrastructure` tables. Which
+// providers publish one is the archive's statement, not this file's, and a
+// candidate feature carries no per-provider styling at all — so a fifth source
+// appears here on its own.
 // DuckDB applies the viewport bounds against Hilbert-clustered lon/lat row
 // groups. Loaded optimistically for the viewport
 // past MIN_ZOOM, plus a radius query around the selected plume with the
@@ -7,16 +10,9 @@
 
 import { ensureMark, hoverPopup } from './vendor/cartograph/shell.js';
 import { map as dd } from './vendor/dd/palette.js';
+import { objects } from './vendor/cartograph/archive.js';
 import { escapeHtml, fmtMetres, haversineM } from './vendor/cartograph/util.js';
 
-const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
-// one url per provider, swept independently. the glob that used to be here put
-// its wildcard in the first path segment, which left duckdb-wasm-lite no literal
-// prefix to narrow on: it paginated the entire bucket before reading a byte.
-// separate queries keep the property the glob was for, that a provider which has
-// not published yet costs only its own rows.
-const TABLES = ['gem', 'ogim', 'mapstand', 'osm']
-    .map(p => `${bucket}/${p}/infrastructure/data.parquet`);
 const MIN_ZOOM = 13;
 const MAX_SCAN = 4000, MAX_SHOW = 300;
 const PT = dd.adjusted.white, HL = dd.adjusted.orange;
@@ -28,8 +24,10 @@ let map, query;
 
 const literal = value => `'${value.replaceAll("'", "''")}'`;
 
+// one query per object, swept independently, which keeps the property the glob
+// was for: a provider that has not published yet costs only its own rows
 async function fetchRect(rect) {
-    const settled = await Promise.allSettled(TABLES.map(table => query(`
+    const settled = await Promise.allSettled((await objects('infrastructure')).map(table => query(`
         select * exclude (geometry, cell)
         from read_parquet(${literal(table)})
         where lon between ${Number(rect.minX)} and ${Number(rect.maxX)}

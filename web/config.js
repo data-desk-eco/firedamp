@@ -3,6 +3,7 @@
 // candidates.js (the provider-owned `infrastructure` tables).
 
 import { mount } from './vendor/cartograph/app.js';
+import { initArchive, objects } from './vendor/cartograph/archive.js';
 import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml } from './vendor/cartograph/util.js';
 import { loadAttributions, enrich } from './attribution.js';
@@ -16,25 +17,24 @@ import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay
 const PRIVATE = location.hostname === 'localhost' || document.querySelector('meta[name="private"]');
 
 const bucket = document.querySelector('meta[name="data-bucket"]')?.content;
+// the archive states which providers publish `detections` and `infrastructure`,
+// so neither this file nor candidates.js carries a provider list. one fetch of a
+// ~640 byte object, started here at module parse so it overlaps the duckdb boot.
+initArchive(bucket);
 const PLUMES = PRIVATE
     ? 'data/plumes.parquet' : null;
 // attributions live on the store too (ch4id `sync push` exports the contract)
 const ATTRIBUTIONS = `${bucket}/data-desk/attributions/data.parquet`;
 
-const SRCS = ['carbon-mapper', 'imeo', 'sron', 'ghgsat', 'data-desk'];
-const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
-// one url per provider, read independently. the glob that used to be here had
-// its wildcard in the first path segment, so there was no literal prefix to
-// narrow a listing on: duckdb-wasm-lite paginated the whole bucket, `prefix=`
-// empty, before it read a byte of parquet. that is a page load's worth of round
-// trips on a slow connection.
-//
-// reading each separately is what the glob was for — a provider that has not
-// published yet takes only itself down, not the map. see sources().
-const DETECTIONS = ['carbon-mapper', 'imeo', 'sron', 'data-desk']
-    .map(p => `${bucket}/${p}/detections/data.parquet`);
+// a colour and a label are editorial, so they are stated here. which providers
+// exist is not, so it is not: a provider the archive adds lands on the map in
+// white, under its own name, with no edit to this file.
 const COLOR = { 'carbon-mapper': dd.adjusted.cyan, imeo: dd.adjusted.magenta, sron: dd.adjusted.yellow, ghgsat: dd.adjusted.orange, 'data-desk': dd.adjusted.green };
 const LABEL = { 'carbon-mapper': 'Carbon Mapper', imeo: 'IMEO / MARS', sron: 'SRON', ghgsat: 'GHGSat', 'data-desk': 'Data Desk' };
+const SRCS = Object.keys(COLOR);
+const PRIVATE_SRCS = new Set(['ghgsat']);   // only ever in the private deploy's baked parquet
+const color = p => COLOR[p] ?? dd.adjusted.white;
+const label = p => LABEL[p] ?? p;
 const SECTOR = { og: 'Oil & Gas', coal: 'Coal', waste: 'Waste', other: 'Other' };
 // everything the map, key, table and detail panel read — the projection stays
 // narrow because every column rides into 70k geojson features
@@ -96,12 +96,17 @@ mount({
         // added here, not in ready(), so the key's visibility toggle has a
         // layer to read — and so licence acreage sits beneath every plume
         if (PRIVATE) addLicenceLayers(map, sql);
+        // one object per provider, named from the index and read independently:
         // allSettled, so a provider whose object is missing costs its own rows
-        // and nothing else — the property the glob used to give us
+        // and nothing else — the property the glob used to give us. eog is not
+        // among them because the index says its detections are partitioned, not
+        // because this file knows anything about eog.
         const opts = { columns: PLUME_COLS, where: PLUME_WHERE };
         const [reads, attribs] = await Promise.all([
             PRIVATE ? Promise.allSettled([read('plumes', opts)])
-                    : Promise.allSettled(DETECTIONS.map(u => read(u, opts))),
+                    : objects('detections')
+                        .catch(err => (console.warn('archive index:', err), []))
+                        .then(us => Promise.allSettled(us.map(u => read(u, opts)))),
             loadAttributions(),
         ]);
         for (const r of reads)
@@ -114,12 +119,17 @@ mount({
     },
 
     layers: [
-        ...SRCS.map(src => ({
-            id: `plumes-${src}`, type: 'symbol', source: 'plumes',
-            filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'provider'], src]],
-            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${LABEL[p.provider]}${p.date ? ' · ' + p.date : ''}`,
+        // one layer per styled provider, plus a catch-all: rows the index brings
+        // in from a provider nobody has coloured yet are drawn in white under
+        // their own name, rather than loaded and left invisible
+        ...[...SRCS, null].map(src => ({
+            id: `plumes-${src ?? 'other'}`, type: 'symbol', source: 'plumes',
+            filter: ['all', ['!', ['has', 'point_count']], src
+                ? ['==', ['get', 'provider'], src]
+                : ['!', ['in', ['get', 'provider'], ['literal', SRCS]]]],
+            hover: p => `<span class="dd-title">${rateT(p) ? `${rateT(p)} t/hr` : 'rate n/a'}</span><br>${label(p.provider)}${p.date ? ' · ' + p.date : ''}`,
             layout: {
-                'icon-image': `flare-${COLOR[src]}`,
+                'icon-image': `flare-${color(src)}`,
                 'icon-size': ICON,
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
@@ -181,8 +191,10 @@ mount({
         {
             // source rows filter the data too, so clusters re-form without them
             label: 'Source',
-            rows: SRCS.filter(src => !PRIVATE_SRCS.has(src) || ctx.sources.plumes.features.some(f => f.properties.provider === src))
-                .map(src => ({ swatch: { mark: 'flare', color: COLOR[src] }, label: LABEL[src], pred: p => p.provider === src })),
+            rows: [...SRCS, ...new Set(ctx.sources.plumes.features
+                    .map(f => f.properties.provider).filter(p => !SRCS.includes(p)))]
+                .filter(src => !PRIVATE_SRCS.has(src) || ctx.sources.plumes.features.some(f => f.properties.provider === src))
+                .map(src => ({ swatch: { mark: 'flare', color: color(src) }, label: label(src), pred: p => p.provider === src })),
         },
         // layer toggle, not a data filter: licence areas aren't plumes
         ...(PRIVATE ? [{
@@ -211,12 +223,12 @@ mount({
     ],
 
     detail: {
-        layers: SRCS.map(src => `plumes-${src}`),
+        layers: [...SRCS, 'other'].map(src => `plumes-${src}`),
         hashKey: 'plume', flyZoom: 15,
         title: p => ({ text: p.id || '—', href: sourceUrl(p) }),
         html: p => `
             <div class="fd-badges">
-                <span style="color:${COLOR[p.provider]}">${LABEL[p.provider] || escapeHtml(p.provider)}</span>
+                <span style="color:${color(p.provider)}">${escapeHtml(label(p.provider))}</span>
                 ${p.sector ? `<span class="dd-secondary">${SECTOR[p.sector] || escapeHtml(p.sector)}</span>` : ''}
             </div>
             <div class="fd-stats">
