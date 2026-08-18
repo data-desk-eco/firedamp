@@ -6,7 +6,7 @@ import { mount } from './vendor/cartograph/app.js';
 import { initArchive, objects } from './vendor/cartograph/archive.js';
 import { map as dd } from './vendor/dd/palette.js';
 import { escapeHtml } from './vendor/cartograph/util.js';
-import { loadAttributions, enrich } from './attribution.js';
+import { canon, loadAttributions, enrich } from './attribution.js';
 import { addCandidateLayers, clearSelection } from './candidates.js';
 import { LICENCE_LAYERS, addLicenceLayers } from './licences.js';
 import { clearProbabilityOverlay, initProbabilityOverlay, showProbabilityOverlay } from './overlay.js';
@@ -69,14 +69,10 @@ function overlayUrl(p) {
     return /^https?:/.test(p.overlay) ? p.overlay : `${bucket}/${p.overlay.replace(/^\//, '')}?v=viridis`;
 }
 
-// a plume id carries its provider's namespace since the archive took the
-// detection tables over: `c096faa6…` became `IMEO:c096faa6…`, and
-// `sron_20250927_65.61N_25.19E` became `SRON:20250927:65.61N:25.19E`. a link
-// somebody has already sent is the one thing a rename may not break, so the
-// permalink resolves on the namespace-free form too — one canonical spelling,
+// a link somebody has already sent is the one thing a rename may not break, so
+// the permalink resolves on the namespace-free spelling `canon()` makes --
 // matched against the loaded features rather than a table of old ids.
 let loaded;   // the plume collection, kept for resolve()
-const canon = id => String(id).toLowerCase().replace(/_/g, ':').replace(/^[a-z]+:/, '');
 const resolve = id => loaded?.features.find(f => canon(f.properties.id) === canon(id));
 
 mount({
@@ -126,7 +122,7 @@ mount({
         for (const r of reads)
             if (r.status === 'rejected') console.warn('a detections source did not load:', r.reason);
         const plumes = reads.flatMap(r => r.status === 'fulfilled' ? r.value : []);
-        for (const p of plumes) if (attribs.has(p.id)) p.attr = 1;
+        for (const p of plumes) if (attribs.has(canon(p.id))) p.attr = 1;
         // clusters only when far out — points take over from z5 (~UK-sized viewport)
         return { plumes: { data: loaded = fc(plumes), cluster: true, clusterMaxZoom: 4, clusterRadius: 30,
                            clusterProperties: { rate_sum: ['+', ['coalesce', ['get', 'rate_kg_h'], 0]] } } };

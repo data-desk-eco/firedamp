@@ -9,7 +9,17 @@ import { selectPlume } from './candidates.js';
 
 let requestId = 0;
 
-// full table into a Map at boot: ~2k records, keyed by plume display id.
+// a plume id carries its provider's namespace since the archive took the
+// detection tables over: `c096faa6…` became `IMEO:c096faa6…`, and
+// `sron_20250927_65.61N_25.19E` became `SRON:20250927:65.61N:25.19E`. the
+// archive is still renaming -- carbon mapper's ids are gaining the `CM:` the
+// others have carried all along -- and this table and the detections it joins
+// are two objects that cannot be replaced in the same instant. so the join is
+// on the namespace-free spelling, which both sides agree on before, during and
+// after any such rename. config.js resolves a permalink the same way.
+export const canon = id => String(id).toLowerCase().replace(/_/g, ':').replace(/^[a-z]+:/, '');
+
+// full table into a Map at boot: ~2k records, keyed by that spelling.
 // config.js also reads the key set to mark attributed plumes.
 let attribs = null;
 export function loadAttributions() {
@@ -17,7 +27,7 @@ export function loadAttributions() {
         try {
             return new Map((await read('attributions', { columns: [
                 'id', 'source_label', 'attributed_ids', 'lat', 'lon', 'confidence',
-                'paragraph', 'evidence'] })).map(r => [r.id, r]));
+                'paragraph', 'evidence'] })).map(r => [canon(r.id), r]));
         } catch (err) {
             console.warn('attributions unavailable:', err);
             return new Map();
@@ -106,7 +116,7 @@ export function enrich(p) {
     fetchWind(lat, lon, p.date).then(w => { if (requestId === id) renderWind(w); });
 
     (async () => {
-        const rec = (await loadAttributions()).get(p.id) || null;
+        const rec = (await loadAttributions()).get(canon(p.id)) || null;
         if (requestId !== id) return;
         const el = document.getElementById('analysis');
         if (el) {
