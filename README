@@ -24,12 +24,14 @@ with `kind = 'plume'`. The private map also contains licensed GHGSat rows and
 MapStand licence polygons.
 
 Candidate infrastructure remains provider-owned. DuckDB-Wasm queries four
-Hilbert-sorted GeoParquet files by viewport:
+Hilbert-sorted GeoParquet tables by viewport, each partitioned on `cell`
+(h3 res 1). The browser names the cells under the viewport; other readers glob
+`s3://…/<provider>/infrastructure/**/data.parquet` with an anonymous secret:
 
-- `mapstand/infrastructure/data.parquet`
-- `ogim/infrastructure/data.parquet`
-- `osm/infrastructure/data.parquet`
-- `gem/infrastructure/data.parquet`
+- `mapstand/infrastructure/**/data.parquet`
+- `ogim/infrastructure/**/data.parquet`
+- `osm/infrastructure/**/data.parquet`
+- `gem/infrastructure/**/data.parquet`
 
 Attributions use `data-desk/attributions/data.parquet`. The browser does not run
 an attribution model.

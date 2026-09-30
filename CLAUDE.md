@@ -58,8 +58,9 @@ firedamp specifics out of it (change cartograph and re-vendor instead).
   does not trust, so `config.js` reads `valid = true` itself. Public like every
   other source. Detail-panel title links to the plume preview under
   `data-desk/assets/`
-- **Infrastructure tables** — OGIM, OSM, MapStand and GEM, one
-  `<provider>/infrastructure/data.parquet` each, ~15M features in total
+- **Infrastructure tables** — OGIM, OSM, MapStand and GEM, each partitioned on
+  `cell` (h3 res 1) as `<provider>/infrastructure/cell=<cell>/data.parquet`,
+  ~15M features in total
 
 ## Central data archive
 
@@ -68,7 +69,8 @@ Firedamp serves its data from the shared datadesk CloudFerro bucket
 defined in `~/Tools/data-desk/infra/archive.sh`; layout in `data-desk/docs/archive/`).
 The ETL repository publishes the provider `detections/` and `infrastructure/`
 tables. Firedamp reads four fixed `<provider>/detections/data.parquet` objects
-filtered to `kind = 'plume'`, and queries the infrastructure tables directly.
+filtered to `kind = 'plume'`, and queries the infrastructure tables directly:
+`candidates.js` names the `cell=` objects under a rect with vendored h3-js.
 
 ## Frontend data flow
 
